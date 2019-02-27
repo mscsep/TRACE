@@ -23,5 +23,11 @@ osf_download(TRACE)
 
 # Load file in envirionment.
 library(readr)
-
 TRACE_dataset <- read_delim("TRACE_dataset.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+
+
+
+###
+# library("tibble")
+# a<-data.frame(TRACE_dataset)
+
