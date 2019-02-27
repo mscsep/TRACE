@@ -14,7 +14,7 @@ library(osfr)
  osf_auth()
 
 # Retrieve OSF file(s)
-TRACE<- osf_retrieve_file("9uryb")
+TRACE<- osf_retrieve_file("zwbxg")
 # Open dataset with browser
 osf_open(TRACE) 
 
@@ -22,8 +22,6 @@ osf_open(TRACE)
 osf_download(TRACE) 
 
 # Load file in envirionment.
-Trace_OSF_Test <- read_delim("Trace_OSF_Test.csv", ";", escape_double = FALSE, trim_ws = TRUE)
+library(readr)
 
-
-
-
+TRACE_dataset <- read_delim("TRACE_dataset.csv", ";", escape_double = FALSE, trim_ws = TRUE)
