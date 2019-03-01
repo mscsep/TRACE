@@ -48,21 +48,34 @@ which(is.na(dat$comparison_control))
 
 # change stats from factors to numbers
 stat.vars <- c("n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
-change_num <- function(x) {
-  y <- as.character(x)
-  y <- as.numeric(sub(",", ".", y, fixed = TRUE))
-  y
-}
 
-for (col in stat.vars) {
-  dat[,col] <- as.numeric(sub(",", ".", as.character(dat[,col]), fixed = TRUE))
-}
+str(dat)
+
+dat[,c("n_e")]<- as.numeric(sub(",", ".", as.character(dat[,"n_e"]), fixed = TRUE))
+dat[,c("n_c")]<- as.numeric(sub(",", ".", as.character(dat[,"n_c"]), fixed = TRUE))
+
+dat[,c("mean_c")]<- sub("-", "-", as.character(dat[,"mean_c"]), fixed = TRUE) # Error -
+dat[,c("mean_c")]<- sub("%", "", dat[,"mean_c"], fixed = TRUE)
+dat[,c("mean_c")]<- as.numeric(sub(",", ".", dat[,"mean_c"], fixed = TRUE)) # Error -
+
+dat[,c("mean_e")]<- sub("-", "-", as.character(dat[,"mean_e"]), fixed = TRUE) # Error -
+dat[,c("mean_e")]<- sub("%", "", dat[,"mean_e"], fixed = TRUE)
+dat[,c("mean_e")]<- as.numeric(sub(",", ".", dat[,"mean_e"], fixed = TRUE)) # Error -
+
+
+
+dat[,c("sd_c")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_c"]), fixed = TRUE))
+dat[,c("sd_e")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_e"]), fixed = TRUE))
+
+dat[,c("sem_c")]<- as.numeric(sub(",", ".", as.character(dat[,"sem_c"]), fixed = TRUE))
+dat[,c("sem_e")]<- as.numeric(sub(",", ".", as.character(dat[,"sem_e"]), fixed = TRUE))
 
 
 
 
-factor.vars<-c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control")
-dat[,factor.vars] = lapply(dat[factor.vars], as.factor)
+
+#factor.vars<-c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control")
+#dat[,factor.vars] = lapply(dat[factor.vars], as.factor)
 
 #which(is.na(dat$sd_e))
 str(dat)
@@ -71,6 +84,7 @@ str(dat)
 # Calculate sd from sem
 dat$sd_e <- ifelse(is.na(dat$sd_e), (dat$sem_e * sqrt(dat$n_e)), dat$sd_e)
 dat$sd_c <- ifelse(is.na(dat$sd_c), (dat$sem_c * sqrt(dat$n_c)), dat$sd_c)
+
 # Check Missing values
 which(is.na(dat$sd_e))
 which(is.na(dat$n_e))
@@ -80,6 +94,9 @@ which(is.na(dat$sd_c)) # erblijven missing na's over...
 unique(dat[which(is.na(dat$sd_c)),"id"]) # Check of dit overeenkomt.. Klopt.
 
 
+
+# exclude missing values
+dat <- dat[-which(is.na(dat$sd_c)),]
 
 
 
@@ -126,14 +143,14 @@ data$directionGrouped <- as.factor(data$directionGrouped)
 
 # Calculation effect size and checks --------------------------------------
 ##calculate effect size
-data <- escalc(m1i = meanE, sd1i = sdE, n1i = nE, 
-               m2i = meanC, sd2i = sdC, n2i = nC, 
+dat <- escalc(m1i = mean_e, sd1i = sd_e, n1i = n_e, 
+               m2i = mean_c, sd2i = sd_c, n2i = n_c, 
                measure = "SMD", method = "HE",
-               data = data)
+               data = dat)
 
 #dat$yi <- ifelse(data$each %% 2 == 0, dat$yi * -1, dat$yi) ##for blinding
 
-data$yi <- data$yi * data$multiply #give all effect sizes the correct direction
+dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction
 
 
 
@@ -141,6 +158,6 @@ data$yi <- data$yi * data$multiply #give all effect sizes the correct direction
 
 data <- data %>% droplevels() #drop missing levels
 
-save(data, file = "data.RData") #save
+save(dat, file = "data.RData") #save
 
 

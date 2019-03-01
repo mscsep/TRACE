@@ -7,14 +7,12 @@
 ## for questions, contact Valeria @ v.bonapersona-2@umcutrecht.nl
 
 # Environment Preparation -------------------------------------------------
-rm(list = ls()) #clean environment
+#rm(list = ls()) #clean environment
 
 #libraries
 library(dplyr) #general
 library(ggplot2) #for graphs
 library(metafor) #for meta-analysis
-library(caret) #for crossvalidation
-library(metaforest) #for exploratory analysis
 
 #import dataset (already processed with datasetPreparation)
 
@@ -24,18 +22,10 @@ load("data.RData")
 # General -----------------------------------------------------
 #exclusion studies analysed only at a systematic review level
 data %>%
-  filter(domain != "noMeta") %>%
+  filter(!comparison_control %in% c("C", "F")) %>%
   droplevels() -> dat
 
-##effect size general information
-hist(dat$yi, breaks = 100) 
-
-mean(dat$yi) 
-sd(dat$yi) 
-min(dat$yi) 
-max(dat$yi) 
-
-length(dat[dat$yi > -2 & dat$yi < 2,]$each)/length(dat$yi) 
+dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
 
 
 ##sample sizes general information
@@ -99,19 +89,21 @@ data %>%
 
 #dat %>% filter(enough == 1) -> dat 
 
+dat$each <- c(1:nrow(dat))
 
 # Model -------------------------------------------------------------------
+dat %>% filter(comparison_control == c("A", "D")) ->  dat2#use E as a sensitivity/qualitative description
 
 mod <- rma.mv(yi, vi,
-              random = list(~1 | each, ~1 | exp),
-              mods   = ~domain:hit2Grouped - 1 ,
+              random = list(~1 | each, ~1 | id_exp),
+              mods   = ~subject:valence - 1,
               method = "REML",
               data = dat)
 summary(mod)
 
 ##RQ 1: Effects of ELS on behavioral domains
 
-anxiety    <- anova(mod, L = c(.5,0,0,0,
+    <- anova(mod, L = c(.5,0,0,0,
                                .5,0,0,0)) 
 sLearning  <- anova(mod, L = c(0,.5,0,0,
                                0,.5,0,0))
