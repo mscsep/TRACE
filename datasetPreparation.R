@@ -1,6 +1,4 @@
 # Environment preparation -------------------------------------------------
-
-
 rm(list = ls()) #clean environment
 
 #Libraries
@@ -10,7 +8,7 @@ library(ggplot2) #for function cutnumber
 
 
 #import full dataset 
-data <- read.csv("TRACE_v1_3_19.csv", sep = ";", na.strings = c(" ", "-"))
+data <- read.csv("TRACE_v1_3_19.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
 
 
 # Select relevant parts of dataset ----------------------------------------
@@ -37,21 +35,31 @@ dat <- data[, var]
 names(dat) <- c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control",
                 "n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
 
-dat <- dat %>% filter(include == 1)
+dat <- dat %>% filter(include == 1) %>% droplevels()
 
 # Recode animals
-dat$subject <- ifelse (dat$subject<= 3, "Human", "Animal")
+dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 
 # check missing of all variables of interst
- which(is.na(dat$subject))
+which(is.na(dat$subject))
 which(is.na(dat$id))
 which(is.na(dat$comparison_control))
 
 
 # change stats from factors to numbers
-stat.vars<-c("n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
-dat[,stat.vars] = lapply(dat[stat.vars], as.integer)
-dat[,stat.vars] = lapply(dat[stat.vars], as.numeric) # Werkt niet krijg je 2'en ipv na's
+stat.vars <- c("n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
+change_num <- function(x) {
+  y <- as.character(x)
+  y <- as.numeric(sub(",", ".", y, fixed = TRUE))
+  y
+}
+
+for (col in stat.vars) {
+  dat[,col] <- as.numeric(sub(",", ".", as.character(dat[,col]), fixed = TRUE))
+}
+
+
+
 
 factor.vars<-c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control")
 dat[,factor.vars] = lapply(dat[factor.vars], as.factor)
