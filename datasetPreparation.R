@@ -99,8 +99,8 @@ dat <- dat[-which(is.na(dat$sd_c)),]
 
 # Check frequenties -------------------------------------------------------
 summarise(dat)
-summarise( group_by(dat,subject, valence, comparison_control))
-group_by(dat,subject, valence)
+summarise(dat, subject, valence, comparison_control, group_by(id))
+group_by(dat, valence)
          
          
 # Corrections to statistical measurements -------------------------------------------------------------
