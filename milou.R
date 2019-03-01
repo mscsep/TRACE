@@ -9,7 +9,7 @@ library(ggplot2) #for function cutnumber
 
 
 #import full dataset 
-data <- read.csv("TRACE_v1_3_19.csv", sep = ";") 
+data <- read.csv("TRACE_v1_3_19.csv", sep = ";", na.strings = c(" ", "-"))
 
 
 # Select relevant parts of dataset ----------------------------------------
@@ -18,9 +18,9 @@ var <- c("Reference_PMID",
          "MetaData_FINALinclORexcl..0..checked.excluded..1...included.MemoryFC...2...other_Domein.",
          "Data_Subjects_background..0.humanmixed.Civiel.Military...1.ActiveDutyMilitary..2.Veteran..3.Civilian..4.Rat..5.Mice.",
          "MetaData_MemoryValence.1.trauma..2.non_trauma_neutral..3.non_trauma_emotional..4.non.trauma_fearfull.",
-          "OmpoolFactor_zodatHogereScoresISBeterePerformance",
-          "Comparison",
-          "ID_Experimental.group",
+         "OmpoolFactor_zodatHogereScoresISBeterePerformance",
+         "Comparison",
+         "ID_Experimental.group",
          "ID_Control.group",
          "Data_Subjects_n_ptsd",
          "Data_Outcome1_M",
@@ -29,7 +29,7 @@ var <- c("Reference_PMID",
          "Data_Subjects_n_control",
          "Data_Outcome2_M",
          "Data_Outcome2_SD",
-          "Data_Outcome2_SEM")
+         "Data_Outcome2_SEM")
 
 dat <- data[, var]
 
@@ -38,13 +38,40 @@ names(dat) <- c("id", "include", "subject", "valence", "recode", "comparison_con
 
 dat <- dat %>% filter(include == 1)
 
-str(dat)
+# Recode animals
+dat$subject <- ifelse (dat$subject<= 3, "Human", "Animal")
 
 # check missing of all variables of interst
-
+ which(is.na(dat$subject))
+which(is.na(dat$id))
+which(is.na(dat$comparison_control))
 
 
 # change stats from factors to numbers
+stat.vars<-c("n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
+dat[,stat.vars] = lapply(dat[stat.vars], as.integer)
+dat[,stat.vars] = lapply(dat[stat.vars], as.numeric) # Werkt niet krijg je 2'en ipv na's
+
+factor.vars<-c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control")
+dat[,factor.vars] = lapply(dat[factor.vars], as.factor)
+
+#which(is.na(dat$sd_e))
+str(dat)
+
+
+# Calculate sd from sem
+dat$sd_e <- ifelse(is.na(dat$sd_e), (dat$sem_e * sqrt(dat$n_e)), dat$sd_e)
+dat$sd_c <- ifelse(is.na(dat$sd_c), (dat$sem_c * sqrt(dat$n_c)), dat$sd_c)
+# Check Missing values
+which(is.na(dat$sd_e))
+which(is.na(dat$n_e))
+which(is.na(dat$sd_c)) # erblijven missing na's over...
+
+# Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
+unique(dat[which(is.na(dat$sd_c)),"id"]) # Check of dit overeenkomt.. Klopt.
+
+
+
 
 
 
