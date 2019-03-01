@@ -63,7 +63,6 @@ dat[,c("mean_e")]<- sub("%", "", dat[,"mean_e"], fixed = TRUE)
 dat[,c("mean_e")]<- as.numeric(sub(",", ".", dat[,"mean_e"], fixed = TRUE)) # Error -
 
 
-
 dat[,c("sd_c")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_c"]), fixed = TRUE))
 dat[,c("sd_e")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_e"]), fixed = TRUE))
 
@@ -93,14 +92,17 @@ which(is.na(dat$sd_c)) # erblijven missing na's over...
 # Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
 unique(dat[which(is.na(dat$sd_c)),"id"]) # Check of dit overeenkomt.. Klopt.
 
-
-
 # exclude missing values
 dat <- dat[-which(is.na(dat$sd_c)),]
 
 
 
-
+# Check frequenties -------------------------------------------------------
+summarise(dat)
+summarise( group_by(dat,subject, valence, comparison_control))
+group_by(dat,subject, valence)
+         
+         
 # Corrections to statistical measurements -------------------------------------------------------------
 #N correction
 data$nC <- ifelse(!is.na(data$cut_nC), data$nC/2, data$nC) ##cut N.C in half if same control used by two experimental groups
