@@ -8,19 +8,23 @@ library(ggplot2) #for function cutnumber
 
 
 #import full dataset 
-data <- read.csv("TRACE_v1_3_19.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+#data <- read.csv("Datasheet_TRACE_v4.3.19_cleaned.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+library(readxl)
+data <- read_excel("~/Desktop/TRACE Dataset v4.3.19.xlsx", sheet = "Review PTSD Cognition Data Extr", na = "-") # Update ref. to dataset desktop milou
 
 
 # Select relevant parts of dataset ----------------------------------------
 ##prepare your dataset
 var <- c("Reference_PMID",
-         "MetaData_FINALinclORexcl..0..checked.excluded..1...included.MemoryFC...2...other_Domein.",
-         "Data_Subjects_background..0.humanmixed.Civiel.Military...1.ActiveDutyMilitary..2.Veteran..3.Civilian..4.Rat..5.Mice.",
-         "MetaData_MemoryValence.1.trauma..2.non_trauma_neutral..3.non_trauma_emotional..4.non.trauma_fearfull.",
-         "OmpoolFactor_zodatHogereScoresISBeterePerformance",
+         "inclusion",
+         "subject",
+         "valence",
+         "recode",
          "Comparison",
-         "ID_Experimental.group",
-         "ID_Control.group",
+         "Data_Method_TaskSHORT",
+         "Data_Method_MeasureSHORT",
+         "ID_Experimental_group",
+         "ID_Control_group",
          "Data_Subjects_n_ptsd",
          "Data_Outcome1_M",
          "Data_Outcome1_SD",
@@ -32,7 +36,7 @@ var <- c("Reference_PMID",
 
 dat <- data[, var]
 
-names(dat) <- c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control",
+names(dat) <- c("id", "include", "subject", "valence", "recode", "comparison_control", "task", "measure", "id_exp", "id_control",
                 "n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
 
 dat <- dat %>% filter(include == 1) %>% droplevels()
