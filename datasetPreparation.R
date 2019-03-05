@@ -6,153 +6,163 @@ library(metafor) #for effect size estimation
 library(dplyr) #for general functions
 library(ggplot2) #for function cutnumber
 
-
 #import full dataset 
-#data <- read.csv("Datasheet_TRACE_v4.3.19_cleaned.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
-library(readxl)
-data <- read_excel("~/Desktop/TRACE Dataset v4.3.19.xlsx", sheet = "Review PTSD Cognition Data Extr", na = "-") # Update ref. to dataset desktop milou
+data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
 
-
-# Select relevant parts of dataset ----------------------------------------
+# Select relevant data parts of dataset ----------------------------------------
 ##prepare your dataset
-var <- c("Reference_PMID",
-         "inclusion",
-         "subject",
-         "valence",
-         "recode",
-         "Comparison",
-         "Data_Method_TaskSHORT",
-         "Data_Method_MeasureSHORT",
-         "ID_Experimental_group",
-         "ID_Control_group",
-         "Data_Subjects_n_ptsd",
-         "Data_Outcome1_M",
-         "Data_Outcome1_SD",
-         "Data_Outcome1_SEM",
-         "Data_Subjects_n_control",
-         "Data_Outcome2_M",
-         "Data_Outcome2_SD",
-         "Data_Outcome2_SEM")
+dat <- select(data, 
+              "Reference_PMID",
+              "inclusion",
+              "subject",
+              "valence",
+              "MetaData_Learning.MemoryPhase",
+              "recode",
+              
+              "Comparison",
+              
+              "ID_Experimental_group",
+              "ID_Control_group",
+              
+              "Data_Subjects_n_ptsd",
+              "Data_Outcome1_M",
+              "Data_Outcome1_SD",
+              "Data_Outcome1_SEM",
+              
+              "Data_Subjects_n_control",
+              "Data_Outcome2_M",
+              "Data_Outcome2_SD",
+              "Data_Outcome2_SEM")
 
-dat <- data[, var]
+# Rename
+names(dat) <- c("id", "include", "subject", "valence", "phase", "recode", "comparisonControl", "idExp", "idControl",
+                "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 
-names(dat) <- c("id", "include", "subject", "valence", "recode", "comparison_control", "task", "measure", "id_exp", "id_control",
-                "n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
-
+# Select included rows
 dat <- dat %>% filter(include == 1) %>% droplevels()
 
-# Recode animals
+# Recode subjecttype
 dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 
 # check missing of all variables of interst
 which(is.na(dat$subject))
 which(is.na(dat$id))
-which(is.na(dat$comparison_control))
+which(is.na(dat$comparisonControl))
 
 
-# change stats from factors to numbers
-stat.vars <- c("n_e", "mean_e", "sd_e", "sem_e", "n_c", "mean_c", "sd_c", "sem_c")
-
+# Set variable properties -------------------------------------------------
+# Change factors to numbers
+stat.vars <- c("nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC", "recode")
+for(i in 1:length(stat.vars)){
+  dat[,stat.vars[i]]<- sub("-", "-", as.character(dat[,stat.vars[i]]), fixed = TRUE) # Correction of - signs
+  dat[,stat.vars[i]]<- as.numeric(sub(",", ".", as.character(dat[,stat.vars[i]]), fixed = TRUE))
+}
+# Create factors from character/numeric
+factor.vars<-c("id", "include", "subject", "valence","phase", "comparisonControl", "idExp", "idControl")
+dat<-mutate_each(dat, as.factor, factor.vars)
+# Check
 str(dat)
-
-dat[,c("n_e")]<- as.numeric(sub(",", ".", as.character(dat[,"n_e"]), fixed = TRUE))
-dat[,c("n_c")]<- as.numeric(sub(",", ".", as.character(dat[,"n_c"]), fixed = TRUE))
-
-dat[,c("mean_c")]<- sub("-", "-", as.character(dat[,"mean_c"]), fixed = TRUE) # Error -
-dat[,c("mean_c")]<- sub("%", "", dat[,"mean_c"], fixed = TRUE)
-dat[,c("mean_c")]<- as.numeric(sub(",", ".", dat[,"mean_c"], fixed = TRUE)) # Error -
-
-dat[,c("mean_e")]<- sub("-", "-", as.character(dat[,"mean_e"]), fixed = TRUE) # Error -
-dat[,c("mean_e")]<- sub("%", "", dat[,"mean_e"], fixed = TRUE)
-dat[,c("mean_e")]<- as.numeric(sub(",", ".", dat[,"mean_e"], fixed = TRUE)) # Error -
-
-
-dat[,c("sd_c")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_c"]), fixed = TRUE))
-dat[,c("sd_e")]<- as.numeric(sub(",", ".", as.character(dat[,"sd_e"]), fixed = TRUE))
-
-dat[,c("sem_c")]<- as.numeric(sub(",", ".", as.character(dat[,"sem_c"]), fixed = TRUE))
-dat[,c("sem_e")]<- as.numeric(sub(",", ".", as.character(dat[,"sem_e"]), fixed = TRUE))
+# all.equal(dat$id, dat1$id) # test differences
+# all.equal(dat$subject, dat1$subject)
 
 
 
-
-
-#factor.vars<-c("id", "include", "subject", "valence", "recode", "comparison_control", "id_exp", "id_control")
-#dat[,factor.vars] = lapply(dat[factor.vars], as.factor)
-
-#which(is.na(dat$sd_e))
-str(dat)
-
-
-# Calculate sd from sem
-dat$sd_e <- ifelse(is.na(dat$sd_e), (dat$sem_e * sqrt(dat$n_e)), dat$sd_e)
-dat$sd_c <- ifelse(is.na(dat$sd_c), (dat$sem_c * sqrt(dat$n_c)), dat$sd_c)
-
-# Check Missing values
-which(is.na(dat$sd_e))
-which(is.na(dat$n_e))
-which(is.na(dat$sd_c)) # erblijven missing na's over...
-
-# Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
-unique(dat[which(is.na(dat$sd_c)),"id"]) # Check of dit overeenkomt.. Klopt.
-
-# exclude missing values
-dat <- dat[-which(is.na(dat$sd_c)),]
-
-
-
-# Check frequenties -------------------------------------------------------
-summarise(dat)
-summarise(dat, subject, valence, comparison_control, group_by(id))
-group_by(dat, valence)
-         
-         
 # Corrections to statistical measurements -------------------------------------------------------------
-#N correction
-data$nC <- ifelse(!is.na(data$cut_nC), data$nC/2, data$nC) ##cut N.C in half if same control used by two experimental groups
+
+# Correction for multiple use control group -------------------------------
+# Merge ID's of experimental and control groups.
+dat <- dat %>% mutate(id_combination = as.factor(paste(idExp, idControl, sep=".")))
+str(dat)
+
+# Check which control groups are used multiple times
+reused_controls <- dat %>%
+  select(idExp, idControl, id_combination)%>%
+  group_by(idControl) %>% # for each control groups
+  summarise (used=length(unique(id_combination)))%>% # count the amount of unique id combinations
+  filter(used>1) # show control groups in which a unique combination is precent more than once
+
+reused_controls # 10 control groups are used in multiple unique id_combinations
+# Check results
+dat %>% filter(idControl%in%reused_controls$idControl)
+
+# merge to dataframe
+dat1<-merge(dat,reused_controls, by="idControl", all.x = T)
+# Recalculate n's
+dat1$nC_corrected<-ifelse(!is.na(dat1$used), dat1$nC/dat1$used, dat1$nC )
+# Check if the effects are correct.. yes
+dat1 %>% 
+  filter(idControl %in% reused_controls$idControl)  %>% 
+  select(nC, nC_corrected, used) %>% 
+  filter(!is.na(used)) 
+#head()
+
+dat$nC<-dat1$nC
+
+
+# Calculate SD from SEM ---------------------------------------------------
+dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
+dat$sdC <- ifelse(is.na(dat$sdC), (dat$semC * sqrt(dat$nC)), dat$sdC)
+
+
+# Missing Values ----------------------------------------------------------
+# Check Missing values
+which(is.na(dat$sdE))
+which(is.na(dat$nE))
+which(is.na(dat$nC))
+which(is.na(dat$sdC)) # erblijven missing na's over...
+# Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
+unique(dat[which(is.na(dat$sdC)),"id"]) # Check of dit overeenkomt.. Klopt.
+# exclude missing values
+dat <- dat[-which(is.na(dat$sdC)),]
+
+which(is.na(dat))
+
+
+
+##### OLD code valeria ######
 
 ##papers in which N not reported >> mean of other papers
-data$nC[is.na(data$nC)] <- round(mean(data$nC, na.rm = TRUE))
-data$nE[is.na(data$nE)] <- round(mean(data$nE, na.rm = TRUE))
+#data$nC[is.na(data$nC)] <- round(mean(data$nC, na.rm = TRUE))
+#data$nE[is.na(data$nE)] <- round(mean(data$nE, na.rm = TRUE))
 
-#calculate SD for all comparisons -> necessary for calculation effect size
-data$sdC <- ifelse(!is.na(data$effectSizeCorrection), data$seC/6, #correction for IQ range
-                   ifelse(is.na(data$sdC), (data$seC * sqrt(data$nC)), data$sdC)) #transform se in sd
+# #calculate SD for all comparisons -> necessary for calculation effect size
+# data$sdC <- ifelse(!is.na(data$effectSizeCorrection), data$seC/6, #correction for IQ range
+#                    ifelse(is.na(data$sdC), (data$seC * sqrt(data$nC)), data$sdC)) #transform se in sd
+# 
+# data$sdE <- ifelse(!is.na(data$effectSizeCorrection), data$seE/6, #correction for IQ range
+#                    ifelse(is.na(data$sdE), (data$seE * sqrt(data$nE)), data$sdE)) #transform se in sd
+# 
+# data$seC <- ifelse(!is.na(data$effectSizeCorrection), (data$sdC / sqrt(data$nC)), data$seC) #change IQR to se
+# data$seC <- ifelse(is.na(data$seC), (data$sdC / sqrt(data$nC)), data$seC) #compute missing se from sd
+# data$seE <- ifelse(!is.na(data$effectSizeCorrection), (data$sdE / sqrt(data$nE)), data$seE) #change IQR to se
+# data$seE <- ifelse(is.na(data$seE), (data$sdE / sqrt(data$nE)), data$seE) #compute missing se from sd
+# 
 
-data$sdE <- ifelse(!is.na(data$effectSizeCorrection), data$seE/6, #correction for IQ range
-                   ifelse(is.na(data$sdE), (data$seE * sqrt(data$nE)), data$sdE)) #transform se in sd
-
-data$seC <- ifelse(!is.na(data$effectSizeCorrection), (data$sdC / sqrt(data$nC)), data$seC) #change IQR to se
-data$seC <- ifelse(is.na(data$seC), (data$sdC / sqrt(data$nC)), data$seC) #compute missing se from sd
-data$seE <- ifelse(!is.na(data$effectSizeCorrection), (data$sdE / sqrt(data$nE)), data$seE) #change IQR to se
-data$seE <- ifelse(is.na(data$seE), (data$sdE / sqrt(data$nE)), data$seE) #compute missing se from sd
-
-
-##correction for qualitative interpretation direction (for systematic review graphs)
-data$directionQual <- (as.numeric(factor(data$directionGrouped, 
-                                         levels = c("decrease", "ns", "increase"))) - 2) #convert direction reported by studies to numeric
-
-data$directionQual <- data$directionQual * data$multiply #correct direction of effects reported by studies according to categorization rules
-
-data$directionGrouped <- ifelse(is.na(data$directionQual), "notRetrievable",
-                                ifelse(data$directionQual == -1, "decrease",
-                                       ifelse(data$directionQual == 1, "increase", "ns"))) #convert numeric to interpretation
-
-#convert decrease with increase and viceversa for nsLearning and social
-data$directionGrouped <- ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "decrease", 
-                                "increase",
-                                ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "increase", 
-                                       "decrease", data$directionGrouped))
-
-data$directionGrouped <- as.factor(data$directionGrouped)
+# ##correction for qualitative interpretation direction (for systematic review graphs)
+# data$directionQual <- (as.numeric(factor(data$directionGrouped, 
+#                                          levels = c("decrease", "ns", "increase"))) - 2) #convert direction reported by studies to numeric
+# 
+# data$directionQual <- data$directionQual * data$multiply #correct direction of effects reported by studies according to categorization rules
+# 
+# data$directionGrouped <- ifelse(is.na(data$directionQual), "notRetrievable",
+#                                 ifelse(data$directionQual == -1, "decrease",
+#                                        ifelse(data$directionQual == 1, "increase", "ns"))) #convert numeric to interpretation
+# 
+# #convert decrease with increase and viceversa for nsLearning and social
+# data$directionGrouped <- ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "decrease", 
+#                                 "increase",
+#                                 ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "increase", 
+#                                        "decrease", data$directionGrouped))
+# 
+# data$directionGrouped <- as.factor(data$directionGrouped)
 
 
 # Calculation effect size and checks --------------------------------------
 ##calculate effect size
-dat <- escalc(m1i = mean_e, sd1i = sd_e, n1i = n_e, 
-               m2i = mean_c, sd2i = sd_c, n2i = n_c, 
-               measure = "SMD", method = "HE",
-               data = dat)
+dat <- escalc(m1i = meanE, sd1i = sdE, n1i = nE, 
+              m2i = meanC, sd2i = sdC, n2i = nC, 
+              measure = "SMD", method = "HE",
+              data = dat)
 
 #dat$yi <- ifelse(data$each %% 2 == 0, dat$yi * -1, dat$yi) ##for blinding
 
@@ -161,9 +171,6 @@ dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction
 
 
 # Save resulting dataset --------------------------------------------------
-
 data <- data %>% droplevels() #drop missing levels
 
 save(dat, file = "data.RData") #save
-
-
