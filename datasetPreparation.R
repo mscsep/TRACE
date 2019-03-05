@@ -96,7 +96,7 @@ dat1 %>%
   filter(!is.na(used)) 
 #head()
 
-dat$nC<-dat1$nC
+dat$nC<-dat1$nC_corrected
 
 
 # Calculate SD from SEM ---------------------------------------------------
