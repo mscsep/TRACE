@@ -20,9 +20,10 @@ methods<-select(data,
                 Data_Method_TaskSHORT,
                 Data_Method_MeasureSHORT,
                 MetaData_CueContext.,
-                MetaData_Learning.MemoryPhase
+                MetaData_Learning.MemoryPhase,
+                recode
 )
-names(methods) <- c("id","include", "subject", "ptsd", "task", "measure", "cuectx","lm")
+names(methods) <- c("id","include", "subject", "ptsd", "task", "measure", "cuectx","lm","recode" )
 
 methods <- methods %>% filter(include == 1) %>% droplevels()
 methods$subject <- ifelse(methods$subject <= 3, "Human", "Animal")
@@ -30,7 +31,7 @@ str(methods)
 
 # Check frequenties per measure 
 sum_tasks<-methods %>%
-  group_by(task, measure, lm) %>%
+  group_by(task, measure, lm, recode) %>%
   summarise(length(unique(id)))
 
 data.frame(sum_tasks)
