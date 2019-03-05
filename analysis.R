@@ -7,7 +7,7 @@
 ## for questions, contact Valeria @ v.bonapersona-2@umcutrecht.nl
 
 # Environment Preparation -------------------------------------------------
-#rm(list = ls()) #clean environment
+rm(list = ls()) #clean environment
 
 #libraries
 library(dplyr) #general
@@ -21,11 +21,11 @@ load("data.RData")
 
 # General -----------------------------------------------------
 #exclusion studies analysed only at a systematic review level
-data %>%
-  filter(!comparison_control %in% c("C", "F")) %>%
-  droplevels() -> dat
-
-dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
+# data %>%
+#   filter(!comparison_control %in% c("C", "F")) %>%
+#   droplevels() -> dat
+# 
+# dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
 
 
 ##sample sizes general information
@@ -91,11 +91,70 @@ data %>%
 
 dat$each <- c(1:nrow(dat))
 
+
+# could be moved to somewhere else...
+#levels(dat$valence) <- c("trauma", "neutral", "emotional", "fear")
+# levels(dat$comparisonControl) <- c("ptsd_control_H", "trauma_control_H", "ptsd_trauma_H",
+#                                    "trauma_control_A", "ptsd_control_A","ptsd_trauma_A")
+
+
+# Check frequencies
+dat %>% 
+  group_by(subject, valence, comparisonControl) %>%
+  summarize(papers=length(unique(id)), comparisons=length(each))
+
+
+# Drop comparision B (human trauma vs non-trauma control, no-patients)
+dat %>% filter(comparisonControl != c("B")) -> dat
+
+# dat %>% filter(comparisonControl == c("B")) %>%  # trauma exposed control vs non-exposed controls humaan
+#   filter(subject == "Human", valence == "fear") %>%
+#   head
+
+## Regroup --> not enough comparisions:
+# # Recode comparisons, same for animal & human
+# recode(dat$comparisonControl, 
+#        "D"="B",
+#        "E"="A",
+#        "F"="C") %>% droplevels() -> dat$comparisonControl
+
+# Recode valence, stressful non stressful
+recode(dat$valence, 
+       'trauma' = 'stress',
+       'fear' = 'stress',
+       'neutral' = 'nonstress',
+       'emotional' = 'stress'
+) %>% droplevels() -> dat$valence
+
+
+# Check frequencies
+dat %>% 
+  group_by(subject, valence) %>%
+  summarize(papers=length(unique(id)), comparisons=length(each))
+
+
+dat %>% 
+  filter(subject == "Human", valence == "fear") %>% 
+  summarise(length(id))
+
+
+
+
+
+  
+
+# dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
+
+
+
+
+
+
 # Model -------------------------------------------------------------------
-dat %>% filter(comparison_control == c("A", "D")) ->  dat2#use E as a sensitivity/qualitative description
+#dat %>% filter(comparison_control == c("A", "D")) ->  dat2#use E as a sensitivity/qualitative description
 
 mod <- rma.mv(yi, vi,
-              random = list(~1 | each, ~1 | id_exp),
+              random = list(~1 | each, ~1 | idExp),
               mods   = ~subject:valence - 1,
               method = "REML",
               data = dat)
@@ -103,8 +162,12 @@ summary(mod)
 
 ##RQ 1: Effects of ELS on behavioral domains
 
-    <- anova(mod, L = c(.5,0,0,0,
-                               .5,0,0,0)) 
+# contrastss..?
+subject   <- anova(mod, L = c(.5,-.5, .5,-.5))
+stress   <- anova(mod, L = c(.5,.5, -.5,-.5))
+
+
+
 sLearning  <- anova(mod, L = c(0,.5,0,0,
                                0,.5,0,0))
 nsLearning <- anova(mod, L = c(0,0,.5,0,
@@ -126,6 +189,7 @@ nsLearningHit <- anova(mod, L = c(0,0,-1,0,
                                   0,0, 1,0))
 socialHit     <- anova(mod, L = c(0,0,0,-1,
                                   0,0,0, 1))
+
 
 
 ##Summary results organized in table

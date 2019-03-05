@@ -60,6 +60,7 @@ for(i in 1:length(stat.vars)){
 # Create factors from character/numeric
 factor.vars<-c("id", "include", "subject", "valence","phase", "comparisonControl", "idExp", "idControl")
 dat<-mutate_each(dat, as.factor, factor.vars)
+
 # Check
 str(dat)
 # all.equal(dat$id, dat1$id) # test differences
@@ -171,6 +172,7 @@ dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction
 
 
 # Save resulting dataset --------------------------------------------------
-data <- data %>% droplevels() #drop missing levels
+dat <- dat %>% droplevels() #drop missing levels
+
 
 save(dat, file = "data.RData") #save
