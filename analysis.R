@@ -1,10 +1,5 @@
-## Analysis script for 
-## "The behavioral phenotype of early life adversity: a 3-level meta-analysis of preclinical studies"
+## Analysis script for TRACE analyses (based on analyses script Valeria (meta behavior))
 
-## Author: Valeria Bonapersona
-## Supervision: Caspar J van Lissa
-
-## for questions, contact Valeria @ v.bonapersona-2@umcutrecht.nl
 
 # Environment Preparation -------------------------------------------------
 rm(list = ls()) #clean environment
@@ -15,18 +10,14 @@ library(ggplot2) #for graphs
 library(metafor) #for meta-analysis
 
 #import dataset (already processed with datasetPreparation)
+# load("data.RData")
+data<-readRDS("data.analysis.RData") # Output from "Explore_data.R" script... integrate later in "prepare data.script".
+dat1<-data.frame((data[[1]])) # stressful learning includes trauma
+dat2<-data.frame((data[[2]])) #  trauma learning excluded
 
-load("data.RData")
 
 
 # General -----------------------------------------------------
-#exclusion studies analysed only at a systematic review level
-# data %>%
-#   filter(!comparison_control %in% c("C", "F")) %>%
-#   droplevels() -> dat
-# 
-# dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
-
 
 ##sample sizes general information
 dat$nTot <- dat$nC + dat$nE 
@@ -51,7 +42,6 @@ data %>%
 #data %>%
  # filter(sex == "F", domain != "noMeta") %>%
 #  droplevels() -> dat
-
 
 
 # Selection dataset for sensitivity ---------------------------------------------------------
@@ -92,118 +82,147 @@ data %>%
 dat$each <- c(1:nrow(dat))
 
 
-# could be moved to somewhere else...
-#levels(dat$valence) <- c("trauma", "neutral", "emotional", "fear")
-# levels(dat$comparisonControl) <- c("ptsd_control_H", "trauma_control_H", "ptsd_trauma_H",
-#                                    "trauma_control_A", "ptsd_control_A","ptsd_trauma_A")
-
-
-# Check frequencies
-dat %>% 
-  group_by(subject, valence, comparisonControl) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each))
-
-
-# Drop comparision B (human trauma vs non-trauma control, no-patients)
-dat %>% filter(comparisonControl != c("B")) -> dat
-
-# dat %>% filter(comparisonControl == c("B")) %>%  # trauma exposed control vs non-exposed controls humaan
-#   filter(subject == "Human", valence == "fear") %>%
-#   head
-
-## Regroup --> not enough comparisions:
-# # Recode comparisons, same for animal & human
-# recode(dat$comparisonControl, 
-#        "D"="B",
-#        "E"="A",
-#        "F"="C") %>% droplevels() -> dat$comparisonControl
-
-# Recode valence, stressful non stressful
-recode(dat$valence, 
-       'trauma' = 'stress',
-       'fear' = 'stress',
-       'neutral' = 'nonstress',
-       'emotional' = 'stress'
-) %>% droplevels() -> dat$valence
-
-
-# Check frequencies
-dat %>% 
-  group_by(subject, valence) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each))
-
-
-dat %>% 
-  filter(subject == "Human", valence == "fear") %>% 
-  summarise(length(id))
-
-
-
-
-
-  
-
-# dat$comparison_control_grouped <- ifelse(dat$comparison_control %in% c("B", "D"), "trauma", "ptsd")
-
-
-
-
-
 
 # Model -------------------------------------------------------------------
-#dat %>% filter(comparison_control == c("A", "D")) ->  dat2#use E as a sensitivity/qualitative description
-
-mod <- rma.mv(yi, vi,
-              random = list(~1 | each, ~1 | idExp),
-              mods   = ~subject:valence - 1,
-              method = "REML",
-              data = dat)
-summary(mod)
-
-##RQ 1: Effects of ELS on behavioral domains
-
-# contrastss..?
-subject   <- anova(mod, L = c(.5,-.5, .5,-.5))
-stress   <- anova(mod, L = c(.5,.5, -.5,-.5))
 
 
+# # Learning & memory separate
+# # mods   = ~subject:valence - 1,
+# mods   = ~subject:Valence_Grouped - 1
+# #mods   = ~subject+Valence_Grouped+phase+cuectx - 1
+# 
+# #mods   = ~Valence_Grouped:cuectx - 1 # Cue/ctx
+# #mods   = ~Valence_Grouped:phase - 1,
+# 
+# 
+# dat2 %>% filter(phase =="L") ->learning
+# 
+# mod.L <- rma.mv(yi, vi,
+#               random = list(~1 | each, ~1 | idExp),
+#               mods   = mods,
+#               method = "REML",
+#            #   slab = dat1$reference,  # from old codes milou (change for author/year)
+#               data = learning) # Similar effects with dat2 (trauma learning excluded)
+# summary(mod.L)
+# 
+# 
+# dat2 %>% filter(phase =="M") ->memory
+# 
+# mod.M <- rma.mv(yi, vi,
+#               random = list(~1 | each, ~1 | idExp),
+#               mods   = mods,
+#               method = "REML",
+#               #   slab = dat1$reference,  # from old codes milou (change for author/year)
+#               data = memory) # Similar effects with dat2 (trauma learning excluded)
+# summary(mod.M)
 
-sLearning  <- anova(mod, L = c(0,.5,0,0,
-                               0,.5,0,0))
-nsLearning <- anova(mod, L = c(0,0,.5,0,
-                               0,0,.5,0))
-social     <- anova(mod, L = c(0,0,0,.5,
-                               0,0,0,.5))
 
 
-##RQ #2: presence of hit enhances effects
-mainHit <- anova(mod, L = c(-.25,-.25,-.25,-.25,
-                             .25, .25, .25, .25))
+# ##RQ 1: Learning and memory of stressful and nonstressful information in PTSD patients (clinical data)
+# 
+# # stressful vs non-stressful learning
+# sLearning   <- anova(mod.L, L = c(0,0, .5,.5))
+# nLearning   <- anova(mod.L, L = c(.5,.5, 0, 0))
+# # stressful vs non-stressful memory
+# sMemory   <- anova(mod.M, L = c(0,0, .5,.5))
+# nMemory   <- anova(mod.M, L = c(.5,.5, 0, 0))
+# 
+# ## ---> CODE needs to be checked!
+# # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
+# 
+# ## RQ2. Do preclinical and clinial data differ? (Posthoc)
+# translation.L   <- anova(mod.L, L = c(.5,-.5, .5,-.5))
+# translation.M   <- anova(mod.M, L = c(.5,-.5, .5,-.5))
 
-##posthoc RQ #2: posthoc testing to check which domain is most affected
-anxietyHit    <- anova(mod, L = c(-1,0,0,0,
-                                   1,0,0,0))
-sLearningHit  <- anova(mod, L = c(0,-1,0,0,
-                                  0, 1,0,0))
-nsLearningHit <- anova(mod, L = c(0,0,-1,0,
-                                  0,0, 1,0))
-socialHit     <- anova(mod, L = c(0,0,0,-1,
-                                  0,0,0, 1))
 
+
+
+### human animal separate
+
+mods   = ~phase:Valence_Grouped - 1
+dat1 %>% filter(subject =="Human") ->clinical
+
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idExp),
+                mods   = mods,
+                method = "REML",
+                #   slab = dat1$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+
+
+dat1 %>% filter(subject =="Animal") ->preclinical
+
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idExp),
+                mods   = mods,
+                method = "REML",
+                #   slab = dat1$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
+
+
+##RQ 1: Learning and memory in PTSD patients (clinical data)
+Learning <- anova(mod.H, L = c(.5,0, .5, 0))
+Memory <- anova(mod.H, L = c(0,.5, 0, .5))
+
+## ---> CODE needs to be checked!
+ # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
+ 
+
+# RQ2 "general" influence of valence/arousal/stress? "Main effect"
+neutral <- anova(mod.H, L = c(.5,.5, 0, 0))
+stressful <- anova(mod.H, L = c(0,0, .5, .5))
+
+ ## posthoc RQ2. is learning or memory most effected by valence? (Posthoc)
+phase.neutral <- anova(mod.H, L = c(-1,1, 0, 0)) 
+phase.stressful <- anova(mod.H, L = c(0,0, -1, 1)) # learning -
+
+
+
+# Differnce animal human... 
+translation.L   <- anova(mod.L, L = c(.5,-.5, .5,-.5))
+ translation.M   <- anova(mod.M, L = c(.5,-.5, .5,-.5))
+
+ 
+ # nLearning <- anova(mod.H, L = c(1,0, 0, 0))
+ # nMemory <- anova(mod.H, L = c(0,1, 0, 0))
+ # sLearning <- anova(mod.H, L = c(0,0, 1, 0))
+ # sMemory <- anova(mod.H, L = c(0,0, 0, 1))
 
 
 ##Summary results organized in table
-resultMain <- data.frame(matrix(data = NA, nrow = 17, ncol = 8))
+#resultMain <- data.frame(matrix(data = NA, nrow = 17, ncol = 8))
+
+resultMain <- data.frame(matrix(data = NA, nrow = 6, ncol = 8))
 
 colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
                           "effectsize", "se", "Zvalue",  
                           "Pvalue", "Pvalue_bonfCorr")
 
-resultMain[,1] <- c("anxiety", "sLearning", "nsLearning", "social", 
-                    "hit", 
-                    "anxietyHit", "sLearningHit", "nsLearningHit", "socialHit",
-                    "anxietyNo", "sLearningNo", "nsLearningNo", "socialNo",
-                    "anxietyYes", "sLearningYes", "nsLearningYes", "socialYes")
+# resultMain[,1] <- c("anxiety", "sLearning", "nsLearning", "social", 
+#                     "hit", 
+#                     "anxietyHit", "sLearningHit", "nsLearningHit", "socialHit",
+#                     "anxietyNo", "sLearningNo", "nsLearningNo", "socialNo",
+#                     "anxietyYes", "sLearningYes", "nsLearningYes", "socialYes")
+
+
+str()
+
+
+resultMain[,1] <- c("sLearning", "nLearning", "sMemory", "nMemory",
+                    "translation.L", "translation.M")
+
+resultMain[,4] <- round(c(sLearning$Lb, nLearning$Lb, sMemory$Lb, nMemory$Lb,
+                          translation.L$Lb, translation.M$lb, 
+                          mod.L$beta), digits = 4) #effect size
+
+
+
+resultMain[,4] <- round(c(human$Lb, animal$Lb, stress$Lb, neutral$Lb,
+                          subject$Lb, valence$lb, 
+                          mod$beta), digits = 4) #effect size
+
 
 resultMain[,4] <- round(c(anxiety$Lb, sLearning$Lb, nsLearning$Lb, social$Lb,
                           mainHit$Lb,
