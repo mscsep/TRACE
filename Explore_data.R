@@ -131,6 +131,7 @@ dat1 %>%
 
 # extinction data not in all groups # Dropped for now.
 dat1<- dat1 %>% filter(phase != "E")%>% droplevels()
+dat2<- dat2 %>% filter(phase != "E")%>% droplevels()
 
 
 # Split human animal in seperate analyses? --------------------------------
