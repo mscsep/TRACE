@@ -4,7 +4,6 @@ rm(list = ls()) #clean environment
 #Libraries
 library(metafor) #for effect size estimation
 library(dplyr) #for general functions
-library(ggplot2) #for function cutnumber
 
 #import full dataset 
 data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
@@ -13,10 +12,13 @@ data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec =
 ##prepare your dataset
 dat <- select(data, 
               "Reference_PMID",
+              "Reference_First.Author",
+              "Reference_Publication.Year",
               "inclusion",
               "subject",
               "valence",
               "MetaData_Learning.MemoryPhase",
+            #  "MetaData_CueContext."
               "recode",
               
               "Comparison",
@@ -35,7 +37,7 @@ dat <- select(data,
               "Data_Outcome2_SEM")
 
 # Rename
-names(dat) <- c("id", "include", "subject", "valence", "phase", "recode", "comparisonControl", "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "recode", "comparisonControl", "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 
 # Select included rows
@@ -60,6 +62,8 @@ for(i in 1:length(stat.vars)){
 # Create factors from character/numeric
 factor.vars<-c("id", "include", "subject", "valence","phase", "comparisonControl", "idExp", "idControl")
 dat<-mutate_each(dat, as.factor, factor.vars)
+# Create reference var as character
+dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 
 # Check
 str(dat)
@@ -97,8 +101,7 @@ dat1 %>%
   filter(!is.na(used)) 
 #head()
 
-dat$nC<-dat1$nC_corrected
-
+dat$nC<-round(dat1$nC_corrected)
 
 # Calculate SD from SEM ---------------------------------------------------
 dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
@@ -119,26 +122,7 @@ dat <- dat[-which(is.na(dat$sdC)),]
 which(is.na(dat))
 
 
-
-##### OLD code valeria ######
-
-##papers in which N not reported >> mean of other papers
-#data$nC[is.na(data$nC)] <- round(mean(data$nC, na.rm = TRUE))
-#data$nE[is.na(data$nE)] <- round(mean(data$nE, na.rm = TRUE))
-
-# #calculate SD for all comparisons -> necessary for calculation effect size
-# data$sdC <- ifelse(!is.na(data$effectSizeCorrection), data$seC/6, #correction for IQ range
-#                    ifelse(is.na(data$sdC), (data$seC * sqrt(data$nC)), data$sdC)) #transform se in sd
-# 
-# data$sdE <- ifelse(!is.na(data$effectSizeCorrection), data$seE/6, #correction for IQ range
-#                    ifelse(is.na(data$sdE), (data$seE * sqrt(data$nE)), data$sdE)) #transform se in sd
-# 
-# data$seC <- ifelse(!is.na(data$effectSizeCorrection), (data$sdC / sqrt(data$nC)), data$seC) #change IQR to se
-# data$seC <- ifelse(is.na(data$seC), (data$sdC / sqrt(data$nC)), data$seC) #compute missing se from sd
-# data$seE <- ifelse(!is.na(data$effectSizeCorrection), (data$sdE / sqrt(data$nE)), data$seE) #change IQR to se
-# data$seE <- ifelse(is.na(data$seE), (data$sdE / sqrt(data$nE)), data$seE) #compute missing se from sd
-# 
-
+# # old code valeria
 # ##correction for qualitative interpretation direction (for systematic review graphs)
 # data$directionQual <- (as.numeric(factor(data$directionGrouped, 
 #                                          levels = c("decrease", "ns", "increase"))) - 2) #convert direction reported by studies to numeric
@@ -172,7 +156,8 @@ dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction
 
 
 # Save resulting dataset --------------------------------------------------
-dat <- dat %>% droplevels() #drop missing levels
+dat <- dat %>% select(-c(id_combination)) %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
 
+str(dat)
 
 save(dat, file = "data.RData") #save
