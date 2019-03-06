@@ -77,7 +77,27 @@ str(dat)
  
 # If comparisontypes is no longer included in analyses 
   # --> drop comparision B (in which healhty trauma exposed humans are compared to heathy non-trauma exposed humans; so NO PTSD patients)
-  dat %>% filter(comparisonControl != c("B")) -> dat1
+  dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat1
+  
+  
+  
+  
+  
+# 
+# # Learning vs Memory ------------------------------------------------------
+# 
+#   # Check frequencies
+#   dat1 %>% 
+#     group_by(subject, phase) %>%
+#     summarize(papers=length(unique(id)), comparisons=length(each))
+#   # extinction data not in all groups # Dropped for now.
+#   dat1<- dat1 %>% filter(phase != "E") %>% droplevels()
+#   
+#     str(dat1)
+  
+  
+  
+  
   
 
 # Valence -----------------------------------------------------------------
@@ -99,7 +119,7 @@ dat1$Valence_Grouped <-as.factor(dat1$Valence_Grouped)
 str(dat1)
 
 # NB trauma is niet helemaal een eerlijke categorie om toe te voegen aan 'stressed', omdat het nooit gemeten is humaan....
-dat2 <- dat1 %>% filter(valence != "1") ## Use as 'sensitivity check?'
+dat2 <- dat1 %>% filter(valence != "1")%>% droplevels() ## Use as 'sensitivity check?'
 
 
 # Learning Memory ---------------------------------------------------------
@@ -110,11 +130,10 @@ dat1 %>%
   summarize(papers=length(unique(id)), comparisons=length(each))
 
 # extinction data not in all groups # Dropped for now.
-dat1<- dat1 %>% filter(phase != "E")
+dat1<- dat1 %>% filter(phase != "E")%>% droplevels()
 
 
 # Split human animal in seperate analyses? --------------------------------
-
 # Check:
 
 # Possible to invstigate valence * cuectx in animal human separately?
