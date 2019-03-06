@@ -40,32 +40,32 @@ data %>%
 
 #create only female dataset
 #data %>%
- # filter(sex == "F", domain != "noMeta") %>%
+# filter(sex == "F", domain != "noMeta") %>%
 #  droplevels() -> dat
 
 
 # Selection dataset for sensitivity ---------------------------------------------------------
 ## No potential outliers that are influential (Viechtbauer & Cheung) >> check out first "outliers and extreme values"
 #dat %>%
- # filter(outInf != 1) %>%
-  #droplevels() -> dat
+# filter(outInf != 1) %>%
+#droplevels() -> dat
 
 
 ## No outliers (according to Tabachnick & Fidell (2013) definition: "z-score above +3.29 or below -3.29"
 #dat %>% 
- # filter(!abs((dat$yi - tapply(dat$yi, dat$domain, 
-  #                           mean, na.rm = TRUE)[dat$domain]) /
-   #     (dat$yi - tapply(dat$yi, dat$domain, 
-    #                   sd, na.rm = TRUE)[dat$domain])) > 3.29) %>%
+# filter(!abs((dat$yi - tapply(dat$yi, dat$domain, 
+#                           mean, na.rm = TRUE)[dat$domain]) /
+#     (dat$yi - tapply(dat$yi, dat$domain, 
+#                   sd, na.rm = TRUE)[dat$domain])) > 3.29) %>%
 #  droplevels -> dat
 
 
 ## Only blinded and randomized studies >> very few >> check below sensitivity analysis performed
 #dat %>%
- # filter(blindRand == 1) %>%
-  #group_by(domain, hit2Grouped) %>%
-  #summarise(length(each),
-   #         length(unique(id)))
+# filter(blindRand == 1) %>%
+#group_by(domain, hit2Grouped) %>%
+#summarise(length(each),
+#         length(unique(id)))
 
 
 ## Only tests reported by more than 4 publication
@@ -73,7 +73,7 @@ data %>%
 #dat$enough <- 0
 #for (each in levels(dat$domTest)) {
 #  if (length(unique(dat[dat$domTest == each,]$id)) > 4) { #id = publication, #each = each comparison
- #   dat[dat$domTest == each,]$enough <- 1
+#   dat[dat$domTest == each,]$enough <- 1
 #  } 
 #}
 
@@ -138,127 +138,93 @@ dat$each <- c(1:nrow(dat))
 
 
 ### human animal separate
+dat2$each <- c(1:nrow(dat2))
 
-mods   = ~phase:Valence_Grouped - 1
-dat1 %>% filter(subject =="Human") ->clinical
+# Clinical data -----------------------------------------------------------
+dat2 %>% filter(subject =="Human") ->clinical
 
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
-                mods   = mods,
+                mods   = ~phase:Valence_Grouped - 1,
                 method = "REML",
-                #   slab = dat1$reference,  # from old codes milou (change for author/year)
+                slab = clinical$reference,  # from old codes milou (change for author/year)
                 data = clinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.H)
 
 
-dat1 %>% filter(subject =="Animal") ->preclinical
+# Preclinical data --------------------------------------------------------
+dat2 %>% filter(subject =="Animal") ->preclinical
 
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
-                mods   = mods,
+                mods   = ~phase:Valence_Grouped - 1,
                 method = "REML",
-                #   slab = dat1$reference,  # from old codes milou (change for author/year)
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
                 data = preclinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.A)
 
 
-##RQ 1: Learning and memory in PTSD patients (clinical data)
-Learning <- anova(mod.H, L = c(.5,0, .5, 0))
-Memory <- anova(mod.H, L = c(0,.5, 0, .5))
 
-## ---> CODE needs to be checked!
- # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
- 
+source("output.r")
 
-# RQ2 "general" influence of valence/arousal/stress? "Main effect"
-neutral <- anova(mod.H, L = c(.5,.5, 0, 0))
-stressful <- anova(mod.H, L = c(0,0, .5, .5))
-
- ## posthoc RQ2. is learning or memory most effected by valence? (Posthoc)
-phase.neutral <- anova(mod.H, L = c(-1,1, 0, 0)) 
-phase.stressful <- anova(mod.H, L = c(0,0, -1, 1)) # learning -
+human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )
+animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
 
 
+human[[1]][7:10,] # p-value means different from 0?
 
-# Differnce animal human... 
-translation.L   <- anova(mod.L, L = c(.5,-.5, .5,-.5))
- translation.M   <- anova(mod.M, L = c(.5,-.5, .5,-.5))
-
- 
- # nLearning <- anova(mod.H, L = c(1,0, 0, 0))
- # nMemory <- anova(mod.H, L = c(0,1, 0, 0))
- # sLearning <- anova(mod.H, L = c(0,0, 1, 0))
- # sMemory <- anova(mod.H, L = c(0,0, 0, 1))
+#sig.human <-
 
 
-##Summary results organized in table
-#resultMain <- data.frame(matrix(data = NA, nrow = 17, ncol = 8))
+library(ggpubr)
 
-resultMain <- data.frame(matrix(data = NA, nrow = 6, ncol = 8))
+plots<-ggarrange(
+  human[[2]]
+ # + annotate("text",x= [1,1], y=1 , label = c("*"), size=6) 
+ ## werkt nog niet.... --> zoek uit heo je annoteerd in facet grid
 
-colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
-                          "effectsize", "se", "Zvalue",  
-                          "Pvalue", "Pvalue_bonfCorr")
+#  + ylim(-1.2,1)  #
+  + ylim(-3.1,3.3)  # Same for clinical and preclinical
+  + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+ + rremove("y.axis") + rremove("y.ticks")
+#+ geom_hline(yintercept = c(-1,1,2,-2), linetype=2, size = .1)
+,
+  animal[[2]]
+ + ylim(-3.1,3.3)  # Same for clinical and preclinical
+ + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+ + rremove("ylab") + rremove("y.axis") + rremove("y.ticks") 
 
-# resultMain[,1] <- c("anxiety", "sLearning", "nsLearning", "social", 
-#                     "hit", 
-#                     "anxietyHit", "sLearningHit", "nsLearningHit", "socialHit",
-#                     "anxietyNo", "sLearningNo", "nsLearningNo", "socialNo",
-#                     "anxietyYes", "sLearningYes", "nsLearningYes", "socialYes")
+#  + geom_hline(yintercept = c(-1, 1, 2,-2), linetype=2, size = .1)
+,
+  align = "v",
+  legend="bottom",
+  common.legend = T)
 
+# annotate_figure(plots,
+#                 fig.lab=c("Learning and Memory in PTSD"),
+#                 fig.lab.face = "bold",
+#                 fig.lab.size = 11)
 
-str()
-
-
-resultMain[,1] <- c("sLearning", "nLearning", "sMemory", "nMemory",
-                    "translation.L", "translation.M")
-
-resultMain[,4] <- round(c(sLearning$Lb, nLearning$Lb, sMemory$Lb, nMemory$Lb,
-                          translation.L$Lb, translation.M$lb, 
-                          mod.L$beta), digits = 4) #effect size
+ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".pdf"), device="pdf", dpi = 500, height = 6, width = 7, limitsize = T )
 
 
 
-resultMain[,4] <- round(c(human$Lb, animal$Lb, stress$Lb, neutral$Lb,
-                          subject$Lb, valence$lb, 
-                          mod$beta), digits = 4) #effect size
+
+# not readable.
+# forest.rma(mod.H, addfit = T, showweights = T, steps=10, width=.3)
+#  forest(mod.H, cex = .3, font=1, main=("Forestplot")) # Make 
+
+# forest.rma(mod.A)
+
+# descriptives
+preclinical %>%
+  group_by(phase, Valence_Grouped, cuectx ) %>%
+  summarise(mean(yi))
+
+  # yi	 vector to specify the observed effect size or outcomes.
+  # vi	vector to specify the corresponding sampling variances.
 
 
-resultMain[,4] <- round(c(anxiety$Lb, sLearning$Lb, nsLearning$Lb, social$Lb,
-                          mainHit$Lb,
-                          anxietyHit$Lb, sLearningHit$Lb, nsLearningHit$Lb, socialHit$Lb,
-                          mod$beta), digits = 4) #effect size
-resultMain[,5] <- round(c(anxiety$se, sLearning$se, nsLearning$se, social$se,
-                          mainHit$se,
-                          anxietyHit$se, sLearningHit$se, nsLearningHit$se, socialHit$se,
-                          mod$se), digits = 4) #se 
-resultMain[,6] <- round(c(anxiety$zval, sLearning$zval, nsLearning$zval, social$zval,
-                          mainHit$zval,
-                          anxietyHit$zval, sLearningHit$zval, nsLearningHit$zval, socialHit$zval,
-                          mod$zval), digits = 4) #zvalues
-resultMain[,7] <- round(c(anxiety$pval, sLearning$pval, nsLearning$pval, social$pval,
-                          mainHit$pval,
-                          anxietyHit$pval, sLearningHit$pval, nsLearningHit$pval, socialHit$pval,
-                          mod$pval), digits = 4) #pvalues
-resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
-resultMain[,3] <- round(resultMain[,4] + (resultMain[,5] * 1.96), digits = 4) #CI upper
-resultMain[,8] <- round(c(p.adjust(resultMain[ 1,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 2,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 3,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 4,7], method = "bonferroni", n = 4),
-                          resultMain[5,7],
-                          p.adjust(resultMain[ 6,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 7,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 8,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[ 9,7], method = "bonferroni", n = 4),
-                          p.adjust(resultMain[10,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[11,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[12,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[13,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[14,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[15,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[16,7], method = "bonferroni", n = 8),
-                          p.adjust(resultMain[17,7], method = "bonferroni", n = 8)), digits = 4) #pvalue bonf correction
 
 
 # Boxplot domain ---------------------------------------------------
@@ -354,12 +320,12 @@ ggplot(resultMain[resultMain$test %in% c("anxietyNo", "anxietyYes", "sLearningNo
 
 #2-level model with both sigmas constrained to zero
 mod_noWithnoBet <- rma.mv(yi, vi, 
-                     random = list(~1 | each, ~1 | exp),
-                     mod = ~domain:hit2Grouped -1,
-                     sigma2 = c(0, 0),
-                     digits = 3,
-                     method = "REML",
-                     data = dat)
+                          random = list(~1 | each, ~1 | exp),
+                          mod = ~domain:hit2Grouped -1,
+                          sigma2 = c(0, 0),
+                          digits = 3,
+                          method = "REML",
+                          data = dat)
 
 #likelihood ratio test to determine the significance of the between-study variance
 anova(mod, mod_noWithnoBet)
@@ -525,14 +491,14 @@ dat[which(abs(y$z) > 1.96),]$potOut <- 1 # Values that are potential outliers
 ## Manual
 # Influential cases manual
 #dat[dat$each %in% c(64,  65, 159, 202, 283, 295, 297, 311, 312, 358, 379,
- #                   431, 444, 468, 483, 503, 549, 552, 554, 555, 557, 561,
-  #                  599, 603, 604, 633, 666, 672, 687, 690, 699, 710),]$potInf <- 1 #MALES (manual for when influence() not run)
+#                   431, 444, 468, 483, 503, 549, 552, 554, 555, 557, 561,
+#                  599, 603, 604, 633, 666, 672, 687, 690, 699, 710),]$potInf <- 1 #MALES (manual for when influence() not run)
 
 # Potential outliers manual
 #dat[dat$each %in% c(2, 3, 4, 18, 21, 143, 199, 200, 215, 230, 238,
 #                    287, 333, 396, 407, 429, 460, 483, 516, 519,
- #                   561, 573, 577, 578, 615, 666, 671, 675,
-  #                  686, 687, 689, 690, 699, 725, 731),]$potOut <- 1 #MALES (manual for when influence() not run)
+#                   561, 573, 577, 578, 615, 666, 671, 675,
+#                  686, 687, 689, 690, 699, 725, 731),]$potOut <- 1 #MALES (manual for when influence() not run)
 
 
 dat %>% 
@@ -583,11 +549,11 @@ dat[which(abs(y$z) > 1.96),]$potOut <- 1 #values that are potential outliers
 ##manual
 #influential cases manual
 #dat[dat$each %in% c(188, 296, 298, 359,
- #                   380, 448, 485, 548),]$potInf <- 1 #FEMALES (manual for when inf not run)
+#                   380, 448, 485, 548),]$potInf <- 1 #FEMALES (manual for when inf not run)
 
 #potential outliers manual
 #dat[dat$each %in% c(73, 156, 158, 188, 190, 361, 448, 461,
- #                   463, 464, 465, 485, 533, 721, 726),]$potOut <- 1 #FEMALES (manual for when inf not run)
+#                   463, 464, 465, 485, 533, 721, 726),]$potOut <- 1 #FEMALES (manual for when inf not run)
 
 
 dat %>% 
@@ -616,10 +582,10 @@ dat %>%
 # Sensitivity analysis blinded & randomized -------------------------------
 
 modBR <- rma.mv(yi, vi,
-              random = list(~1 | each, ~1 | exp),
-              mods   = ~blindRand,
-              method = "REML",
-              data = dat)
+                random = list(~1 | each, ~1 | exp),
+                mods   = ~blindRand,
+                method = "REML",
+                data = dat)
 summary(modBR)
 
 # PublicationBias ---------------------------------------------------------
