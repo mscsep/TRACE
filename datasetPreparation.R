@@ -18,7 +18,7 @@ dat <- select(data,
               "subject",
               "valence",
               "MetaData_Learning.MemoryPhase",
-            #  "MetaData_CueContext."
+              "MetaData_CueContext.",
               "recode",
               
               "Comparison",
@@ -37,7 +37,7 @@ dat <- select(data,
               "Data_Outcome2_SEM")
 
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "recode", "comparisonControl", "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "cuectx", "recode", "comparisonControl", "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 
 # Select included rows
@@ -60,7 +60,7 @@ for(i in 1:length(stat.vars)){
   dat[,stat.vars[i]]<- as.numeric(sub(",", ".", as.character(dat[,stat.vars[i]]), fixed = TRUE))
 }
 # Create factors from character/numeric
-factor.vars<-c("id", "include", "subject", "valence","phase", "comparisonControl", "idExp", "idControl")
+factor.vars<-c("id", "include", "subject", "valence","phase", "cuectx","comparisonControl", "idExp", "idControl")
 dat<-mutate_each(dat, as.factor, factor.vars)
 # Create reference var as character
 dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
