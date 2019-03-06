@@ -6,7 +6,7 @@ library(ggplot2)
 #model=mod.H
 # TRACE_output(mod.H, 'clinical data')
 
-TRACE_output <- function (model, title){
+TRACE_output <- function (model, title, subtitle){
   
   
   ##RQ 1: "Main effects PTSD on Learning and memory?
@@ -106,28 +106,31 @@ TRACE_output <- function (model, title){
 #str(plot_data)
 # title='test'
   
-   plot_MILOU <-
+    plot_MILOU <-
     ggplot(plot_data, 
                aes(x = test, y = effectsize, fill=valence)) +
      
     ylab("Standardized mean difference (CI)") +
-    # ggtitle("Learning and Memory in PTSD",
-    #         subtitle = title) +
-     ggtitle( title) +
-     
-      facet_wrap(.~ phase, scales='free_x')+
-      
- ylim(-3.1,3.3)+
+     ggtitle(title, subtitle = subtitle) +
 
+      facet_wrap(.~ phase, scales='free_x', strip.position = "bottom" )+
+      
+     # ylim(-3.1,3.3)+
      
-    theme_classic() +
+  #  theme_classic() +
+      theme_linedraw() +
+    #  theme_light() +
+    
+    theme(plot.title = element_text(hjust = 0.5)) +
+    theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
+    
       scale_fill_manual(
         values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
                    "Stressful" = "tomato2"))+
      
     geom_bar(stat = "identity")+ 
       
-    geom_hline(yintercept = 0, size = 2) + 
+    geom_hline(yintercept = 0, size = 1) + 
     geom_errorbar(aes(ymin = ci.lb, 
                       ymax = ci.ub),
                   width = .6)
