@@ -70,6 +70,9 @@ str(dat)
 # all.equal(dat$id, dat1$id) # test differences
 # all.equal(dat$subject, dat1$subject)
 
+# max(dat$nC) # --> hier al probleem met 923  # Dit zijn human papers met code 1
+# dat[which(dat$nC == "923"),]   # en 339 veel te hoog...
+# dat %>% filter(nC == 923)
 
 
 # Corrections to statistical measurements -------------------------------------------------------------
@@ -102,6 +105,12 @@ dat1 %>%
 #head()
 
 dat$nC<-round(dat1$nC_corrected)
+
+
+
+
+
+
 
 # Calculate SD from SEM ---------------------------------------------------
 dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
