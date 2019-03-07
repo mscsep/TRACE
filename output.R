@@ -89,45 +89,26 @@ TRACE_output <- function (model, title, subtitle){
                             p.adjust(resultMain[ 7,7], method = "bonferroni", n = 2), # neutral vs stres (learning)
                             p.adjust(resultMain[ 8,7], method = "bonferroni", n = 2), # neutral vs stres (memory)
                             
-                            
                             resultMain[9,7],
                             resultMain[10,7],
                             resultMain[11,7],
                             resultMain[12,7]), digits = 4) #pvalue bonf correction
-  
-  
-  ## posthoc RQ2. is learning or memory most effected by valence? (Posthoc)
-  phase.neutral <- anova(model, L = c(-1,1, 0, 0)) 
-  phase.stressful <- anova(model, L = c(0,0, -1, 1)) # learning -
-  
-  # Posthoc RQ2
-  valence.learning <-anova(model, L = c(-1,0, 1, 0)) # neutral = -
-  valence.memory <- anova(model, L = c(0,-1, 0, 1))
-  
-  
-  
-  # plot<-ggplot(resultMain[resultMain$test %in% c("nLearning", "nMemory", "sLearning", "sMemory"),], 
-  #              aes(x = test, y = effectsize)) +
-  #   ylab("Standardized mean difference (CI)") +
-  #   ggtitle("Learning and Memory in PTSD",
-  #           subtitle = title) +
-  #   # theme_bw() +
-  #   theme_classic() +
-  #   geom_bar(stat = "identity", 
-  #            fill = "light grey", 
-  #            color = "black") + 
-  #   geom_hline(yintercept = 0, size = 2) + 
-  #   geom_errorbar(aes(ymin = ci.lb, 
-  #                     ymax = ci.ub),
-  #                 width = .6)
-  
+
   
   plot_data<-resultMain %>% filter(test %in% c("nLearning", "nMemory", "sLearning", "sMemory"))
   plot_data$valence <- ifelse(plot_data$test %in% c("nLearning", "nMemory"), "Neutral", "Stressful")
   plot_data$phase <- ifelse(plot_data$test %in% c("nLearning", "sLearning"), "Learning", "Memory")
   
+  # signal sig. categories. Add index for p-values smaller than 0.05
+    plot_data$sig<- ifelse(plot_data$Pvalue  <0.05, 1, 0)
+
+    
+  
 #str(plot_data)
 # title='test'
+    
+  y_sig_position<-  ifelse(title=='Clinical Data', 1  , 3.3 )
+  #  title='Preclinical Data'
   
     plot_MILOU <-
     ggplot(plot_data, 
@@ -137,13 +118,8 @@ TRACE_output <- function (model, title, subtitle){
      ggtitle(title, subtitle = subtitle) +
 
       facet_wrap(.~ phase, scales='free_x', strip.position = "bottom" )+
-      
-     # ylim(-3.1,3.3)+
-     
-  #  theme_classic() +
+
       theme_linedraw() +
-    #  theme_light() +
-    
     theme(plot.title = element_text(hjust = 0.5)) +
     theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
     
@@ -156,7 +132,9 @@ TRACE_output <- function (model, title, subtitle){
     geom_hline(yintercept = 0, size = 1) + 
     geom_errorbar(aes(ymin = ci.lb, 
                       ymax = ci.ub),
-                  width = .6)
+                  width = .3) +
+      
+   geom_point(data = plot_data[plot_data$sig ==1, ],aes(x=test, y=y_sig_position),shape = "*", size=10, show.legend = FALSE)  # to make position dynamic use: y=ci.ub+1.5
   
   
   

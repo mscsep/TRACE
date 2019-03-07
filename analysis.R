@@ -8,21 +8,28 @@ rm(list = ls()) #clean environment
 library(dplyr) #general
 library(ggplot2) #for graphs
 library(metafor) #for meta-analysis
+library(ggpubr) # To show multiple plots in 1 figure
+
 
 #import dataset (already processed with datasetPreparation)
 # load("data.RData")
 data<-readRDS("data.analysis.RData") # Output from "Explore_data.R" script... integrate later in "prepare data.script".
 dat1<-data.frame((data[[1]])) # stressful learning includes trauma
-dat2<-data.frame((data[[2]])) #  trauma learning excluded
+dat1$each <- c(1:nrow(dat1))
 
+dat2<-data.frame((data[[2]])) #  trauma learning excluded
+dat2$each <- c(1:nrow(dat2))
 
 
 # General -----------------------------------------------------
+dat1 %>% filter(subject == "Human") %>% droplevels()-> dat
+dat1 %>% filter(subject == "Animal") %>% droplevels() -> dat
 
 ##sample sizes general information
 dat$nTot <- dat$nC + dat$nE 
 hist(dat$nTot, breaks = 100) 
 
+sum(dat$nTot)
 mean(dat$nTot) 
 sd(dat$nTot) 
 min(dat$nTot) 
@@ -30,6 +37,10 @@ max(dat$nTot)
 
 # in ~90% comparisons, control and experimental group's sample sizes differ less than 20%
 length(dat[abs((dat$nC - dat$nE) / dat$nTot) < .2,]$each) / length(dat$each)
+
+rm(dat)
+
+
 
 
 # Selection dataset by sex ---------------------------------------------------------
@@ -79,70 +90,13 @@ data %>%
 
 #dat %>% filter(enough == 1) -> dat 
 
-dat$each <- c(1:nrow(dat))
-
 
 
 # Model -------------------------------------------------------------------
+# In explore_data script frequency of obervations in groups checked.. for now descided to analyse clinical & preclinical data separatly 
 
-
-# # Learning & memory separate
-# # mods   = ~subject:valence - 1,
-# mods   = ~subject:Valence_Grouped - 1
-# #mods   = ~subject+Valence_Grouped+phase+cuectx - 1
-# 
-# #mods   = ~Valence_Grouped:cuectx - 1 # Cue/ctx
-# #mods   = ~Valence_Grouped:phase - 1,
-# 
-# 
-# dat2 %>% filter(phase =="L") ->learning
-# 
-# mod.L <- rma.mv(yi, vi,
-#               random = list(~1 | each, ~1 | idExp),
-#               mods   = mods,
-#               method = "REML",
-#            #   slab = dat1$reference,  # from old codes milou (change for author/year)
-#               data = learning) # Similar effects with dat2 (trauma learning excluded)
-# summary(mod.L)
-# 
-# 
-# dat2 %>% filter(phase =="M") ->memory
-# 
-# mod.M <- rma.mv(yi, vi,
-#               random = list(~1 | each, ~1 | idExp),
-#               mods   = mods,
-#               method = "REML",
-#               #   slab = dat1$reference,  # from old codes milou (change for author/year)
-#               data = memory) # Similar effects with dat2 (trauma learning excluded)
-# summary(mod.M)
-
-
-
-# ##RQ 1: Learning and memory of stressful and nonstressful information in PTSD patients (clinical data)
-# 
-# # stressful vs non-stressful learning
-# sLearning   <- anova(mod.L, L = c(0,0, .5,.5))
-# nLearning   <- anova(mod.L, L = c(.5,.5, 0, 0))
-# # stressful vs non-stressful memory
-# sMemory   <- anova(mod.M, L = c(0,0, .5,.5))
-# nMemory   <- anova(mod.M, L = c(.5,.5, 0, 0))
-# 
-# ## ---> CODE needs to be checked!
-# # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
-# 
-# ## RQ2. Do preclinical and clinial data differ? (Posthoc)
-# translation.L   <- anova(mod.L, L = c(.5,-.5, .5,-.5))
-# translation.M   <- anova(mod.M, L = c(.5,-.5, .5,-.5))
-
-
-
-
-### human animal separate
-dat2$each <- c(1:nrow(dat2))
-
-# Clinical data -----------------------------------------------------------
+# Clinical data 
 dat2 %>% filter(subject =="Human") ->clinical
-
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,
@@ -151,80 +105,58 @@ mod.H <- rma.mv(yi, vi,
                 data = clinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.H)
 
-
-# Preclinical data --------------------------------------------------------
+# Preclinical data 
 dat2 %>% filter(subject =="Animal") ->preclinical
-
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
-                mods   = ~phase:Valence_Grouped - 1,
+                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
                 method = "REML",
                 slab = preclinical$reference,  # from old codes milou (change for author/year)
                 data = preclinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.A)
 
 
-
+# Analyses + Plot:
 source("output.r")
 
 human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )
 animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
 
+human
+animal
 
-human[[1]][7:10,] # p-value means different from 0?
+# Check significance plotted results
+human[[1]][9:12,] # p-value means effect size different from 0 in that combination of factor levels!
+animal[[1]][9:12,] # p-value means effect size different from 0 in that combination of factor levels!
 
-#sig.human <-
 
-
-library(ggpubr)
-
+# Show clincal & preclinical data in one figure.
 plots<-ggarrange(
   human[[2]]
- # + annotate("text",x= [1,1], y=1 , label = c("*"), size=6) 
- ## werkt nog niet.... --> zoek uit heo je annoteerd in facet grid
-
-#  + ylim(-1.2,1)  #
-  + ylim(-3.1,3.3)  # Same for clinical and preclinical
+ # + ylim(-3.6,3.5)  # If you want y-axis the same for clinical and preclinical
   + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
- + rremove("y.axis") + rremove("y.ticks")
-#+ geom_hline(yintercept = c(-1,1,2,-2), linetype=2, size = .1)
-,
+ + rremove("y.axis") + rremove("y.ticks"),
+ 
   animal[[2]]
- + ylim(-3.1,3.3)  # Same for clinical and preclinical
+# + ylim(-3.6,3.5)   # If you want y-axis the same for clinical and preclinical
  + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
- + rremove("ylab") + rremove("y.axis") + rremove("y.ticks") 
-
-#  + geom_hline(yintercept = c(-1, 1, 2,-2), linetype=2, size = .1)
-,
+ + rremove("ylab") + rremove("y.axis") + rremove("y.ticks"),
   align = "v",
   legend="bottom",
   common.legend = T)
 
-# annotate_figure(plots,
-#                 fig.lab=c("Learning and Memory in PTSD"),
-#                 fig.lab.face = "bold",
-#                 fig.lab.size = 11)
+plots
 
-ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".pdf"), device="pdf", dpi = 500, height = 6, width = 7, limitsize = T )
+# Save figure to jpeg.x
+ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 
-
-
-
-# not readable.
-# forest.rma(mod.H, addfit = T, showweights = T, steps=10, width=.3)
-#  forest(mod.H, cex = .3, font=1, main=("Forestplot")) # Make 
-
-# forest.rma(mod.A)
-
-# descriptives
-preclinical %>%
-  group_by(phase, Valence_Grouped, cuectx ) %>%
-  summarise(mean(yi))
-
-  # yi	 vector to specify the observed effect size or outcomes.
-  # vi	vector to specify the corresponding sampling variances.
+ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+# ppt standard 4:3
 
 
+
+
+##################################################################################################
 
 
 # Boxplot domain ---------------------------------------------------
