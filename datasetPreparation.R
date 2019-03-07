@@ -146,13 +146,17 @@ which(is.na(dat))
 ##calculate effect size
 dat <- escalc(m1i = meanE, sd1i = sdE, n1i = nE, 
               m2i = meanC, sd2i = sdC, n2i = nC, 
-              measure = "SMD", method = "HE",
+              measure = "SMD", method = "HE",  # calc hedge's G
               data = dat)
 
 #dat$yi <- ifelse(data$each %% 2 == 0, dat$yi * -1, dat$yi) ##for blinding
+dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction  (higher score, better performance)
 
-dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction
-
+# INTERPRETATIE
+# Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
+# "SMD": The standardized mean difference is equal to (m1i m2i)/spi
+# 1 = ptsd en 2 = control
+# DUS positive effect size is PTSD meer; Neg effect size is HC meer
 
 
 # Save resulting dataset --------------------------------------------------
