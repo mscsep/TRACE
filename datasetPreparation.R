@@ -42,7 +42,6 @@ names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase"
 
 # Select included rows
 dat <- dat %>% filter(include == 1) %>% droplevels()
-
 # Recode subjecttype
 dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 
@@ -70,11 +69,6 @@ str(dat)
 # all.equal(dat$id, dat1$id) # test differences
 # all.equal(dat$subject, dat1$subject)
 
-# max(dat$nC) # --> hier al probleem met 923  # Dit zijn human papers met code 1
-# dat[which(dat$nC == "923"),]   # en 339 veel te hoog...
-# dat %>% filter(nC == 923)
-
-
 # Corrections to statistical measurements -------------------------------------------------------------
 
 # Correction for multiple use control group -------------------------------
@@ -88,29 +82,23 @@ reused_controls <- dat %>%
   group_by(idControl) %>% # for each control groups
   summarise (used=length(unique(id_combination)))%>% # count the amount of unique id combinations
   filter(used>1) # show control groups in which a unique combination is precent more than once
-
 reused_controls # 10 control groups are used in multiple unique id_combinations
+
 # Check results
 dat %>% filter(idControl%in%reused_controls$idControl)
-
-# merge to dataframe
-dat1<-merge(dat,reused_controls, by="idControl", all.x = T)
+# add to dataframe
+dat$used<- ifelse(dat$idControl%in%reused_controls$idControl, reused_controls$used, NA )
+str(dat)
 # Recalculate n's
-dat1$nC_corrected<-ifelse(!is.na(dat1$used), dat1$nC/dat1$used, dat1$nC )
+dat$nC_corrected<-ifelse(!is.na(dat$used), dat$nC/dat$used, dat$nC)
 # Check if the effects are correct.. yes
-dat1 %>% 
+dat %>% 
   filter(idControl %in% reused_controls$idControl)  %>% 
   select(nC, nC_corrected, used) %>% 
-  filter(!is.na(used)) 
-#head()
-
-dat$nC<-round(dat1$nC_corrected)
-
-
-
-
-
-
+#  filter(!is.na(used)) 
+head()
+# round
+dat$nC<-round(dat$nC_corrected)
 
 # Calculate SD from SEM ---------------------------------------------------
 dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
@@ -126,9 +114,12 @@ which(is.na(dat$sdC)) # erblijven missing na's over...
 # Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
 unique(dat[which(is.na(dat$sdC)),"id"]) # Check of dit overeenkomt.. Klopt.
 # exclude missing values
-dat <- dat[-which(is.na(dat$sdC)),]
+dat %>% filter(!is.na(sdC)) -> dat
 
+dat %>% select(-c(semE, semC, used, nC_corrected)) -> dat # Remove unnessesary colums
 which(is.na(dat))
+
+head(is.na(dat))  # -> er zijn nog cuectx missings (Als je die eruit haalt, is niets missing! voor nu zo gelaten, later correcten in coding.)
 
 
 # # old code valeria
@@ -157,6 +148,7 @@ dat <- escalc(m1i = meanE, sd1i = sdE, n1i = nE,
               m2i = meanC, sd2i = sdC, n2i = nC, 
               measure = "SMD", method = "HE",  # calc hedge's G
               data = dat)
+
 
 #dat$yi <- ifelse(data$each %% 2 == 0, dat$yi * -1, dat$yi) ##for blinding
 dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction  (higher score, better performance)
