@@ -21,33 +21,72 @@ dat2<-data.frame((data[[2]])) #  trauma learning excluded
 dat2$each <- c(1:nrow(dat2))
 
 
-# General -----------------------------------------------------
-dat1 %>% filter(subject == "Human") %>% droplevels()-> dat
-dat1 %>% filter(subject == "Animal") %>% droplevels() -> dat
+# Descriptives ------------------------------------------------------------
 
-##sample sizes general information
-dat$nTot <- dat$nC + dat$nE 
-hist(dat$nTot, breaks = 100) 
 
-sum(dat$nTot)
-mean(dat$nTot) 
-sd(dat$nTot) 
-min(dat$nTot) 
-max(dat$nTot) 
+# General information, count n's etc.
+descriptives_trace <- function(dataset, type){
+  
+  # number of included clincial papers (n=33)
+  length(unique((dataset$id))) -> papers
+  
+  # Unique experimental subjects
+  dataset %>% distinct(idExp, .keep_all=T) %>% summarize(sum(nE), mean(nE), sd(nE), min(nE), max(nE) ) -> experimental
+  # Unique control subjects
+  dataset %>% distinct(idControl, .keep_all=T) %>% summarize(sum(nC), mean(nC), sd(nC), min(nC), max(nC) ) -> control
+  
+  
+  # Create summary table
+  colums<- c("type"," Unique Papers", "Unique experimental subjects (n)", "unique control subjects (n)")
+  row_data<- c(type, papers, experimental$`sum(nE)`, control$`sum(nC)`)
+  samples.table <- data.frame(rbind(colums, row_data))
+  
+  # # collect output
+  # out <-list(papers, experimental, control, samples.table)
+  # names(out) <- c("papers", "experimental", "control", 'table')
+  # return(out)
+  
+  return(samples.table)
+}
 
-# in ~90% comparisons, control and experimental group's sample sizes differ less than 20%
-length(dat[abs((dat$nC - dat$nE) / dat$nTot) < .2,]$each) / length(dat$each)
 
-rm(dat)
+# Collect data in dataframe
+trace_table <- data.frame(rbind(
+  
+  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "L"), type="C.S.L")[2,],
+  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "L"), type="C.N.L")[2,],
+  
+  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "M"), type="C.S.M")[2,],
+  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "M"), type="C.N.M")[2,],
+  
+  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "L"), type='P.S.L')[2,] ,
+  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "L"), type="P.N.L")[2,] ,
+  
+  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "M"), type="P.S.M")[2,],
+  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "M"), type="P.N.M")[2,]))
+
+names(trace_table) <- c("type", "unique papers", "unique nE", "unique nC")
+
+library(flextable)
+library(officer)
+
+fl.tbl<-flextable(trace_table )
+fl.tbl<-theme_vanilla(fl.tbl)
+fl.tbl<-autofit(fl.tbl)
+
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = fl.tbl, align="center")
+#    print(doc, target = paste0("/Volumes/GROUPS/Neurowetenschappen & Farmacologie/trauma in context/SAM/Methods/Analysis/",TableName,".docx"))
+print(doc, target = paste0("TraceSample", date(),".docx"))
 
 
 
 
 # Selection dataset by sex ---------------------------------------------------------
-#create only male dataset
-data %>%
-  filter(sex == "M", domain != "noMeta") %>%
-  droplevels() -> dat
+# #create only male dataset
+# data %>%
+#   filter(sex == "M", domain != "noMeta") %>%
+#   droplevels() -> dat
 
 #create only female dataset
 #data %>%
@@ -96,7 +135,7 @@ data %>%
 # In explore_data script frequency of obervations in groups checked.. for now descided to analyse clinical & preclinical data separatly 
 
 # Clinical data 
-dat2 %>% filter(subject =="Human") ->clinical
+dat2 %>% filter(subject =="Human") %>% droplevels() ->clinical
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,
@@ -106,7 +145,7 @@ mod.H <- rma.mv(yi, vi,
 summary(mod.H)
 
 # Preclinical data 
-dat2 %>% filter(subject =="Animal") ->preclinical
+dat2 %>% filter(subject =="Animal") %>% droplevels() ->preclinical
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
@@ -114,6 +153,16 @@ mod.A <- rma.mv(yi, vi,
                 slab = preclinical$reference,  # from old codes milou (change for author/year)
                 data = preclinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.A)
+
+
+
+
+
+
+
+
+
+
 
 
 # Analyses + Plot:
