@@ -6,8 +6,15 @@ library(metafor) #for effect size estimation
 library(dplyr) #for general functions
 
 #import full dataset 
-data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+#data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+data <- read.csv("TRACE Dataset v16.3.19.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
 
+# get variable codes
+factors <- read.csv("TRACE_factors.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+factors %>% select(task, measure, type, phase, valence, recode, cuectx) -> factors 
+ which(is.na(factors)) # check, should be no missing.
+
+ 
 # Select relevant data parts of dataset ----------------------------------------
 ##prepare your dataset
 dat <- select(data, 
@@ -20,6 +27,9 @@ dat <- select(data,
               "MetaData_Learning.MemoryPhase",
               "MetaData_CueContext.",
               "recode",
+              
+              "Data_Method_TaskSHORT",
+              "Data_Method_MeasureSHORT",
               
               "Comparison",
               
@@ -37,11 +47,42 @@ dat <- select(data,
               "Data_Outcome2_SEM")
 
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "cuectx", "recode", "comparisonControl", "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "cuectx", "recode", "task", "measure","comparisonControl", "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
+
+
+
+
+
+
 
 # Select included rows
 dat <- dat %>% filter(include == 1) %>% droplevels()
+
+
+# add factor vars ---------------------------------------------------------
+
+str(factors)
+head(factors)
+
+# merge task & measure in a code --> this code is needed to merge 'factors' to data.
+dat %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> dat
+factors %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> factors
+
+unique(dat$task)
+
+# factors$measureID
+# dat$measureID
+
+which(is.na(dat$task))
+which(is.na(dat$measure))
+
+dat<- merge(dat, factors, by="measureID", all=T)
+
+
+
+
+
 # Recode subjecttype
 dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 
@@ -120,6 +161,8 @@ dat %>% select(-c(semE, semC, used, nC_corrected)) -> dat # Remove unnessesary c
 which(is.na(dat))
 
 head(is.na(dat))  # -> er zijn nog cuectx missings (Als je die eruit haalt, is niets missing! voor nu zo gelaten, later correcten in coding.)
+
+
 
 
 # # old code valeria
