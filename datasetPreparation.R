@@ -217,7 +217,7 @@ summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame()
 #' Decided to group stressful vs non-stressful learning
 dat$Valence_Grouped <- ifelse(dat$valence %in% c("T","F","E"), "stress", "neutral") #NB nu trauma ook bij stressed!
 dat$Valence_Grouped <-as.factor(dat$Valence_Grouped)
-
+ dat %>% select(task_d, Valence_Grouped, valence) # to check. 
 
 #' NB trauma is niet helemaal een eerlijke categorie om toe te voegen aan 'stressed', omdat het nooit gemeten is humaan....
 dat <- dat %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
@@ -236,7 +236,6 @@ dat<- dat %>% filter(phase != "E")%>% droplevels()
 dat %>% 
   group_by(subject, Valence_Grouped, cuectx) %>%
   summarize(papers=length(unique(id)), comparisons=length(each)) 
-
 
 
 #' *Phase and Valence, in animal human separately?*

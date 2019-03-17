@@ -12,13 +12,8 @@ library(ggpubr) # To show multiple plots in 1 figure
 
 
 #import dataset (already processed with datasetPreparation)
-# load("data.RData")
-data<-readRDS("data.analysis.RData") # Output from "Explore_data.R" script... integrate later in "prepare data.script".
-dat1<-data.frame((data[[1]])) # stressful learning includes trauma
-dat1$each <- c(1:nrow(dat1))
+data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
 
-dat2<-data.frame((data[[2]])) #  trauma learning excluded
-dat2$each <- c(1:nrow(dat2))
 
 
 # Descriptives ------------------------------------------------------------
@@ -53,17 +48,17 @@ descriptives_trace <- function(dataset, type){
 # Collect data in dataframe
 trace_table <- data.frame(rbind(
   
-  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "L"), type="C.S.L")[2,],
-  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "L"), type="C.N.L")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "L"), type="C.S.L")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "L"), type="C.N.L")[2,],
   
-  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "M"), type="C.S.M")[2,],
-  descriptives_trace(dat2 %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "M"), type="C.N.M")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "M"), type="C.S.M")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "M"), type="C.N.M")[2,],
   
-  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "L"), type='P.S.L')[2,] ,
-  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "L"), type="P.N.L")[2,] ,
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "L"), type='P.S.L')[2,] ,
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "L"), type="P.N.L")[2,] ,
   
-  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "M"), type="P.S.M")[2,],
-  descriptives_trace(dat2 %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "M"), type="P.N.M")[2,]))
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "M"), type="P.S.M")[2,],
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "M"), type="P.N.M")[2,]))
 
 names(trace_table) <- c("type", "unique papers", "unique nE", "unique nC")
 
@@ -135,7 +130,7 @@ print(doc, target = paste0("TraceSample", date(),".docx"))
 # In explore_data script frequency of obervations in groups checked.. for now descided to analyse clinical & preclinical data separatly 
 
 # Clinical data 
-dat2 %>% filter(subject =="Human") %>% droplevels() ->clinical
+data %>% filter(subject =="Human") %>% droplevels() ->clinical
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,
@@ -145,7 +140,7 @@ mod.H <- rma.mv(yi, vi,
 summary(mod.H)
 
 # Preclinical data 
-dat2 %>% filter(subject =="Animal") %>% droplevels() ->preclinical
+data %>% filter(subject =="Animal") %>% droplevels() ->preclinical
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
