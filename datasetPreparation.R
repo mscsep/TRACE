@@ -252,5 +252,5 @@ dat <- dat %>% select(-c(id_combination)) %>% droplevels() #drop missing levels 
 
 #str(dat)
 
-save(dat, file = "data.RData") #save
+saveRDS(dat, file = "data.RData") #save
 
