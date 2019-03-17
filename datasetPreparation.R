@@ -1,20 +1,28 @@
-# Environment preparation -------------------------------------------------
-rm(list = ls()) #clean environment
+#' ---
+#' title: "Datapreparation TRACE dataset"
+#' author: "Valeria Bonapersona & Milou Sep"
+#' date: "March 2019"
+#' ---
 
-#Libraries
-library(metafor) #for effect size estimation
+
+#' **Preparation of the environment**
+#+ include=FALSE
+rm(list = ls()) #clean environment
+library(metafor) # for effect size estimation
 library(dplyr) #for general functions
 
+
+#' **Load data and codes for methods**
+#+ include=FALSE
 #import full dataset 
-#data <- read.csv("TRACE_Dataset.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
-data <- read.csv("TRACE Dataset v16.3.19.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
+data <- read.csv("TRACE_data.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Data
+method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
 
-# get variable codes
-factors <- read.csv("TRACE_factors.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", "."))
-factors %>% select(task, measure, type, phase, valence, recode, cuectx) -> factors 
- which(is.na(factors)) # check, should be no missing.
 
- 
+
+method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
+ # which(is.na(method)) # check, should be no missing.
+
 # Select relevant data parts of dataset ----------------------------------------
 ##prepare your dataset
 dat <- select(data, 
@@ -23,13 +31,9 @@ dat <- select(data,
               "Reference_Publication.Year",
               "inclusion",
               "subject",
-              "valence",
-              "MetaData_Learning.MemoryPhase",
-              "MetaData_CueContext.",
-              "recode",
               
-              "Data_Method_TaskSHORT",
-              "Data_Method_MeasureSHORT",
+              "task",
+              "measure",
               
               "Comparison",
               
@@ -47,40 +51,40 @@ dat <- select(data,
               "Data_Outcome2_SEM")
 
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "valence", "phase", "cuectx", "recode", "task", "measure","comparisonControl", "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 
 
+str(dat)
 
 
-
-
-
-# Select included rows
+#' **Select only data that is included in the meta-analysis**
 dat <- dat %>% filter(include == 1) %>% droplevels()
 
 
 # add factor vars ---------------------------------------------------------
 
-str(factors)
-head(factors)
+str(method)
+head(method)
 
-# merge task & measure in a code --> this code is needed to merge 'factors' to data.
+# merge task & measure in a code --> this code is needed to merge 'method' to data.
 dat %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> dat
-factors %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> factors
+method %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> method
 
-unique(dat$task)
+# unique(dat$task)
+# which(is.na(dat$task))
+# which(is.na(dat$measure))
 
-# factors$measureID
-# dat$measureID
+# add method codes to datasheet
+dat<- merge(dat, method, by="measureID", all=T, suffixes = c("_d", "_m"))
 
-which(is.na(dat$task))
-which(is.na(dat$measure))
+# # Quality check after merging.. (should be identical)
+# identical(as.character(dat2$task.x), as.character(dat2$task.y ))
+# identical(as.character(dat2$measure.x), as.character(dat2$measure.y ))
+str(dat)
+# dat2 %>% select( measure.x, measure.y) # works
 
-dat<- merge(dat, factors, by="measureID", all=T)
-
-
-
+# dat %>% select(-c(task_m, measure_m)) -> dat #remove duplicate colums (niet echt nodig...)
 
 
 # Recode subjecttype
@@ -99,8 +103,9 @@ for(i in 1:length(stat.vars)){
   dat[,stat.vars[i]]<- sub("-", "-", as.character(dat[,stat.vars[i]]), fixed = TRUE) # Correction of - signs
   dat[,stat.vars[i]]<- as.numeric(sub(",", ".", as.character(dat[,stat.vars[i]]), fixed = TRUE))
 }
+
 # Create factors from character/numeric
-factor.vars<-c("id", "include", "subject", "valence","phase", "cuectx","comparisonControl", "idExp", "idControl")
+factor.vars<-c("id", "include", "subject", "comparisonControl", "idExp", "idControl")
 dat<-mutate_each(dat, as.factor, factor.vars)
 # Create reference var as character
 dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
@@ -109,6 +114,8 @@ dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% 
 str(dat)
 # all.equal(dat$id, dat1$id) # test differences
 # all.equal(dat$subject, dat1$subject)
+
+
 
 # Corrections to statistical measurements -------------------------------------------------------------
 
@@ -201,6 +208,56 @@ dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction  (hig
 # "SMD": The standardized mean difference is equal to (m1i m2i)/spi
 # 1 = ptsd en 2 = control
 # DUS positive effect size is PTSD meer; Neg effect size is HC meer
+
+
+# add unique id's
+dat$each <- c(1:nrow(dat)) 
+
+
+
+# Explore frequencies of potential moderators --------------------------------
+
+## SOME INFO: Potential moderators in dataset: (NB valence, phase, cuectx follow from task & measure in dataset (see code above)):
+# - comparisionControl: CODES: A="ptsd_nontrauma_H", B="trauma_nontrauma_H", C="ptsd_trauma_H", 
+# D="trauma_nontrauma_A", E="ptsd_nontrauma_A",F="ptsd_trauma_A"
+# - valence # NB codes: # T=trauma; N=non_trauma_neutral; E=non_trauma_emotional; F=non-trauma_fearfull
+# - phase: L=learning or M=memory (or E=extinction) (THINK:--> extinction droppen / indelen bij learing?)
+# - cuectx: cue or context
+
+# NB for the analysis 2 moderator possible.
+
+
+# Check frequenties per measure 
+sum_tasks <-dat %>%
+  group_by(type, phase, valence, comparisonControl, cuectx) %>%
+  summarise(length(unique(id)))
+
+data.frame(sum_tasks)
+
+
+# Combination Comparision, subject:
+dat %>% 
+  group_by(subject,  comparisonControl) %>%
+  summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame() # Not enough datapoints in some categories --> not feasebl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Save resulting dataset --------------------------------------------------
