@@ -16,6 +16,7 @@ data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma lea
 
 
 
+
 # Descriptives ------------------------------------------------------------
 
 
@@ -48,17 +49,17 @@ descriptives_trace <- function(dataset, type){
 # Collect data in dataframe
 trace_table <- data.frame(rbind(
   
-  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "L"), type="C.S.L"),
-  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "L"), type="C.N.L"),
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "L"), type="C.S.L")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "L"), type="C.N.L")[2,],
   
-  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "M"), type="C.S.M"),
-  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "M"), type="C.N.M"),
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "stress" & phase == "M"), type="C.S.M")[2,],
+  descriptives_trace(data %>% filter(subject == "Human", Valence_Grouped == "neutral" & phase == "M"), type="C.N.M")[2,],
   
-  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "L"), type='P.S.L') ,
-  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "L"), type="P.N.L"),
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "L"), type='P.S.L')[2,],
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "L"), type="P.N.L")[2,],
   
-  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "M"), type="P.S.M"),
-  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "M"), type="P.N.M")))
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "stress" & phase == "M"), type="P.S.M")[2,],
+  descriptives_trace(data %>% filter(subject =="Animal", Valence_Grouped == "neutral" & phase == "M"), type="P.N.M")[2,]))
 
 names(trace_table) <- c("type", "unique papers", "unique nE", "unique nC")
 
@@ -69,10 +70,10 @@ fl.tbl<-flextable(trace_table )
 fl.tbl<-theme_vanilla(fl.tbl)
 fl.tbl<-autofit(fl.tbl)
 
-doc <- read_docx()
-doc <- body_add_flextable(doc, value = fl.tbl, align="center")
-#    print(doc, target = paste0("/Volumes/GROUPS/Neurowetenschappen & Farmacologie/trauma in context/SAM/Methods/Analysis/",TableName,".docx"))
-print(doc, target = paste0("TraceSample", date(),".docx"))
+# doc <- read_docx()
+# doc <- body_add_flextable(doc, value = fl.tbl, align="center")
+# #    print(doc, target = paste0("/Volumes/GROUPS/Neurowetenschappen & Farmacologie/trauma in context/SAM/Methods/Analysis/",TableName,".docx"))
+# print(doc, target = paste0("TraceSample", date(),".docx"))
 
 
 # check differences.. 17.3.19

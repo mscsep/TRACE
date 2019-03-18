@@ -69,7 +69,7 @@ dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 # check missing of all variables of interst
 which(is.na(dat$subject))
 which(is.na(dat$id))
-which(is.na(dat$comparisonControl))
+ which(is.na(dat$comparisonControl))
 
 
 #' **Set variable properties**
@@ -96,7 +96,7 @@ reused_controls <- dat %>%
   group_by(idControl) %>% # for each control groups
   summarise (used=length(unique(id_combination)))%>% # count the amount of unique id combinations
   filter(used>1) # show control groups in which a unique combination is precent more than once
-reused_controls # 10 control groups are used in multiple unique id_combinations
+reused_controls # 10 control groups are used in multiple unique id_combinations # 18.3.19 11 control grousp used multiple times
 #' Check results
 #+ eval=F
 dat %>% filter(idControl%in%reused_controls$idControl) %>% tibble
@@ -107,9 +107,7 @@ dat$nC_corrected<-ifelse(!is.na(dat$used), dat$nC/dat$used, dat$nC)
 #' Check if the effects are correct.. yes
 dat %>% 
   filter(idControl %in% reused_controls$idControl)  %>% 
-  select(nC, nC_corrected, used) %>% 
-#  filter(!is.na(used)) 
-head()
+  select(nC, nC_corrected, used) %>% head()
 # round
 dat$nC<-round(dat$nC_corrected)
 
@@ -219,9 +217,9 @@ dat$Valence_Grouped <- ifelse(dat$valence %in% c("T","F","E"), "stress", "neutra
 dat$Valence_Grouped <-as.factor(dat$Valence_Grouped)
  dat %>% select(task_d, Valence_Grouped, valence) # to check. 
 
-#' NB trauma is niet helemaal een eerlijke categorie om toe te voegen aan 'stressed', omdat het nooit gemeten is humaan....
-dat <- dat %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
-
+ #' NB trauma is niet helemaal een eerlijke categorie om toe te voegen aan 'stressed', omdat het nooit gemeten is humaan....
+ dat <- dat %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
+ 
 
 #' *Phase and subject as moderators?*
 # Explore distribution learning and memory data per subject & valence type
@@ -244,7 +242,11 @@ dat %>%
   summarize(papers=length(unique(id)), comparisons=length(each)) 
 
 
+dat %>% group_by(subject, phase, valence) %>%
+  summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame()
 
+dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="L")
+dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="M")
 
 # Save resulting dataset --------------------------------------------------
 dat <- dat %>% select(-c(id_combination)) %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
