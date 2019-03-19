@@ -29,6 +29,8 @@ dat <- select(data,
               "measure",
               "Comparison",
               
+              "Data_Subjects_PTSDtypeSHORT2", 
+              
               "MetaData_KeyFindingSHORT..PTSDmore..PTSDminder.0NoDiff.",
               
               "ID_Experimental_group",
@@ -42,11 +44,12 @@ dat <- select(data,
               "Data_Outcome2_SD",
               "Data_Outcome2_SEM")
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "keyfinding",  "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "ptsd", "keyfinding",  "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 # Create reference var as character
 dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 
+# data$Data_Subjects_PTSDtypeSHORT2
 
 #' **Select only data that is included in the meta-analysis**
 dat <- dat %>% filter(include == 1) %>% droplevels()
