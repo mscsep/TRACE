@@ -47,6 +47,51 @@ data %>% filter(subject == "Human", Valence_Grouped == "neutral") %>% select(ref
 
 # Descriptives ------------------------------------------------------------
 
+#' **papers included in the analysis**
+data %>% 
+  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
+  summarize( length(unique(id)))
+
+data %>% 
+  group_by( subject) %>% 
+  summarize( length(unique(id)))
+
+#' **comparisons included in the analysis**
+data %>% 
+  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
+  summarize( length(unique(each)))
+
+data %>% 
+  group_by( subject) %>% 
+  summarize( length(unique(each)))
+
+#' **Show Trauma & PTSD 'types' that are presenten in animals and humans**
+# Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
+data$ptsd[stringr::str_detect(as.character(data$ptsd), "SPS")] <- 'SPS'
+data$ptsd[stringr::str_detect(as.character(data$ptsd), "Deployment")] <- 'Deployment'     
+data$ptsd[stringr::str_detect(as.character(data$ptsd), "WarRelated")] <- 'Deployment'  
+
+data$ptsd[stringr::str_detect(as.character(data$ptsd), "of PSS?")] <- 'PSS'  
+data$ptsd[stringr::str_detect(as.character(data$ptsd), "UWT")] <- 'UT'  
+unique(data$ptsd)
+data %>% droplevels() ->data
+
+data %>% 
+  group_by(subject, ptsd) %>% 
+  summarize( length(unique(each))) %>% 
+  arrange(desc(subject)) %>% 
+  flextable() %>%
+  # change header names
+  set_header_labels( ptsd = "Trauma", 
+                     'length(unique(each))'="comparisons") -> TRACEtrauma
+# Save to word
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = TRACEtrauma, align="center")
+print(doc, target = paste0("TRACEtrauma", date(),".docx"))
+
+
+
+
 #' **Show tasks that were used to measure stressful & non-stressful learning & memory in animals and humans**
 data %>% 
   group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
