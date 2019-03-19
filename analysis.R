@@ -21,6 +21,7 @@ library(officer)# to export tables to word
 #' import dataset (already processed with datasetPreparation)
 data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
 
+
 #' Variable / level exclusion (see notes data prep file) 
 #' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
 #' Consider exclusion in 'analysis script'
@@ -36,7 +37,7 @@ data<- data %>% filter(phase != "E")%>% droplevels()
 #' Inspect the data
 #+ include =F
 data %>% filter(subject == "Animal", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
-data %>% filter(subject == "Animal", Valence_Grouped == "neutral") #%>% select(reference, measureID, phase, recode)
+data %>% filter(subject == "Animal", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode, yi)
 
 data %>% filter(subject == "Human", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
 data %>% filter(subject == "Human", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode)
@@ -107,13 +108,43 @@ print(doc, target = paste0("TraceSample", date(),".docx"))
 # Model -------------------------------------------------------------------
 # In explore_data script frequency of obervations in groups checked.. for now descided to analyse clinical & preclinical data separatly 
 
+
+#' **Split clinical and preclinical data**
+# Clinical data 
+data %>% filter(subject =="Human") %>% droplevels() ->clinical
+# Preclinical data 
+data %>% filter(subject =="Animal") %>% droplevels() ->preclinical
+
+#' **influential cases**
+# check influentials phase * valence analysis ------------------------------------------------------
+source("influentials_valence_phase.r")
+preclinical<-influentials_valence_phase(preclinical)
+preclinical[which(preclinical$outInf == 1),]
+
+# remove outliers
+##  influential (Viechtbauer & Cheung) 
+preclinical %>%
+ filter(outInf != 1) %>%
+droplevels() -> preclinical # n=4 datapoints excluded animal 
+
+
+clinical<-influentials_valence_phase(clinical)
+clinical[which(clinical$outInf == 1),] # n=4 datapoints excluded human 
+
+
+# remove outliers
+##  influential (Viechtbauer & Cheung) 
+clinical %>%
+  filter(outInf != 1) %>%
+  droplevels() -> clinical
+
+
+
+#' **multilevel models**
 # Analyses + Plot:
 source("model_valence_phase.r")
 
-
-#' **Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients**
-# Clinical data 
-data %>% filter(subject =="Human") %>% droplevels() ->clinical
+#' *Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients*
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,
@@ -125,9 +156,7 @@ summary(mod.H)
 human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )
 human
 
-#' **Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD**
-# Preclinical data 
-data %>% filter(subject =="Animal") %>% droplevels() ->preclinical
+#' *Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD*
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idExp),
                 mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
@@ -138,7 +167,6 @@ summary(mod.A)
 
 animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
 animal
-
 
 
 #' **data presenation**
@@ -161,7 +189,9 @@ plots
 
 #' **safe results**
 # Save figure to jpeg.x
-ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+#ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+
+ggsave(paste0("LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 # ppt standard 4:3
@@ -170,21 +200,22 @@ ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 50
 
 
 
+
+
+
+
+
+
+
 # Exploration -------------------------------------------------------------
 
 
+data<-readRDS("data.RData") # Out
+
+str(data)
+# je kan nog kijken naar type (verbal spatial etc.) en cuectx en alle combinatis
 
 
-
-# animal
-
-mod.A_exp <- rma.mv(yi, vi,
-                random = list(~1 | each, ~1 | idExp),
-                mods   = ~cuectx:Valence_Grouped - 1,  # NB only interaction term
-                method = "REML",
-                slab = preclinical$reference,  # from old codes milou (change for author/year)
-                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.A_exp)
 
 
 
