@@ -14,8 +14,7 @@ library(dplyr) #for general functions
 # import .csv files 
 data <- read.csv("TRACE_data.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Data
 method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
-# which(is.na(method)) # check, should be no missing.
-
+which(is.na(method)) # check, should be no missing.
 
 #' **Select relevant colums dataset**
 method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
@@ -29,6 +28,9 @@ dat <- select(data,
               "task",
               "measure",
               "Comparison",
+              
+              "MetaData_KeyFindingSHORT..PTSDmore..PTSDminder.0NoDiff.",
+              
               "ID_Experimental_group",
               "ID_Control_group",
               "Data_Subjects_n_ptsd",
@@ -40,7 +42,7 @@ dat <- select(data,
               "Data_Outcome2_SD",
               "Data_Outcome2_SEM")
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "idExp", "idControl",
+names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "keyfinding",  "idExp", "idControl",
                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
 # Create reference var as character
 dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
@@ -62,9 +64,11 @@ dat<- merge(dat, method, by="measureID", all=T, suffixes = c("_d", "_m"))
  identical(as.character(dat$measure.d), as.character(dat$measure.m ))
 # dat %>% select(-c(task_m, measure_m)) -> dat #remove duplicate colums (niet echt nodig...)
 
-
+ 
 #' **Recode subjecttype**
 dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
+# identical(ifelse(dat$subject %in% c(0,1,2,3), "Human", "Animal"),ifelse(dat$subject <= 3, "Human", "Animal")  ) # To check, gives same results
+
 
 # check missing of all variables of interst
 which(is.na(dat$subject))
@@ -108,7 +112,7 @@ dat$nC_corrected<-ifelse(!is.na(dat$used), dat$nC/dat$used, dat$nC)
 dat %>% 
   filter(idControl %in% reused_controls$idControl)  %>% 
   select(nC, nC_corrected, used) %>% head()
-# round
+#' round
 dat$nC<-round(dat$nC_corrected)
 
 
@@ -117,42 +121,22 @@ dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
 dat$sdC <- ifelse(is.na(dat$sdC), (dat$semC * sqrt(dat$nC)), dat$sdC)
 
 
-#' **Missing values**
-# Check Missing values
-which(is.na(dat$sdE))
+#' **Check Missing values (should be none)**
+#' Sample sizes ok
 which(is.na(dat$nE))
 which(is.na(dat$nC))
-which(is.na(dat$sdC)) # erblijven missing na's over...
+#' sd not..
+which(is.na(dat$sdE))
+which(is.na(dat$sdC))
 #' Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
-unique(dat[which(is.na(dat$sdC)),"id"]) # Check of dit overeenkomt.. Klopt.
-#' exclude missing values
+unique(dat[which(is.na(dat$sdC)),"id"]) 
+#' Theses values correspond with original datafile, and are exlcuded from further analysis
 dat %>% filter(!is.na(sdC)) -> dat
-
 dat %>% select(-c(semE, semC, used, nC_corrected)) -> dat # Remove unnessesary colums
-which(is.na(dat))
-
+#' Missingvalues are checked again, should be non..
+which(is.na(dat)) 
+#' update 19.3.19: na toevoeging "keyfinding", sommmige na, anders niet.
 head(is.na(dat)) 
-
-
-
-# # old code valeria
-# ##correction for qualitative interpretation direction (for systematic review graphs)
-# data$directionQual <- (as.numeric(factor(data$directionGrouped, 
-#                                          levels = c("decrease", "ns", "increase"))) - 2) #convert direction reported by studies to numeric
-# 
-# data$directionQual <- data$directionQual * data$multiply #correct direction of effects reported by studies according to categorization rules
-# 
-# data$directionGrouped <- ifelse(is.na(data$directionQual), "notRetrievable",
-#                                 ifelse(data$directionQual == -1, "decrease",
-#                                        ifelse(data$directionQual == 1, "increase", "ns"))) #convert numeric to interpretation
-# 
-# #convert decrease with increase and viceversa for nsLearning and social
-# data$directionGrouped <- ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "decrease", 
-#                                 "increase",
-#                                 ifelse(data$domain %in% c("nsLearning", "social") & data$directionGrouped == "increase", 
-#                                        "decrease", data$directionGrouped))
-# 
-# data$directionGrouped <- as.factor(data$directionGrouped)
 
 
 #' **Calculation of effect sizes and checks**
@@ -161,17 +145,12 @@ dat <- escalc(m1i = meanE, sd1i = sdE, n1i = nE,
               measure = "SMD", method = "HE",  # calc hedge's G
               data = dat)
 
-#' recode variables (effect sizes right direction)
-#dat$yi <- ifelse(data$each %% 2 == 0, dat$yi * -1, dat$yi) ##for blinding
-dat$yi <- dat$yi * dat$recode #give all effect sizes the correct direction  (higher score, better performance)
-
-
-#' **INTERPRETATIE**
-#' Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
+#' **Recode Effect sizes in same direction (higher score = better performance)**
+#' Based on recode variable, which is specified in "Trace_methode_codes.csv"
+dat$yi <- dat$yi * dat$recode
+#' INTERPRETATION: Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
 #' "SMD": The standardized mean difference is equal to (m1i m2i)/spi
-#' 1 = ptsd en 2 = control
-#' DUS positive effect size is PTSD meer; Neg effect size is HC meer
-
+#' In the calulations above 1 = ptsd en 2 = control; therefore positive effect size = PTSD more, negative effectsize is HC more 
 
 
 #' **add unique id's**
@@ -190,19 +169,10 @@ dat$each <- c(1:nrow(dat))
 #' NB for the analysis 2 moderator possible.
 
 
-# # Check frequenties per measure 
-# sum_tasks <-dat %>%
-#   group_by(type, phase, valence, comparisonControl, cuectx) %>%
-#   summarise(length(unique(id)))
-# 
-# data.frame(sum_tasks)
-
-
 #'*Comparision and subject as moderators?*
-dat %>% group_by(subject,  comparisonControl) %>%
+dat %>% group_by(subject, valence, comparisonControl) %>%
   summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame() 
 #' Not enough datapoints in some categories --> not possible
-
 #' NB If comparisontypes is no longer included in analyses, comparision B needs to be excluded 
 #' (in which healhty trauma exposed humans are compared to heathy non-trauma exposed humans; so NO PTSD patients)
 dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat
@@ -216,18 +186,17 @@ summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame()
 dat$Valence_Grouped <- ifelse(dat$valence %in% c("T","F","E"), "stress", "neutral") #NB nu trauma ook bij stressed!
 dat$Valence_Grouped <-as.factor(dat$Valence_Grouped)
  dat %>% select(task_d, Valence_Grouped, valence) # to check. 
+#' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
+#' Consider exclusion in 'analysis script'
 
- #' NB trauma is niet helemaal een eerlijke categorie om toe te voegen aan 'stressed', omdat het nooit gemeten is humaan....
- dat <- dat %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
  
-
 #' *Phase and subject as moderators?*
 # Explore distribution learning and memory data per subject & valence type
 dat %>% 
   group_by(subject, Valence_Grouped, phase, cuectx) %>%
   summarize(papers=length(unique(id)), comparisons=length(each))
-#' extinction data not in all groups --> Dropped for now.
-dat<- dat %>% filter(phase != "E")%>% droplevels()
+#' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
+#' Consider exclusion in 'analysis script'
 
 
 #' *cuectx and Valence as moderators, Animal & Human separate?*
@@ -245,11 +214,24 @@ dat %>%
 dat %>% group_by(subject, phase, valence) %>%
   summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame()
 
-dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="L")
-dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="M")
+# dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="L")
+# dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="M")
+
+
+
+# compare keyfinding & effectsize -----------------------------------------
+#' soort van quality check
+
+# dat %>% filter(keyfinding %in% c("+", "-", "0")) %>% select(id, keyfinding, yi, phase, measureID, recode) -> qc
+# + lijkt aardig te kloppen (keyfinding is niet zo secure ingevuld tijdens dataextractie.)
+# Het is moeilijk om 0 te controleren.. (omdat het aan de ffect sizes niet te zien is of ze sig zijn.) 
+# op een of andere manier is - niet in de data
+
+
+
 
 # Save resulting dataset --------------------------------------------------
-dat <- dat %>% select(-c(id_combination)) %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
+dat <- dat %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
 
 #str(dat)
 

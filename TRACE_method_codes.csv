@@ -66,7 +66,7 @@ RAVLT;Recognition Hit;verbal;M;N;1;cue;Rey Auditory Verbal-Learning Test (AVLT);
 RAVLT;SD Free;verbal;M;N;1;cue;Rey Auditory Verbal-Learning Test (AVLT);correct List A, short-delay recall;;;
 RAVLT;List A recall/Trial 5;verbal;M;N;-1;cue;Rey Auditory Verbal-Learning Test (AVLT);retroactive interference ratio;;;
 RAVLT;LD Recall / SD Recall;verbal;M;N;1;cue;Rey Auditory Verbal-Learning Test (AVLT);savings ratio ;;;
-RAVLT;RecallPerservations;verbal;M;N;-1;cue;Rey Auditory Verbal-Learning Test (AVLT);perservation;;;
+RAVLT;RecallPerservations;verbal;M;N;-1;cue;Rey Auditory Verbal-Learning Test (AVLT);perservation (error index);https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5718337/;;
 RAWM;SD_Errors;spatial;M;N;-1;context;Radial Arm Water Maze;30min after learning;;;
 RAWM;LD_Errors;spatial;M;N;-1;context;Radial Arm Water Maze;24h after learning;;;
 RBANS;recall;mix;M;N;1;cue;Repeatable Battery for the Assessment of Neuropsychological Status (RBANS);Recall (tscore) memory measures (story recall trials, list recall, list recogntion, figure recall);;;
