@@ -76,7 +76,7 @@ dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
 # check missing of all variables of interst
 which(is.na(dat$subject))
 which(is.na(dat$id))
- which(is.na(dat$comparisonControl))
+which(is.na(dat$comparisonControl))
 
 
 #' **Set variable properties**
