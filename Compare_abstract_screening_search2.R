@@ -115,4 +115,4 @@ animal %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file='inconsis
   osf_upload(osf_retrieve_node("awkn6"),'inconsistencies_animal_s2.csv')
   
 #remove downloaded files
-file.remove(c("TRACE_screening_search2_SH.xlsx","TRACE_screening_search2_MS.xlsx","inconsistencies_human.csv", "inconsistencies_animal.csv"))
+file.remove(c("TRACE_screening_search2_SH.xlsx","TRACE_screening_search2_MS.xlsx","inconsistencies_human_s2.csv", "inconsistencies_animal_s2.csv"))
