@@ -35,10 +35,12 @@ dat <- select(data,
               
               "ID_Experimental_group",
               "ID_Control_group",
+              
               "Data_Subjects_n_ptsd",
               "Data_Outcome1_M",
               "Data_Outcome1_SD",
               "Data_Outcome1_SEM",
+              
               "Data_Subjects_n_control",
               "Data_Outcome2_M",
               "Data_Outcome2_SD",
