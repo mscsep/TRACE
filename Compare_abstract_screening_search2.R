@@ -57,10 +57,9 @@ df.h %>% mutate(
     case_when(
       inclusion_MS==1 ~"yes",
       inclusion_MS==0 ~"no",
-      grepl("?",inclusion_MS, fixed = T) ~ '?'
-    ),
-  inclusion_SH=
-    tidyr::replace_na(.$inclusion_SH, "?") # is this correct?
+      grepl("?",inclusion_MS, fixed = T) ~ '?')
+  # inclusion_SH=
+  #   tidyr::replace_na(.$inclusion_SH, "?") # is this correct?
 )->df.h2
 
 df.a %>% mutate(
@@ -68,10 +67,9 @@ df.a %>% mutate(
     case_when(
       inclusion_MS==1 ~"yes",
       inclusion_MS==0 ~"no",
-      grepl("?",inclusion_MS, fixed = T) ~ '?'
-    ),
-  Inclusion_SH=
-    tidyr::replace_na(.$Inclusion_SH, "?") # is this correct?
+      grepl("?",inclusion_MS, fixed = T) ~ '?')
+  # Inclusion_SH=
+  #   tidyr::replace_na(.$Inclusion_SH, "?") # is this correct?
 ) ->df.a2
 
 
