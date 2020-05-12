@@ -8,6 +8,9 @@ library(dplyr)
 
 # Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the commentline. (note PAT can be derived from OSF)
 
+
+# Step 1 check inconsistencies in abstract screening ----------------------
+
 # load data
 osf_retrieve_file("pu6bf") %>% osf_download() #abstract screening search2 SH
 osf_retrieve_file("56fyu") %>% osf_download() #abstract screening search2 MS
@@ -107,12 +110,12 @@ animal_recoded2 %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file=
 # upload files to OSF
   osf_upload(osf_retrieve_node("awkn6"),'inconsistencies_human_s2.csv')
   osf_upload(osf_retrieve_node("awkn6"),'inconsistencies_animal_s2.csv')
-  
+
 #remove downloaded files
 file.remove(c("TRACE_screening_search2_SH.xlsx","TRACE_screening_search2_MS.xlsx","inconsistencies_human_s2.csv", "inconsistencies_animal_s2.csv"))
 
 
-# Merge data after discussion inconsitencies ------------------------------
+# Step 2: Merge data after discussion inconsitencies ------------------------------
 # 12.5.20
 
 osf_retrieve_file("ugyrp") %>% osf_download() # discussed animal
@@ -125,7 +128,6 @@ human_discussed <- human_discussed[,colSums(is.na(human_discussed))<nrow(human_d
 
 # human_discussed <- human_discussed[rowSums(is.na(human_discussed))<nrow(human_discussed),]
 # animal_discussed <- animal_discussed[rowSums(is.na(animal_discussed))<nrow(animal_discussed),]
-
 
 # merge colums from discussion to original screening data
 animal_discussed %>% select(Reference_PMID_SH,!grep("_SH|_MS", colnames(animal_discussed)))->animal_discussed2
@@ -182,4 +184,63 @@ animal_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='required_full_
 file.remove(c("inconsistencies_human_s2_SH.csv", "inconsistencies_animal_s2_SH.csv"))
 # file.remove(c('required_full_checks_human_s2.csv', 'required_full_checks_animal_s2.csv'))
  
+
+
+# Step 3: add information full text screening to data -----------------------------
+#load checked data
+osf_retrieve_file("xmua6") %>% osf_download() # full text checks animal animal
+osf_retrieve_file("ce35r") %>% osf_download() # full text checks human animal
+
+#read data
+animal_full_text <- read.csv2("required_full_checks_animal_s2_MS.csv")
+# str(animal_full_text)
+human_full_text <- read.csv2("required_full_checks_human_s2_SH.csv")
+# str(human_full_text)
+
+# filter new colums
+animal_full_text %>% select(  Reference_PMID_SH, Full_text_MS_notes, Full_text_MS_conclusion )->full.text.checks.animal
+human_full_text %>% select(  Reference_PMID_SH, Full_text_SH_notes, Full_text_SH_conclusion )->full.text.checks.human
+
+# merge data
+ full_join(human_new2, full.text.checks.human, by="Reference_PMID_SH")->human_screening2_complete
+ full_join(animal_new2, full.text.checks.animal, by="Reference_PMID_SH")->animal_screening2_complete
+ 
+ #create variable with final conclusions
+ animal_screening2_complete %>% mutate(
+   conclusion3=
+     case_when(
+       conclusion2!= "?" ~ conclusion2,
+       conclusion2 == "?"  ~ as.character(Full_text_MS_conclusion)
+     )
+ )->animal_new3
+ 
+ #checks
+is.na(animal_new3$conclusion3) %>% any()
+(animal_new3$conclusion3 =="" )  %>% any()
+
+ human_screening2_complete %>% mutate(
+   conclusion3=
+     case_when(
+       conclusion2!= "?" ~ conclusion2,
+       conclusion2 == "?"  ~ as.character(Full_text_SH_conclusion)
+     )
+ )->human_new3
+ 
+# checks
+(human_new3$conclusion3 =="")%>% any()
+is.na(human_new3$conclusion3) %>% any()
+
+# Overview of inclusions:
+animal_new3 %>% filter(conclusion3 == "yes") ->animal_inclusions
+human_new3 %>% filter(conclusion3 == "yes") ->human_inclusions
+
+#export data
+write.csv2(animal_inclusions,file='animal_inclusions_s2.csv')
+write.csv2(human_inclusions,file='human_inclusions_s2.csv')
+
+# upload files to OSF
+osf_upload(osf_retrieve_node("awkn6"),'animal_inclusions_s2.csv')
+osf_upload(osf_retrieve_node("awkn6"),'human_inclusions_s2.csv')
+
+
  
