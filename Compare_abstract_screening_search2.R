@@ -48,11 +48,11 @@ cbind(SH_animal2, MS_animal2)->animal
 cbind(SH_human2, MS_human2)->human
 
 # select only PMID & ref.
-human %>% select(Reference_PMID_SH, inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.h
-animal %>% select(Reference_PMID_SH, Inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.a
+# human %>% select(Reference_PMID_SH, inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.h
+# animal %>% select(Reference_PMID_SH, Inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.a
 
 # recode to same scale: 1=inclusion; 0=exclusion; ?=full text check needed
-df.h %>% mutate(
+human %>% mutate(
   inclusion_MS=
     case_when(
       inclusion_MS==1 ~"yes",
@@ -60,9 +60,9 @@ df.h %>% mutate(
       grepl("?",inclusion_MS, fixed = T) ~ '?')
   # inclusion_SH=
   #   tidyr::replace_na(.$inclusion_SH, "?") # is this correct?
-)->df.h2
+)->human_recoded
 
-df.a %>% mutate(
+animal %>% mutate(
   inclusion_MS=
     case_when(
       inclusion_MS==1 ~"yes",
@@ -70,7 +70,7 @@ df.a %>% mutate(
       grepl("?",inclusion_MS, fixed = T) ~ '?')
   # Inclusion_SH=
   #   tidyr::replace_na(.$Inclusion_SH, "?") # is this correct?
-) ->df.a2
+) ->animal_recoded
 
 
 # select equal rows
@@ -114,3 +114,13 @@ animal %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file='inconsis
   
 #remove downloaded files
 file.remove(c("TRACE_screening_search2_SH.xlsx","TRACE_screening_search2_MS.xlsx","inconsistencies_human_s2.csv", "inconsistencies_animal_s2.csv"))
+
+##### Merged discussed inconsitencies
+osf_retrieve_file("ugyrp") %>% osf_download() # discussed animal
+osf_retrieve_file("kve78") %>% osf_download() # discussed human data
+
+
+animal_discussed <- read.csv2("inconsistencies_animal_s2_SH.csv")
+human_discussed <- read.csv2("inconsistencies_human_s2_SH.csv")
+
+
