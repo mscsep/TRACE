@@ -243,4 +243,4 @@ osf_upload(osf_retrieve_node("awkn6"),'animal_inclusions_s2.csv')
 osf_upload(osf_retrieve_node("awkn6"),'human_inclusions_s2.csv')
 
 
- 
+# file.remove(c("animal_inclusions_s2.csv", "human_inclusions_s2.csv"))
