@@ -66,7 +66,6 @@ human_search3[!human_search3$V1 %in% human_search2$V1,]  -> unique.search3.human
 length(unique.search3.human) # 412
 # write.table(unique.search3.human, file = "human_search3_unique.csv", sep = ';', row.names = F)
 
-
 # Compare animal hits 
 any(!search1_animal %in% animal_search2$V1) # All items in search 1 are also in search 2
 animal_search3[!animal_search3$V1 %in% animal_search2$V1,]  -> unique.search3.animal # therefore search 3 compared to search 2
