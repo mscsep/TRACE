@@ -17,6 +17,7 @@ osf_retrieve_file("k3xqw") %>% osf_download() # trace dataset search 1
 osf_retrieve_file("7kdmu") %>% osf_download() # human search 2
 osf_retrieve_file("fs2gq") %>% osf_download() # animal search 2
 
+
 # load data search1 animal hits
 search1_animal <- read_excel("TRACE Dataset v28.2.19.xlsx", sheet = "Animal hits n=178 SSv18.10.2016", col_types = "numeric")
 search1_animal_uPMID <- unique(search1_animal$PMID)
@@ -48,3 +49,10 @@ write.table(human_search2_uniq, file = "human_search2_unique.csv", sep = ';', ro
 
 # remove local copies of downloaded OSF files
 file.remove(c("TRACE Dataset v28.2.19.xlsx","pubmed_result_search2_animal 6.1.20.txt","pubmed_result_search2_human 6.1.20.txt"))
+
+
+
+# After search 2, SC updated (task & behavioral part), script to extract unique id's from new search (=not checked in search 1 or 2)
+# 18.5.20 Milou Sep
+
+
