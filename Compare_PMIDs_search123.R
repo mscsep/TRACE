@@ -55,8 +55,6 @@ human_search2[!human_search2$V1 %in% search1_human_uPMID,] -> human_search2_uniq
 # load search 3 -----------------------------------------------------------
 # animal_search3 <- read.table("pmid-search3_animal_18.5.20.txt",  quote="\"", comment.char="")
 # human_search3<- read.table("pmid-search3_human_18.5.20.txt", quote="\"", comment.char="")
-
-
 animal_search3 <- read.table("pmid-search3.learn.animal.txt",  quote="\"", comment.char="")
 human_search3<- read.table("pmid-search3.learn.human.txt", quote="\"", comment.char="")
 
@@ -75,6 +73,10 @@ any(!search1_animal %in% animal_search2$V1) # All items in search 1 are also in 
 animal_search3[!animal_search3$V1 %in% animal_search2$V1,]  -> unique.search3.animal # therefore search 3 compared to search 2
 length(unique.search3.animal) # (met cognitie) 318 -> met alleen learning/memory: 291
 # write.table(unique.search3.animal, file = "animal_search3_unique.csv", sep = ';', row.names = F)
+
+# which search 1 not in search 3
+search1_animal[!search1_animal %in% animal_search3$V1]
+search1_human[!search1_human %in% human_search3$V1]
 
 # remove local copies of downloaded OSF files
 file.remove(c("TRACE Dataset v28.2.19.xlsx","pubmed_result_search2_animal 6.1.20.txt","pubmed_result_search2_human 6.1.20.txt",
