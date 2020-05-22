@@ -16,8 +16,8 @@ osf_retrieve_file("k3xqw") %>% osf_download() # trace dataset search 1
 osf_retrieve_file("7kdmu") %>% osf_download() # human search 2
 osf_retrieve_file("fs2gq") %>% osf_download() # animal search 2
 
-osf_retrieve_file("42jr8") %>% osf_download() # human search 3
-osf_retrieve_file("ajb8h") %>% osf_download() # animal search 3
+osf_retrieve_file("nqgaf") %>% osf_download() # human search 3
+osf_retrieve_file("s3ake") %>% osf_download() # animal search 3
 
 # load data search 1 ------------------------------------------------------
 # load data search1 animal hits
@@ -53,32 +53,33 @@ human_search2[!human_search2$V1 %in% search1_human_uPMID,] -> human_search2_uniq
 # write.table(human_search2_uniq, file = "human_search2_unique.csv", sep = ';', row.names = F)
 
 # load search 3 -----------------------------------------------------------
-# animal_search3 <- read.table("pmid-search3_animal_18.5.20.txt",  quote="\"", comment.char="")
-# human_search3<- read.table("pmid-search3_human_18.5.20.txt", quote="\"", comment.char="")
-animal_search3 <- read.table("pmid-search3.learn.animal.txt",  quote="\"", comment.char="")
-human_search3<- read.table("pmid-search3.learn.human.txt", quote="\"", comment.char="")
+animal_search3 <- read.table("pmid.animal.s3.learn.22.5.20.txt",  quote="\"", comment.char="")
+nrow(animal_search3)
+
+human_search3<- read.table("pmid.human.s3.learn.22.5.20.txt", quote="\"", comment.char="")
+nrow(human_search3)
 
 # compare search 1,2,3 ----------------------------------------------------
 # After search 2, SC updated (task & behavioral part), script to extract unique id's from new search (=not checked in search 1 or 2)
 # 18.5.20 Milou Sep
 
+# # to check new search comnents:  (manually checked and now all fine)
+# # which search 1 not in search 3
+# search1_animal[!search1_animal %in% animal_search3$V1]
+# search1_human[!search1_human %in% human_search3$V1]
+
 # Compare human hits 
-any(!search1_human %in% human_search2$V1) # All items in search 1 are also in search 2
+all(search1_human %in% human_search2$V1) # All items in search 1 are also in search 2
 human_search3[!human_search3$V1 %in% human_search2$V1,]  -> unique.search3.human # therefore search 3 compared to search 2
 length(unique.search3.human) # (met cognitie) 412 -> met alleen learning / memory: 286
-# write.table(unique.search3.human, file = "human_search3_unique.csv", sep = ';', row.names = F)
+ # write.table(unique.search3.human, file = "human_search3_unique.csv", sep = ';', row.names = F)
 
 # Compare animal hits 
-any(!search1_animal %in% animal_search2$V1) # All items in search 1 are also in search 2
+all(search1_animal %in% animal_search2$V1) # All items in search 1 are also in search 2
 animal_search3[!animal_search3$V1 %in% animal_search2$V1,]  -> unique.search3.animal # therefore search 3 compared to search 2
 length(unique.search3.animal) # (met cognitie) 318 -> met alleen learning/memory: 291
-# write.table(unique.search3.animal, file = "animal_search3_unique.csv", sep = ';', row.names = F)
-
-# which search 1 not in search 3
-search1_animal[!search1_animal %in% animal_search3$V1]
-search1_human[!search1_human %in% human_search3$V1]
+ # write.table(unique.search3.animal, file = "animal_search3_unique.csv", sep = ';', row.names = F)
 
 # remove local copies of downloaded OSF files
 file.remove(c("TRACE Dataset v28.2.19.xlsx","pubmed_result_search2_animal 6.1.20.txt","pubmed_result_search2_human 6.1.20.txt",
-              "pmid-search3_animal_18.5.20.txt", "pmid-search3_human_18.5.20.txt",
-              "pmid-search3.learn.human.txt", "pmid-search3.learn.animal.txt"))
+              "pmid.animal.s3.learn.22.5.20.txt", "pmid.human.s3.learn.22.5.20.txt"))
