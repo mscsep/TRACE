@@ -1,0 +1,65 @@
+---
+title: "Flowchart"
+author: "Milou Sep"
+date: "2/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# READ file from OSF
+# https://centerforopenscience.github.io/osfr/
+# OSFR package https://www.rdocumentation.org/packages/osfr/versions/0.1.0.9000
+
+# install.packages("remotes")
+# remotes::install_github("centerforopenscience/osfr") # werkt wel
+library(osfr)
+
+# authentication OSF private repositories.
+# http://centerforopenscience.github.io/osfr/articles/auth.html
+# Paste in console met PAT (handmatig toevoegen)
+ # osf_auth()
+
+library(readxl)
+library(dplyr)
+```
+
+# S1 screening
+
+
+
+
+
+# S2 screening
+
+
+
+
+# S3 screening
+
+## load data
+```{r}
+osf_retrieve_file("famr7") %>% osf_download(path = "data", conflicts="overwrite") # check screening S3 abstract & full text.
+
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.animal")->abstract.s3.animal
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.human")->abstract.s3.human
+
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.animal")->full.text.s3.animal
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.human")->full.text.s3.human
+```
+## select inclusions after full.text S3
+
+code from # compare abstract screening search 3
+# written by Milou Sep (30.9.20)
+```{r eval=FALSE, include=FALSE}
+
+full.text.s3.animal %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='animal.inclusions.s3.csv')
+full.text.s3.human %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='human.inclusions.s3.csv')
+
+# order animal data by PMID 
+# animal.inclusions[order(animal.inclusions$PMID),]
+
+# upload files to OSF
+osf_upload(osf_retrieve_node("e9wmt"),'animal.inclusions.s3.csv')
+osf_upload(osf_retrieve_node("e9wmt"),'human.inclusions.s3.csv')
+```
+
