@@ -23,7 +23,7 @@ library(dplyr)
  
 ## retrieve OSF files 
 ```{r }
-osf_retrieve_file("k3xqw") %>% osf_download(path = "data", conflicts="overwrite") # trace dataset search 1
+osf_retrieve_file("7k6wh") %>% osf_download(path = "data", conflicts="overwrite") # trace dataset search 1
 osf_retrieve_file("7kdmu") %>% osf_download(path = "data", conflicts="overwrite") # human search 2
 osf_retrieve_file("fs2gq") %>% osf_download(path = "data", conflicts="overwrite") # animal search 2
 
@@ -31,12 +31,13 @@ osf_retrieve_file("nqgaf") %>% osf_download(path = "data", conflicts="overwrite"
 osf_retrieve_file("s3ake") %>% osf_download(path = "data", conflicts="overwrite") # animal search 3
 ```
 
-## load data search 1 ------------------------------------------------------
+## load data search 1
 ```{r warning=FALSE}
 # load data search1 animal hits
-search1_animal <- read_excel("data/TRACE Dataset v28.2.19.xlsx", sheet = "Animal hits n=178 SSv18.10.2016", col_types = "numeric")
+search1_animal <- read_excel("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx", sheet = "Animal hits n=178 SSv18.10.2016", col_types = "numeric")
 search1_animal_uPMID <- unique(search1_animal$PMID)
 rm(search1_animal)
+
 
 search1_animal <- search1_animal_uPMID[1:(length(search1_animal_uPMID)-2)]# remove last 2 items in vector (these are not PMIDs, but countings/notes)
 length(search1_animal) #178
@@ -45,12 +46,15 @@ length(search1_animal) #178
 
 ```{r warning=FALSE}
 # load data search1 human hits
-search1_human <- read_excel("data/TRACE Dataset v28.2.19.xlsx",  sheet = "Human Hits n=292 SSv12.10.2016", col_types = "numeric")
+search1_human <- read_excel("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx",  sheet = "Human Hits n=292 SSv12.10.2016", col_types = "numeric")
 search1_human_uPMID <- unique(search1_human$`PMID (op alfabet)`)
 rm(search1_human)
 
 search1_human <- search1_human_uPMID[1:(length(search1_human_uPMID)-2)]# remove last 2 items in vector (these are not PMIDs, but countings/notes)
 length(search1_human) #292
+```
+```{r}
+file.remove("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx")
 ```
 
 
@@ -138,18 +142,12 @@ file.remove(c("data/TRACE Dataset v28.2.19.xlsx","data/pubmed_result_search2_ani
 
 ## S1 screening
 
-
 (vast uitgezocht voor eerder ppts)-> hier is inderdaad al een flowchart van op het netwerk en hier: https://osf.io/qbvzu/
-
 kijk of die klopt met wat je krijgt als je hem recreeerd
-
 in eerdere versies flowchart wel 91 inclusies.. in laatste v 63?
-
 Deze aantallen kloppen werl met eerdere versie flowchart (dus voor wrls exclussie in analyses..)
-
 wrsl door verandering in meta-analys (/ missing waarden daar..)
 in nice 91... in cns 63 (daar tussen zijn de analyses verander / afgemaakt)
-
 
 ### load data
 (new datafile on OSF 4.2.20)
@@ -159,7 +157,7 @@ data.s1 <- read.csv2("data/TRACE data_collection_search1.csv", na.strings = c(" 
 # is.na(data.s1) %>% sum()
 ```
 
-### inclusions based on abstract screening
+### Post-screeing inclusions inclusions
 
 NOTE, van hier naar volgende stap is dus "excluded in full-text screening"
 
@@ -182,7 +180,11 @@ data.s1 %>%
   filter(inclusion == 1) %>% 
   group_by(`Screening_Human..1..of.Animal..2.`) %>%
   select(`Screening_Human..1..of.Animal..2.`,Reference_PMID) %>% 
-  distinct(Reference_PMID) %>% tally()   #indeed same numbers as with files above
+  distinct(Reference_PMID) %>% tally()
+```
+
+```{r}
+file.remove(c("data/TRACE data_collection_search1.csv"))
 ```
 
 
@@ -198,16 +200,16 @@ compare abstract screening search 2
 written by Milou Sep (8.5.20)
  
 ### Step 1 check inconsistencies in abstract screening ----------------------
-```{r }
+```{r eval=FALSE, include=FALSE}
 # load data
 osf_retrieve_file("pu6bf") %>% osf_download(path = "data", conflicts="overwrite")  #abstract screening search2 SH
 osf_retrieve_file("56fyu") %>% osf_download(path = "data", conflicts="overwrite")  #abstract screening search2 MS
 
-SH_animal.S2 <- read_excel("TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 animal")#, col_types = "numeric")
-MS_animal.S2 <- read_excel("TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 animal")#, col_types = "numeric")
+SH_animal.S2 <- read_excel("data/TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 animal")#, col_types = "numeric")
+MS_animal.S2 <- read_excel("data/TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 animal")#, col_types = "numeric")
 
-SH_human.S2 <- read_excel("TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 human")#, col_types = "numeric")
-MS_human.S2 <- read_excel("TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 human")#, col_types = "numeric")
+SH_human.S2 <- read_excel("data/TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 human")#, col_types = "numeric")
+MS_human.S2 <- read_excel("data/TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 human")#, col_types = "numeric")
 
 # remove rows with all NA's in screening SH
 SH_animal.S2[rowSums(is.na(SH_animal.S2)) != ncol(SH_animal.S2), ]->SH_animal.S2
@@ -225,7 +227,7 @@ colnames(MS_human.S2) <- paste(colnames(MS_human.S2),"MS", sep = "_")
 SH_animal.S2[order(SH_animal.S2$Reference_PMID_SH),]->SH_animal.S22
 MS_animal.S2[order(MS_animal.S2$Reference_PMID_MS),]->MS_animal.S22
 # check if ordering is the same:
-all_equal(SH_animal.S22$Reference_PMID_SH,MS_animal.S22$Reference_PMID_MS)
+all_equal(SH_animal.S22$Reference_PMID_SH, MS_animal.S22$Reference_PMID_MS)
 
 # order human data by PMID 
 SH_human.S2[order(SH_human.S2$Reference_PMID_SH),]->SH_human.S22
@@ -283,41 +285,39 @@ human_recoded %>% mutate(
 ) ->human_recoded2 
 
 # select papers to discuss
-# df.h2 %>% filter(conclusion=='discuss') %>% write.csv2(.,file='inconsistencies_human.csv')
-# df.a2 %>% filter(conclusion=='discuss') %>% write.csv2(.,file='inconsistencies_animal.csv')
 
 # create vectors with PMIDs that need to be discussed:
 human_recoded2$Reference_PMID_MS[which(human_recoded2$conclusion=='discuss')]->pmid.h
 animal_recoded2$Reference_PMID_MS[which(animal_recoded2$conclusion=='discuss')]->pmid.a
 
 # select original entries for these PMIDs
-human_recoded2 %>% filter(Reference_PMID_MS %in% pmid.h) %>% write.csv2(.,file='inconsistencies_human_s2.csv')
-animal_recoded2 %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file='inconsistencies_animal_s2.csv')
+human_recoded2 %>% filter(Reference_PMID_MS %in% pmid.h) %>% write.csv2(.,file='processed_data/inconsistencies_human_s2.csv')
+animal_recoded2 %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file='processed_data/inconsistencies_animal_s2.csv')
 
-# upload files to OSF
-  osf_upload(osf_retrieve_node("awkn6"),'inconsistencies_human_s2.csv')
-  osf_upload(osf_retrieve_node("awkn6"),'inconsistencies_animal_s2.csv')
+# # upload files to OSF
+#   osf_upload(osf_retrieve_node("awkn6"),'processed_data/inconsistencies_human_s2.csv')
+#   osf_upload(osf_retrieve_node("awkn6"),'processed_data/inconsistencies_animal_s2.csv')
 
 #remove downloaded files
-file.remove(c("TRACE_screening_search2_SH.xlsx","TRACE_screening_search2_MS.xlsx","inconsistencies_human_s2.csv", "inconsistencies_animal_s2.csv"))
+file.remove(c("data/TRACE_screening_search2_SH.xlsx","data/TRACE_screening_search2_MS.xlsx"))
 ```
 
 ### Step 2: Merge data after discussion inconsistencies ------------------------------
-```{r }
+```{r eval=FALSE, include=FALSE}
 # 12.5.20
 
 osf_retrieve_file("ugyrp") %>% osf_download(path = "data", conflicts="overwrite") # discussed animal
 osf_retrieve_file("kve78") %>% osf_download(path = "data", conflicts="overwrite") # discussed human data
 
-animal_discussed <- read.csv2("inconsistencies_animal_s2_SH.csv")
-human_discussed <- read.csv2("inconsistencies_human_s2_SH.csv")
+animal_discussed <- read.csv2("data/inconsistencies_animal_s2_SH.csv")
+human_discussed <- read.csv2("data/inconsistencies_human_s2_SH.csv")
 #remove colums with only na's
 human_discussed <- human_discussed[,colSums(is.na(human_discussed))<nrow(human_discussed)]
 
 # human_discussed <- human_discussed[rowSums(is.na(human_discussed))<nrow(human_discussed),]
 # animal_discussed <- animal_discussed[rowSums(is.na(animal_discussed))<nrow(animal_discussed),]
 
-# merge colums from discussion to original screening data
+# merge columns from discussion to original screening data
 animal_discussed %>% select(Reference_PMID_SH,!grep("_SH|_MS", colnames(animal_discussed)))->animal_discussed2
 human_discussed %>% select(Reference_PMID_SH,!grep("_SH|_MS", colnames(human_discussed)))->human_discussed2
 
@@ -332,7 +332,7 @@ full_join(animal_recoded2,animal_discussed2, by="Reference_PMID_SH")->animal_new
  colnames(human_new)[40]<-"second.screening"
  colnames(animal_new)[43]<-"second.screening"
  
-# new conclusion colum human
+# new conclusion column human
 human_new %>% mutate(
   conclusion2=
     case_when(
@@ -361,28 +361,27 @@ animal_new %>% mutate(
 is.na(animal_new2$conclusion2) %>% any()
 
 # export new datasets
-human_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='required_full_checks_human_s2.csv')
-animal_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='required_full_checks_animal_s2.csv')
+human_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='processed_data/required_full_checks_human_s2.csv')
+animal_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='processed_data/required_full_checks_animal_s2.csv')
 
 # upload files to OSF
- osf_upload(osf_retrieve_node("awkn6"),'required_full_checks_human_s2.csv')
- osf_upload(osf_retrieve_node("awkn6"),'required_full_checks_animal_s2.csv')
+ # osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_human_s2.csv')
+ # osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_animal_s2.csv')
 
 #remove downloaded files
-file.remove(c("inconsistencies_human_s2_SH.csv", "inconsistencies_animal_s2_SH.csv"))
-# file.remove(c('required_full_checks_human_s2.csv', 'required_full_checks_animal_s2.csv'))
+file.remove(c("data/inconsistencies_human_s2_SH.csv", "data/inconsistencies_animal_s2_SH.csv"))
 ```
 
 ### Step 3: add information full text screening to data -----------------------------
-```{r }
+```{r eval=FALSE, include=FALSE}
 #load checked data
 osf_retrieve_file("xmua6") %>% osf_download(path = "data", conflicts="overwrite") # full text checks animal animal
 osf_retrieve_file("ce35r") %>% osf_download(path = "data", conflicts="overwrite") # full text checks human animal
 
 #read data
-animal_full_text <- read.csv2("required_full_checks_animal_s2_MS.csv")
+animal_full_text <- read.csv2("data/required_full_checks_animal_s2_MS.csv")
 # str(animal_full_text)
-human_full_text <- read.csv2("required_full_checks_human_s2_SH.csv")
+human_full_text <- read.csv2("data/required_full_checks_human_s2_SH.csv")
 # str(human_full_text)
 
 # filter new columns
@@ -423,17 +422,112 @@ animal_new3 %>% filter(conclusion3 == "yes") ->animal_inclusions
 human_new3 %>% filter(conclusion3 == "yes") ->human_inclusions
 
 #export data
-write.csv2(animal_inclusions,file='animal_inclusions_s2.csv')
-write.csv2(human_inclusions,file='human_inclusions_s2.csv')
+write.csv2(animal_inclusions,file='processed_data/animal_inclusions_s2.csv')
+write.csv2(human_inclusions,file='processed_data/human_inclusions_s2.csv')
 
 # upload files to OSF
-osf_upload(osf_retrieve_node("awkn6"),'animal_inclusions_s2.csv')
-osf_upload(osf_retrieve_node("awkn6"),'human_inclusions_s2.csv')
+# osf_upload(osf_retrieve_node("awkn6"),'processed_data/animal_inclusions_s2.csv')
+# osf_upload(osf_retrieve_node("awkn6"),'processed_data/human_inclusions_s2.csv')
 
-# file.remove(c("animal_inclusions_s2.csv", "human_inclusions_s2.csv"))
+ file.remove(c("data/animal_inclusions_s2.csv", "data/human_inclusions_s2.csv"))
+```
+
+### For flowchart
+
+#### Total screened
+```{r}
+# load data
+osf_retrieve_file("pu6bf") %>% osf_download(path = "data", conflicts="overwrite")  #abstract screening search2 SH
+osf_retrieve_file("56fyu") %>% osf_download(path = "data", conflicts="overwrite")  #abstract screening search2 MS
+```
+
+#### Total screened animal
+```{r}
+SH_animal.S2 <- read_excel("data/TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 animal")
+SH_animal.S2[rowSums(is.na(SH_animal.S2)) != ncol(SH_animal.S2), ]->SH_animal.S2 # remove rows with all NA's in screening SH
+
+MS_animal.S2 <- read_excel("data/TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 animal")
+
+nrow(SH_animal.S2)
+nrow(MS_animal.S2)
+```
+
+#### Total screened human
+```{r}
+SH_human.S2 <- read_excel("data/TRACE_screening_search2_SH.xlsx", sheet = "screening search 2 human")
+SH_human.S2[rowSums(is.na(SH_human.S2)) != ncol(SH_human.S2), ]->SH_human.S2 # remove rows with all NA's in screening SH
+
+MS_human.S2 <- read_excel("data/TRACE_screening_search2_MS.xlsx", sheet = "screening search 2 human")
+
+nrow(SH_human.S2)
+nrow(MS_human.S2)
+```
+
+#### Full text checks animal
+```{r}
+osf_retrieve_file("xmua6") %>% osf_download(path = "data", conflicts="overwrite") # full text checks animal animal
+read.csv2("data/required_full_checks_animal_s2_MS.csv") %>% nrow()
+```
+
+#### Full text checks human
+```{r}
+osf_retrieve_file("ce35r") %>% osf_download(path = "data", conflicts="overwrite") # full text checks human animal
+read.csv2("data/required_full_checks_human_s2_SH.csv") %>% nrow()
+```
+ 
+ 
+#### Post-screeing Inclusions animal
+```{r}
+osf_retrieve_file("m9rey") %>% osf_download(path = "data", conflicts="overwrite") # inclusion s2 (screening) animal
+read.csv2("data/animal_inclusions_s2.csv", na.strings = c(" ", "-")) %>% nrow()
+```
+
+#### Post-screeing Inclusions Human
+```{r}
+osf_retrieve_file("fe5sh") %>% osf_download(path = "data", conflicts="overwrite") # inclusion s2 (screening) human
+read.csv2("data/human_inclusions_s2.csv", na.strings = c(" ", "-")) %>% nrow()
 ```
 
 
+
+#### Inclusions after data-extraction Animal
+```{r}
+osf_retrieve_file("xqpm3") %>% osf_download(path = "data", conflicts="overwrite") # screening & data extraction S1
+read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2")->data.s2.animal
+
+View(data.s2.animal)
+data.s2.animal %>% 
+  filter(inclusion.final == 1) %>% 
+  group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
+  select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
+  distinct(Reference_PMID_MS ) %>% tally()   #indeed same numbers as with files above
+```
+
+#### Inclusions after data-extraction Human
+```{r}
+# osf_retrieve_file("xqpm3") %>% osf_download(path = "data", conflicts="overwrite") # screening & data extraction S1
+read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_s2")->data.s2.human
+
+# str(data.s2.human)
+data.s2.human %>% 
+  filter(inclusion.final == 1) %>% 
+  group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
+  select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
+  distinct(Reference_PMID_MS ) %>% tally()   #indeed same numbers as with files above
+```
+
+Save inclusions S2 for QA
+```{r}
+data.s2.human %>% filter(inclusion.final == 1) %>% distinct(Reference_PMID_MS ) %>% write.csv2(.,"processed_data/Human.PMIDs.QA.S2.csv")
+data.s2.animal %>% filter(inclusion.final == 1) %>% distinct(Reference_PMID_MS) %>% write.csv2(.,"processed_data/Animal.PMIDs.QA.S2.csv")
+```
+
+
+```{r}
+file.remove(c("data/required_full_checks_animal_s2_MS.csv", "data/required_full_checks_human_s2_SH.csv",
+              "data/animal_inclusions_s2.csv", "data/human_inclusions_s2.csv",
+              "data/TRACE data_collection_search2.xlsx"))
+```
 
 
 ## S3 screening
@@ -442,26 +536,124 @@ osf_upload(osf_retrieve_node("awkn6"),'human_inclusions_s2.csv')
 ```{r}
 osf_retrieve_file("famr7") %>% osf_download(path = "data", conflicts="overwrite") # check screening S3 abstract & full text.
 
-read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.animal")->abstract.s3.animal
-read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.human")->abstract.s3.human
+# read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.animal")->abstract.s3.animal
+# read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "abstract.screening.s3.human")->abstract.s3.human
 
-read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.animal")->full.text.s3.animal
-read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.human")->full.text.s3.human
+
+# Screening_Human (1) of Animal (2) 
+# abstract.s3.animal$full.text.check %>% sum()
+# str(abstract.s3.human)
 ```
-### select inclusions after full.text S3
 
-code from # compare abstract screening search 3
- written by Milou Sep (30.9.20)
-```{r }
+### Total screened Animal
+```{r}
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.animal")%>%
+    filter(!is.na(PMID)) ->s3.animal# to remove last row (with no PMID but total count in excel)
+nrow(s3.animal) #254
 
-full.text.s3.animal %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='animal.inclusions.s3.csv')
-full.text.s3.human %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='human.inclusions.s3.csv')
-
-# order animal data by PMID 
-# animal.inclusions[order(animal.inclusions$PMID),]
-
-# upload files to OSF
-osf_upload(osf_retrieve_node("e9wmt"),'animal.inclusions.s3.csv')
-osf_upload(osf_retrieve_node("e9wmt"),'human.inclusions.s3.csv')
+# s3.animal %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='processed_data/animal.inclusions.s3.csv')
+# osf_upload(osf_retrieve_node("e9wmt"),'processed_data/animal.inclusions.s3.csv')
 ```
+
+### Total screened Human
+```{r}
+read_excel("data/Checked_TRACE_screening_search3_MS_EG.xlsx", sheet = "full.text.screening.s3.human") %>% 
+  filter(!is.na(PMID)) ->s3.human # to remove last row (with no PMID but total count in excel)
+nrow(s3.human) # 681
+
+# s3.human %>% filter(inclusion.screening != "0") %>% write.csv2(.,file='processed_data/human.inclusions.s3.csv')
+# osf_upload(osf_retrieve_node("e9wmt"),'processed_data/human.inclusions.s3.csv')
+```
+
+### Full text checks in screening (animal)
+```{r}
+s3.animal %>% filter(full.text.checked == 1) %>% nrow()
+```
+
+
+### Full text checks in screening (human)
+```{r}
+s3.human %>% filter(full.text.checked == 1) %>% nrow()
+```
+
+### Inclusions after screening (animal)
+
+```{r}
+s3.animal %>% filter(inclusion.screening == 1 ) %>% nrow() #102
+s3.animal %>%filter(inclusion.screening == "?" )
+```
+
+### Inclusions after screening (human)
+```{r}
+s3.human %>% filter(inclusion.screening == 1 ) %>% nrow() #102
+
+s3.human %>%filter(inclusion.screening == "?" )
+s3.human %>% filter(inclusion.screening != 0 ) %>% nrow() #105
+```
+
+
+
+#### Inclusions after data-extraction Animal
+```{r}
+osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite") # screening & data extraction S1
+read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3")->data.s3.animal
+
+str(data.s3.animal)
+data.s3.animal %>% 
+  filter(inclusion.final == 1) %>% 
+  group_by(`Screening_Human (1) of Animal (2)`) %>%
+  select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
+  distinct(PMID) %>% tally()   #indeed same numbers as with files above
+```
+
+#### Inclusions after data-extraction Animal
+```{r}
+read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.s3")->data.s3.human
+
+data.s3.human %>% 
+  filter(inclusion.final == 1) %>% 
+  group_by(`Screening_Human (1) of Animal (2)`) %>%
+  select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
+  distinct(PMID) %>% tally()   #indeed same numbers as with files above
+```
+Save inclusions S3 for QA
+```{r}
+data.s3.human %>% filter(inclusion.final != 0)%>% distinct(PMID) #same
+
+data.s3.human %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Human.PMIDs.QA.S3.csv")
+data.s3.animal %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Animal.PMIDs.QA.S3.csv")
+
+data.s3.animal %>% filter(inclusion.final != 0)%>% distinct(PMID) # same
+```
+
+
+# some tryout code
+ 
+ > some question marks in inclusion.final S2 en missing values in S3?
+ 
+ 
+select inclusions S2 and S3 (based on data extraction)
+```{r}
+
+# S2.animal <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2") # some question marks in inclusion.final
+# S2.human <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_s2")
+# 
+# str(S2.animal)
+# 
+# S2.animal %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
+# S2.human %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
+# 
+# S2.animal$inclusion.final
+# S2.human$inclusion.final
+# 
+# S3.animal <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3")   # 4 missing values in inclusion.final?
+# S3.human <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.s3")  # final inclusions missing?
+
+data.s3.animal %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
+data.s3.human %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
+
+data.s3.animal$inclusion.final
+data.s3.human$inclusion.final
+```
+
 
