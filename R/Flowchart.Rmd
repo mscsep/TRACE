@@ -645,3 +645,9 @@ Save inclusions S3 for QA
 data.s3.human %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Human.PMIDs.QA.S3.csv")
 data.s3.animal %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Animal.PMIDs.QA.S3.csv")
 ```
+
+
+```{r}
+file.remove(c("data/TRACE_data_collection_search3.xlsx"))
+```
+
