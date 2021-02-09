@@ -182,15 +182,21 @@ data.s1 %>%
   select(`Screening_Human..1..of.Animal..2.`,Reference_PMID) %>% 
   distinct(Reference_PMID) %>% tally()
 ```
+### Data in analysis?
+
+```{r}
+# str(data.s1)
+# data.s1 %>% 
+#   filter(inclusion == 1) %>% 
+#   group_by(`Screening_Human..1..of.Animal..2.`) %>%
+#   select(`Screening_Human..1..of.Animal..2.`,Reference_PMID) %>% 
+#   distinct(Reference_PMID) %>% tally()
+```
+
 
 ```{r}
 file.remove(c("data/TRACE data_collection_search1.csv"))
 ```
-
-
-### Data in analysis?
-
-
 
 
 ## S2 screening
@@ -495,12 +501,16 @@ read.csv2("data/human_inclusions_s2.csv", na.strings = c(" ", "-")) %>% nrow()
 osf_retrieve_file("xqpm3") %>% osf_download(path = "data", conflicts="overwrite") # screening & data extraction S1
 read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2")->data.s2.animal
 
-View(data.s2.animal)
+# View(data.s2.animal)
 data.s2.animal %>% 
   filter(inclusion.final == 1) %>% 
-  group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
-  select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
+  group_by(subject) %>%
+  # group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
+  # select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
+    select(`subject`,Reference_PMID_MS ) %>% 
   distinct(Reference_PMID_MS ) %>% tally()   #indeed same numbers as with files above
+
+39+3
 ```
 
 #### Inclusions after data-extraction Human
@@ -511,8 +521,10 @@ read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_
 # str(data.s2.human)
 data.s2.human %>% 
   filter(inclusion.final == 1) %>% 
-  group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
-  select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
+    group_by(subject) %>%
+    select(`subject`,Reference_PMID_MS ) %>% 
+  # group_by(`Screening_Human (1) of Animal (2)_MS`) %>%
+  # select(`Screening_Human (1) of Animal (2)_MS`,Reference_PMID_MS ) %>% 
   distinct(Reference_PMID_MS ) %>% tally()   #indeed same numbers as with files above
 ```
 
@@ -598,12 +610,17 @@ s3.human %>% filter(inclusion.screening != 0 ) %>% nrow() #105
 osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite") # screening & data extraction S1
 read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3")->data.s3.animal
 
-str(data.s3.animal)
+# str(data.s3.animal)
 data.s3.animal %>% 
   filter(inclusion.final == 1) %>% 
-  group_by(`Screening_Human (1) of Animal (2)`) %>%
-  select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
+      group_by(subject) %>%
+    select(`subject`,PMID ) %>% 
+  
+  # group_by(`Screening_Human (1) of Animal (2)`) %>%
+  # select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
   distinct(PMID) %>% tally()   #indeed same numbers as with files above
+
+69+21
 ```
 
 #### Inclusions after data-extraction Animal
@@ -612,48 +629,19 @@ read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.
 
 data.s3.human %>% 
   filter(inclusion.final == 1) %>% 
-  group_by(`Screening_Human (1) of Animal (2)`) %>%
-  select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
+    group_by(subject) %>%
+    select(`subject`,PMID ) %>% 
+  # group_by(`Screening_Human (1) of Animal (2)`) %>%
+  # select(`Screening_Human (1) of Animal (2)`, PMID) %>% 
   distinct(PMID) %>% tally()   #indeed same numbers as with files above
+
+13+51
 ```
 Save inclusions S3 for QA
 ```{r}
-data.s3.human %>% filter(inclusion.final != 0)%>% distinct(PMID) #same
+# data.s3.human %>% filter(inclusion.final != 0)%>% distinct(PMID) #same
+# data.s3.animal %>% filter(inclusion.final != 0)%>% distinct(PMID) # same
 
 data.s3.human %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Human.PMIDs.QA.S3.csv")
 data.s3.animal %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv2(.,"processed_data/Animal.PMIDs.QA.S3.csv")
-
-data.s3.animal %>% filter(inclusion.final != 0)%>% distinct(PMID) # same
 ```
-
-
-# some tryout code
- 
- > some question marks in inclusion.final S2 en missing values in S3?
- 
- 
-select inclusions S2 and S3 (based on data extraction)
-```{r}
-
-# S2.animal <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2") # some question marks in inclusion.final
-# S2.human <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_s2")
-# 
-# str(S2.animal)
-# 
-# S2.animal %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
-# S2.human %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
-# 
-# S2.animal$inclusion.final
-# S2.human$inclusion.final
-# 
-# S3.animal <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3")   # 4 missing values in inclusion.final?
-# S3.human <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.s3")  # final inclusions missing?
-
-data.s3.animal %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
-data.s3.human %>% filter(!(inclusion.final %in% c("0","1"))) %>% select(`MetaData_FINAL incl/excl_comment`)
-
-data.s3.animal$inclusion.final
-data.s3.human$inclusion.final
-```
-
-
