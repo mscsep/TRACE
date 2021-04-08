@@ -11,155 +11,257 @@ rm(list = ls()) #clean environment
 # libraries
 library(metafor) # for effect size estimation
 library(dplyr) #for general functions
-# import .csv files 
-data <- read.csv("TRACE_data.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Data
-method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
-which(is.na(method)) # check, should be no missing.
+
+library(osfr)
+library(readxl)
+
+# import data files 
+
+
+
+# data<-readRDS("processed_data/TRACEmerged.RDS")
+ data <- read.csv("processed_data/TRACEmerged.csv", sep = ";", dec = c(",", ".")) # Data
+
+# osf_retrieve_file("a6dmj") %>% osf_download(path = "data", conflicts="overwrite") # search 3
+ method <- read_excel("data/TRACE_method_codes.xlsx", sheet = "codes")
+# method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
+
+ method %>% select(!notes) %>% filter(is.na(.)) # check, should be no missing.
 
 #' **Select relevant colums dataset**
 method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
 
-dat <- select(data, 
-              "Reference_PMID",
-              "Reference_First.Author",
-              "Reference_Publication.Year",
-              "inclusion",
-              "subject",
-              "task",
-              "measure",
-              "Comparison",
-              
-              "Data_Subjects_PTSDtypeSHORT2", 
-              
-              "MetaData_KeyFindingSHORT..PTSDmore..PTSDminder.0NoDiff.",
-              
-              "ID_Experimental_group",
-              "ID_Control_group",
-              
-              "Data_Subjects_n_ptsd",
-              "Data_Outcome1_M",
-              "Data_Outcome1_SD",
-              "Data_Outcome1_SEM",
-              
-              "Data_Subjects_n_control",
-              "Data_Outcome2_M",
-              "Data_Outcome2_SD",
-              "Data_Outcome2_SEM")
+# dat <- select(data, 
+#               "Reference_PMID",
+#               "Reference_First.Author",
+#               "Reference_Publication.Year",
+#               "inclusion",
+#               "subject",
+#               "task",
+#               "measure",
+#               "Comparison",
+#               
+#               "Data_Subjects_PTSDtypeSHORT2", 
+#               
+#               "MetaData_KeyFindingSHORT..PTSDmore..PTSDminder.0NoDiff.",
+#               
+#               "ID_Experimental_group",
+#               "ID_Control_group",
+#               
+#               "Data_Subjects_n_ptsd",
+#               "Data_Outcome1_M",
+#               "Data_Outcome1_SD",
+#               "Data_Outcome1_SEM",
+#               
+#               "Data_Subjects_n_control",
+#               "Data_Outcome2_M",
+#               "Data_Outcome2_SD",
+#               "Data_Outcome2_SEM")
 # Rename
-names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "ptsd", "keyfinding",  "idExp", "idControl",
-                "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
+# names(dat) <- c("id", "author", "year", "include", "subject", "task", "measure","comparisonControl", "ptsd", "keyfinding",  "idExp", "idControl",
+#                 "nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC")
+
 # Create reference var as character
-dat<-dat %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
+df1<-data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 
 # data$Data_Subjects_PTSDtypeSHORT2
 
 #' **Select only data that is included in the meta-analysis**
-dat <- dat %>% filter(include == 1) %>% droplevels()
+df2 <- df1 %>% filter(decision == 1) %>% droplevels()
 
 
 #' **Add method codes to data**
 #' NB the combination of task and measure indicates which method is used to measure behavior. Those values are combined into a new variable ..
-dat %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> dat
-method %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> method
+df2 %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> df3
+method %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> method1
 #' ... that is used to merge data and method codes
-dat<- merge(dat, method, by="measureID", all=T, suffixes = c("_d", "_m"))
+# df4<- merge(df3, method1, by="measureID", all=T, suffixes = c("_d", "_m"))
+
+left_join(df3,method1, by="measureID", suffix = c(".d", ".m"))->df4
+
+glimpse(df4)
 
 #' Quality check after merging.. (should be identical)
- identical(as.character(dat$task.d), as.character(dat$task.m ))
- identical(as.character(dat$measure.d), as.character(dat$measure.m ))
+ identical(as.character(df4$task.d), as.character(df4$task.m))
+ identical(as.character(df4$measure.d), as.character(df4$measure.m))
 # dat %>% select(-c(task_m, measure_m)) -> dat #remove duplicate colums (niet echt nodig...)
 
  
 #' **Recode subjecttype**
-dat$subject <- ifelse(dat$subject <= 3, "Human", "Animal")
+df4 %>% mutate(subject.cat = ifelse(subject %in% c("0", "1", "2", "12", "3"), "Human", "Animal")) ->df5
 # identical(ifelse(dat$subject %in% c(0,1,2,3), "Human", "Animal"),ifelse(dat$subject <= 3, "Human", "Animal")  ) # To check, gives same results
 
 
-# check missing of all variables of interst
-which(is.na(dat$subject))
-which(is.na(dat$id))
-which(is.na(dat$comparisonControl))
+# check missing of all variables of interest
+which(is.na(df5$subject.cat))
+which(is.na(df5$PMID))
+which(is.na(df5$comparison))
 
+
+str(df5)
 
 #' **Set variable properties**
 #' Change factors to numbers:
-stat.vars <- c("nE", "meanE", "sdE", "semE", "nC", "meanC", "sdC", "semC", "recode")
-for(i in 1:length(stat.vars)){
-  dat[,stat.vars[i]]<- sub("-", "-", as.character(dat[,stat.vars[i]]), fixed = TRUE) # Correction of - signs
-  dat[,stat.vars[i]]<- as.numeric(sub(",", ".", as.character(dat[,stat.vars[i]]), fixed = TRUE))
+# stat.vars <- c("nPTSD", "meanPTSD", "sdPTSD", "semPTSD", "nHC", "meanHC", "sdHC", "semHC", "recode")
+
+# new milou
+string_names <- c("author", "year",
+                  
+                  "shocks.num", "shocks.amp",
+                  
+                  "time", 
+                  "idPTSD", "idHC",
+                  
+                  "outcomePTSD", "outcomeHC"
+)
+
+factor_names <-c("PMID", "decision", "subject", 
+                 "subject.cat",
+                 
+                 "sex.PTSD", "sex.HC",
+                 "ptsd.type", 'control.type', 'population',
+                 "rhythm",
+                 "ptsd.measure", 
+                 
+                 "task.d", "measure.d",
+                 "comparison",
+                 "res.sus.split", "age.PTSD.cat", "age.HC.cat"
+)
+
+numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC", "recode")
+
+
+for(i in 1:length(numeric_names)){
+  df5[,numeric_names[i]]<- sub("-", "-", as.character(df5[,numeric_names[i]]), fixed = TRUE) # Correction of - signs
+  df5[,numeric_names[i]]<- as.numeric(sub(",", ".", as.character(df5[,numeric_names[i]]), fixed = TRUE))
 }
 #' and create factors from character/numeric:
-factor.vars<-c("id", "include", "subject", "comparisonControl", "idExp", "idControl")
-dat<-mutate_each(dat, as.factor, factor.vars)
+# factor.vars<-c("PMID", "decision", "subject.cat", "comparison", "idPTSD", "idHC")
+# # df6<-mutate_each(df5, as.factor, factor.vars)
+# 
+# mutate_at(df5, .vars=factor.vars, as.factor )->df6
+
+str(df5)
 
 
+# For checking -> ok!
+# merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
+
+
+df5 %>% 
+  mutate_at(.vars=numeric_names, as.numeric) %>% 
+  mutate_at(.vars=factor_names, factor) ->df6
+
+str(df6)
+
+
+#' **correct ID coding PTSD and HC groups**
+
+# - [ ] exp & control ID -> als sub group gebruikt is moet die dezelfde code als de totale group hebben, anders krijgen ze unique codes in de analyses (en dat is incorrect ivm nesting)
+# - [ ] in S3 correct
+# - [ ] animal two exp groups together: "exp ID 355+347"
+# - [x] in human all correct
+# - [ ] in S1 en S2 heb ik steeds 'part of..' opgeschreven
+# - [ ] pas aan in r in S2 animal:
+#   - [ ] in exp ID: "part of #" en controlID_#
+# - [ ] in control ID: "part of #" en "part of exp ID #"
+# - [x] s2 human NA
+# - [ ] s1 :
+#   - [ ] in exp ID: "part of #" en ControlID_#
+# - [ ] in control ID: "part of exp ID #"
+
+df6 %>% mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
+               idHC = sub("part of ", "",idHC, fixed = TRUE)) ->df7
+
+               
 
 #' **Correction for multiple use control group**
 #' Merge ID's of experimental and control groups.
-dat <- dat %>% mutate(id_combination = as.factor(paste(idExp, idControl, sep=".")))
-#str(dat)
+df8 <- df7 %>% mutate(id_combination = as.factor(paste(idPTSD, idHC, sep=".")))
+
+str(df8)
+
+# for checking (should be NA, if both missing excluded in dataset)
+df8 %>% filter(is.na(semPTSD) & is.na(sdPTSD)) #%>% View()
+df8 %>% filter(is.na(semHC) & is.na(sdHC)) #%>% View()
+
 
 #' Check which control groups are used multiple times
-reused_controls <- dat %>%
-  select(idExp, idControl, id_combination)%>%
-  group_by(idControl) %>% # for each control groups
-  summarise (used=length(unique(id_combination)))%>% # count the amount of unique id combinations
+reused_controls <- df8 %>%
+  select(idPTSD, idHC, id_combination)%>%
+  group_by(idHC) %>% #for each control groups
+  summarise (used=length(unique(id_combination)))%>%  # count the amount of unique id combinations
   filter(used>1) # show control groups in which a unique combination is precent more than once
-reused_controls # 10 control groups are used in multiple unique id_combinations # 18.3.19 11 control grousp used multiple times
+reused_controls # 10 control groups are used in multiple unique id_combinations # 18.3.19 11 control grousp used multiple times # 8.4.21 66 are reused
 #' Check results
 #+ eval=F
-dat %>% filter(idControl%in%reused_controls$idControl) %>% tibble
+df8 %>% filter(idHC%in%reused_controls$idHC) %>% tibble
 #' add to dataframe
-dat$used<- ifelse(dat$idControl%in%reused_controls$idControl, reused_controls$used, NA )
+df8$used<- ifelse(df8$idHC%in%reused_controls$idHC, reused_controls$used, NA )
 #' Recalculate n's
-dat$nC_corrected<-ifelse(!is.na(dat$used), dat$nC/dat$used, dat$nC)
+df8$nHC_corrected<-ifelse(!is.na(df8$used), df8$nHC/df8$used, df8$nHC)
 #' Check if the effects are correct.. yes
-dat %>% 
-  filter(idControl %in% reused_controls$idControl)  %>% 
-  select(nC, nC_corrected, used) %>% head()
+df8 %>% 
+  filter(idHC %in% reused_controls$idHC)  %>% 
+  select(nHC, nHC_corrected, used) %>% head()
 #' round
-dat$nC<-round(dat$nC_corrected)
+df8$nHC<-round(df8$nHC_corrected)
 
 
 #' **Calculate SD from SEM**
-dat$sdE <- ifelse(is.na(dat$sdE), (dat$semE * sqrt(dat$nE)), dat$sdE)
-dat$sdC <- ifelse(is.na(dat$sdC), (dat$semC * sqrt(dat$nC)), dat$sdC)
+df8$sdPTSD <- ifelse(is.na(df8$sdPTSD), (df8$semPTSD * sqrt(df8$nPTSD)), df8$sdPTSD)
+df8$sdHC <- ifelse(is.na(df8$sdHC), (df8$semHC * sqrt(df8$nHC)), df8$sdHC)
 
 
 #' **Check Missing values (should be none)**
 #' Sample sizes ok
-which(is.na(dat$nE))
-which(is.na(dat$nC))
-#' sd not..
-which(is.na(dat$sdE))
-which(is.na(dat$sdC))
-#' Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
-unique(dat[which(is.na(dat$sdC)),"id"]) 
-#' Theses values correspond with original datafile, and are exlcuded from further analysis
-dat %>% filter(!is.na(sdC)) -> dat
-dat %>% select(-c(semE, semC, used, nC_corrected)) -> dat # Remove unnessesary colums
-#' Missingvalues are checked again, should be non..
-which(is.na(dat)) 
+which(is.na(df8$nPTSD))
+which(is.na(df8$nHC))
+#' sd ok
+which(is.na(df8$sdPTSD))
+which(is.na(df8$sdHC))
+
+#' #' Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
+#' unique(df8[which(is.na(df8$sdHC)),"PMID"]) 
+#' #' Theses values correspond with original datafile, and are exlcuded from further analysis
+#' dat %>% filter(!is.na(sdC)) -> dat
+df8 %>% select(-c(semPTSD, semHC, used, nHC_corrected)) -> df9 # Remove unnessesary colums
+
+#' Missingvalues are checked again, should be non.. # update 8.4.21 -> there are missings.. as shock, time res.sus split are still in data
+# which(is.na(df9)) 
+
+df9 %>% select(!c("shocks.num", "shocks.amp", "time","res.sus.split")) %>% filter(!(is.na(.))) %>% nrow() # is idem als total
+
 #' update 19.3.19: na toevoeging "keyfinding", sommmige na, anders niet.
-head(is.na(dat)) 
+# head(is.na(df9)) 
 
 
+# some sd's negative.. komt omdat means negative zijn.. (now removed.. omdat ik denk dat het niet uit maakt omdat sd relatief is (tov de mean))
+df9 %>% filter(sdPTSD < 0) %>% head()
+df9 %>% filter(sdHC < 0) %>% head()
+
+df9$sdPTSD <- sub("-","",df9$sdPTSD)
+df9$sdHC <- sub("-","",df9$sdHC)
+
+
+str(df9)
 #' **Calculation of effect sizes and checks**
-dat <- escalc(m1i = meanE, sd1i = sdE, n1i = nE, 
-              m2i = meanC, sd2i = sdC, n2i = nC, 
-              measure = "SMD", method = "HE",  # calc hedge's G
-              data = dat)
+df10 <- escalc(
+  m1i = meanPTSD, sd1i = as.numeric(sdPTSD), n1i = nPTSD, 
+              m2i = meanHC, sd2i = as.numeric(sdHC), n2i = nHC, 
+              measure = "SMD", #method = "HE",  # calc hedge's G
+              data = df9)
 
 #' **Recode Effect sizes in same direction (higher score = better performance)**
 #' Based on recode variable, which is specified in "Trace_methode_codes.csv"
-dat$yi <- dat$yi * dat$recode
+df10$yi <- df10$yi * df10$recode
 #' INTERPRETATION: Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
 #' "SMD": The standardized mean difference is equal to (m1i m2i)/spi
 #' In the calulations above 1 = ptsd en 2 = control; therefore positive effect size = PTSD more, negative effectsize is HC more 
 
 
 #' **add unique id's**
-dat$each <- c(1:nrow(dat)) 
+df10$each <- c(1:nrow(df10)) 
 
 
 
@@ -173,10 +275,12 @@ dat$each <- c(1:nrow(dat))
 
 #' NB for the analysis 2 moderator possible.
 
+# df10 %>% filter(is.na(valence)) %>% select(PMID, task.d, measure.d, task.m, measure.m) %>% View()
+
 
 #'*Comparision and subject as moderators?*
-dat %>% group_by(subject, valence, comparisonControl) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame() 
+df10 %>% group_by(subject.cat, valence, comparison) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.comparisons.valence.csv") # to save
 #' Not enough datapoints in some categories --> not possible
 #' NB If comparisontypes is no longer included in analyses, comparision B needs to be excluded 
 #' (in which healhty trauma exposed humans are compared to heathy non-trauma exposed humans; so NO PTSD patients)
@@ -184,40 +288,40 @@ dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat
 
 
 #' *Valence and subject as moderators?*
-dat %>% group_by(subject, valence) %>%
-summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame() 
+df10 %>% group_by(subject.cat, valence) %>%
+summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.valence.csv") 
 #' Problems with distribution valence categories in animal & human data, not al valence categories are in human & animal.
 #' Decided to group stressful vs non-stressful learning
-dat$Valence_Grouped <- ifelse(dat$valence %in% c("T","F","E"), "stress", "neutral") #NB nu trauma ook bij stressed!
-dat$Valence_Grouped <-as.factor(dat$Valence_Grouped)
- dat %>% select(task_d, Valence_Grouped, valence) # to check. 
+df10$Valence_Grouped <- ifelse(df10$valence %in% c("T","F","E"), "stress", "neutral") #NB nu trauma ook bij stressed!
+df10$Valence_Grouped <-as.factor(df10$Valence_Grouped)
+df10 %>% select(task.d, Valence_Grouped, valence) # to check. 
 #' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
 #' Consider exclusion in 'analysis script'
 
  
 #' *Phase and subject as moderators?*
 # Explore distribution learning and memory data per subject & valence type
-dat %>% 
-  group_by(subject, Valence_Grouped, phase, cuectx) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each))
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, phase, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.phase.cuectx.csv")
 #' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
 #' Consider exclusion in 'analysis script'
 
 
 #' *cuectx and Valence as moderators, Animal & Human separate?*
-dat %>% 
-  group_by(subject, Valence_Grouped, cuectx) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each)) 
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.cuectx.csv") 
 
 
 #' *Phase and Valence, in animal human separately?*
-dat %>% 
-  group_by(subject, Valence_Grouped, phase) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each)) 
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, phase) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.phase.csv") 
 
 
-dat %>% group_by(subject, phase, valence) %>%
-  summarize(papers=length(unique(id)), comparisons=length(each)) %>% data.frame()
+df10 %>% group_by(subject.cat, phase, valence) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.phase.valence.csv")
 
 # dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="L")
 # dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="M")
@@ -236,9 +340,9 @@ dat %>% group_by(subject, phase, valence) %>%
 
 
 # Save resulting dataset --------------------------------------------------
-dat <- dat %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
+df11 <- df10 %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
 
 #str(dat)
 
-saveRDS(dat, file = "data.RData") #save
+saveRDS(df11, file = "processed_data/TRACEprepared.RData") #save
 

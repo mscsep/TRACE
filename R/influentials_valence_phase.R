@@ -29,13 +29,13 @@ dataset[which(abs(y$z) > 1.96),]$potOut <- 1 # Values that are potential outlier
 dataset %>% 
   group_by(potInf) %>% 
   summarize(length(each), 
-            length(unique(idExp)),
+            length(unique(idPTSD)),
             length(unique(id)))
 
 dataset %>% 
   group_by(potOut) %>% 
   summarize(length(each), 
-            length(unique(idExp)),
+            length(unique(idPTSD)),
             length(unique(id)))
 
 
@@ -45,7 +45,7 @@ dataset$outInf <- ifelse(dataset$potOut == 1 & dataset$potInf == 1, 1, 0)
 dataset %>% 
   group_by(outInf) %>% 
   summarize(length(each), 
-            length(unique(idExp)),
+            length(unique(idPTSD)),
             length(unique(id)))
 
 

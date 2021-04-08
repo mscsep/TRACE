@@ -19,7 +19,7 @@ library(dplyr)
 ```
 
 # retrieve OSF files 
-```{r }
+```{r}
 osf_retrieve_file("tqmwb") %>% osf_download(path = "data", conflicts="overwrite") # search 1
 osf_retrieve_file("xqpm3") %>% osf_download(path = "data", conflicts="overwrite") # search 2
 osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite") # search 3
@@ -27,18 +27,29 @@ osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite"
 
 # load data
 ```{r}
-s1 <- read_excel("data/TRACE data_collection_search1.xlsx", na = c(" ", "-"))#s1
-s2a <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2", na = c(" ", "-"))#s2
-s2h <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_s2", na = c(" ", "-"))#s2
-s3a <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3", na = c(" ", "-"))#s3
-s3h <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.s3", na = c(" ", "-"))#s3
+s1 <- read_excel("data/TRACE data_collection_search1.xlsx", na = c(" ", "-", "not reported"), col_types = "text")#s1
+s2a <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "animal_inclusions_s2", na = c(" ", "-", "not reported"), col_types = "text")#s2
+s2h <- read_excel("data/TRACE data_collection_search2.xlsx", sheet = "human_inclusions_s2", na = c(" ", "-", "not reported"), col_types = "text")#s2
+s3a <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "animal.inclusions.s3", na = c(" ", "-", "not reported"), col_types = "text")#s3
+s3h <- read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.s3", na = c(" ", "-", "not reported"), col_types = "text")#s3
 ```
 
 # select and rename S1
 ```{r}
 str(s1)
 
-df1 <- select(s1,  `Reference_First Author` , `Reference_Publication Year` , `Reference_PMID` , `inclusion` , `subject` ,  `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , `Data_Method_TimeTask-Trauma` , `task` , `Data_Method_animal light dark testing?` , `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
+df1 <- select(s1,  `Reference_First Author` , `Reference_Publication Year` , `Reference_PMID` , `inclusion` , `subject` ,  `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)`,
+              PTSD.age.recoded, HC.age.recoded,
+              
+              #, `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , 
+              
+              
+              `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , `Data_Method_TimeTask-Trauma` , `task` , 
+              
+              # `Data_Method_animal light dark testing?` , 
+              rhythm_recoded,
+              
+              `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
 
 # Rename
 df1 %>% rename(
@@ -51,10 +62,14 @@ df1 %>% rename(
   nHC =`Data_Subjects_n_control` , 
   sex.PTSD = `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , 
   sex.HC =`Data_Subjects_gender_control (M = male; F = female; - = not reported)` ,
-  age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
-  age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
-  age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
-  age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  # age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
+  # age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+  # age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
+  # age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  age.PTSD = PTSD.age.recoded,
+  age.HC = HC.age.recoded,
+  
   shocks.num = `Data_Subjects_FS_#Shocks` , 
   shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
   ptsd.type = `Data_Subjects_PTSDtypeSHORT2` , 
@@ -63,7 +78,10 @@ df1 %>% rename(
   ptsd.measure = `Data_Subjects_ptsd-measure` , 
   time = `Data_Method_TimeTask-Trauma` , 
   task = `task` , 
-  rhythm  =`Data_Method_animal light dark testing?` , 
+  
+  # rhythm  =`Data_Method_animal light dark testing?` , 
+  rhythm  = rhythm_recoded,
+  
   measure = `measure` , 
   comparison = `Comparison` , 
   idPTSD =`ID_Experimental_group` , 
@@ -79,6 +97,9 @@ df1 %>% rename(
 ) -> df1.renamed
 
 glimpse(df1.renamed)
+
+# add missing colums
+df1.renamed$res.sus.split <-"NA"
 ```
 
 # select and rename S2
@@ -87,9 +108,20 @@ glimpse(df1.renamed)
 ```{r}
 str(s2a)
 
-  
 df2a <- select(s2a,
-`Reference_First Author_SH` , `Reference_Publication Year_SH` , `Reference_PMID_SH` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , `Data_Subjects_ResSus.split` , `Data_Method_TimeTask-Trauma` , `task` , `Data_Method_animal light dark testing?` , `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
+               `Reference_First Author_SH` , `Reference_Publication Year_SH` , `Reference_PMID_SH` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , 
+               
+               PTSD.age.recoded, HC.age.recoded,
+               
+               #`Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , 
+               
+               `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , `Data_Subjects_ResSus.split` , `Data_Method_TimeTask-Trauma` , `task` , 
+               
+               #`Data_Method_animal light dark testing?` , 
+               
+               rhythm_recoded,
+               
+               `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
 
 
 df2a %>% rename(
@@ -102,10 +134,15 @@ df2a %>% rename(
   nHC =`Data_Subjects_n_control` , 
   sex.PTSD = `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , 
   sex.HC =`Data_Subjects_gender_control (M = male; F = female; - = not reported)` ,
-  age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
-  age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
-  age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
-  age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  # age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
+  # age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+  # age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
+  # age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  age.PTSD = PTSD.age.recoded,
+  age.HC = HC.age.recoded,
+  
   shocks.num = `Data_Subjects_FS_#Shocks` , 
   shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
   ptsd.type = `Data_Subjects_PTSDtypeSHORT2` , 
@@ -118,7 +155,10 @@ df2a %>% rename(
   
   time = `Data_Method_TimeTask-Trauma` , 
   task = `task` , 
-  rhythm  =`Data_Method_animal light dark testing?` , 
+  # rhythm  =`Data_Method_animal light dark testing?` , 
+  
+  rhythm = rhythm_recoded,
+  
   measure = `measure` , 
   comparison = `Comparison` , 
   idPTSD =`ID_Experimental_group` , 
@@ -135,18 +175,25 @@ df2a %>% rename(
 
 glimpse(df2a.renamed)
 
-# add missing colums
-
 
 ```
 
-## human
+## s2 human
 ```{r}
 str(s2h)
-  
+
 df2h <- select(s2h,
-`Reference_First Author_SH` , `Reference_Publication Year_SH` , `Reference_PMID_SH` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , #`Data_Subjects_ResSus.split` , 
-`Data_Method_TimeTask-Trauma` , `task` , `Data_Method_animal light dark testing?` , `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
+               `Reference_First Author_SH` , `Reference_Publication Year_SH` , `Reference_PMID_SH` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , 
+               
+               `Data_Subjects_m_Age_ptsd (- = not reported)` , #`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+               `Data_Subjects_m_Age_control (- = not reported)` , #`Data_Subjects_sd_Age_control (- = not reported)` , 
+               
+               `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , #`Data_Subjects_ResSus.split` , 
+               `Data_Method_TimeTask-Trauma` , `task` , 
+               
+               #`Data_Method_animal light dark testing?` , 
+               
+               `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
 
 
 df2h %>% rename(
@@ -159,10 +206,15 @@ df2h %>% rename(
   nHC =`Data_Subjects_n_control` , 
   sex.PTSD = `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , 
   sex.HC =`Data_Subjects_gender_control (M = male; F = female; - = not reported)` ,
-  age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
-  age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
-  age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
-  age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  # age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
+  # age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+  # age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
+  # age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  age.PTSD = `Data_Subjects_m_Age_ptsd (- = not reported)`,
+  age.HC = `Data_Subjects_m_Age_control (- = not reported)`,
+  
   shocks.num = `Data_Subjects_FS_#Shocks` , 
   shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
   ptsd.type = `Data_Subjects_PTSDtypeSHORT2` , 
@@ -175,7 +227,9 @@ df2h %>% rename(
   
   time = `Data_Method_TimeTask-Trauma` , 
   task = `task` , 
-  rhythm  =`Data_Method_animal light dark testing?` , 
+  
+  # rhythm  =`Data_Method_animal light dark testing?` , 
+  
   measure = `measure` , 
   comparison = `Comparison` , 
   idPTSD =`ID_Experimental_group` , 
@@ -191,21 +245,38 @@ df2h %>% rename(
 ) -> df2h.renamed
 
 glimpse(df2h.renamed)
+
+# add missing columns
+df2h.renamed$res.sus.split <-"NA"
+df2h.renamed$rhythm <- "NA"
 ```
 
 
-# S3
+# select and rename S3
 
-## animal
+## S3 animal
 ```{r}
 str(s3a)
 
 df3a <- select(s3a,
-`First Author` , `Publication Year` , `PMID` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` , `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , #`Data_Subjects_ptsd-measure` , 
-
-`Data_Subjects_ResSus.split.final` , 
-
-`Data_Method_TimeTask-Trauma` , `task` , `Data_Method_animal light dark testing?` , `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
+               `First Author` , `Publication Year` , `PMID` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , 
+               
+               PTSD.age.recoded, HC.age.recoded,
+               
+               #`Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` ,
+               
+               `Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` ,
+               #`Data_Subjects_ptsd-measure` , 
+               
+               `Data_Subjects_ResSus.split.final` , 
+               
+               `Data_Method_TimeTask-Trauma` , `task` , 
+               
+               # `Data_Method_animal light dark testing?` , 
+               rhythm_recoded,
+               
+               
+               `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
 
 
 
@@ -219,10 +290,14 @@ df3a %>% rename(
   nHC =`Data_Subjects_n_control` , 
   sex.PTSD = `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , 
   sex.HC =`Data_Subjects_gender_control (M = male; F = female; - = not reported)` ,
-  age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
-  age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
-  age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
-  age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  # age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
+  # age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+  # age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
+  # age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  age.PTSD = PTSD.age.recoded,
+  age.HC = HC.age.recoded,
+  
   shocks.num = `Data_Subjects_FS_#Shocks` , 
   shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
   ptsd.type = `Data_Subjects_PTSDtypeSHORT2` , 
@@ -233,11 +308,14 @@ df3a %>% rename(
   # ptsd.measure = `Data_Subjects_ptsd-measure` , 
   
   # not in s1 or human s2
-   res.sus.split = `Data_Subjects_ResSus.split.final`,
+  res.sus.split = `Data_Subjects_ResSus.split.final`,
   
   time = `Data_Method_TimeTask-Trauma` , 
   task = `task` , 
-  rhythm  =`Data_Method_animal light dark testing?` , 
+  
+  # rhythm  =`Data_Method_animal light dark testing?` , 
+  rhythm = rhythm_recoded,
+  
   measure = `measure` , 
   comparison = `Comparison` , 
   idPTSD =`ID_Experimental_group` , 
@@ -252,21 +330,33 @@ df3a %>% rename(
   semHC = `Data_Outcome2_SEM` 
 ) -> df3a.renamed
 
+# add missing columns
+df3a.renamed$ptsd.measure <-"NA"
 ```
 
-## human
+## S3 human
 
 ```{r}
+
+str(s3h)
+
 df3h <- select(s3h,
-`First Author` , `Publication Year` , `PMID` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , `Data_Subjects_m_Age_ptsd (- = not reported)` , `Data_Subjects_sd_Age_ptsd (- = not reported)` , `Data_Subjects_m_Age_control (- = not reported)` , `Data_Subjects_sd_Age_control (- = not reported)` ,
-
-#`Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , 
-
-`Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , 
-
-#`Data_Subjects_ResSus.split.final` , 
-
-`Data_Method_TimeTask-Trauma` , `task` , `Data_Method_animal light dark testing?` , `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` )
+               `First Author` , `Publication Year` , `PMID` , `inclusion.final` , `subject` , `Data_Subjects_n_ptsd` , `Data_Subjects_n_control` , `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , `Data_Subjects_gender_control (M = male; F = female; - = not reported)` , 
+               
+               `Data_Subjects_m_Age_ptsd (- = not reported)` , #`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+               `Data_Subjects_m_Age_control (- = not reported)` , #`Data_Subjects_sd_Age_control (- = not reported)` ,
+               
+               #`Data_Subjects_FS_#Shocks` , `Data_Subjects_FS_Amperage(mA)` , 
+               
+               `Data_Subjects_PTSDtypeSHORT2` , `Data_Subjects_Controltype` , `Data_Subjects_Strain_or_Population` , `Data_Subjects_ptsd-measure` , 
+               
+               #`Data_Subjects_ResSus.split.final` , 
+               
+               `Data_Method_TimeTask-Trauma` , `task` , 
+               
+               # `Data_Method_animal light dark testing?` , 
+               
+               `measure` , `Comparison` , `ID_Experimental_group` , `ID_Control_group` , `Data_Outcome1_VarName` , `Data_Outcome1_M` , `Data_Outcome1_SD` , `Data_Outcome1_SEM` , `Data_Outcome2_VarName` , `Data_Outcome2_M` , `Data_Outcome2_SD` , `Data_Outcome2_SEM` ) 
 
 
 df3h %>% rename(
@@ -279,28 +369,31 @@ df3h %>% rename(
   nHC =`Data_Subjects_n_control` , 
   sex.PTSD = `Data_Subjects_gender_ptsd (M = male; F = female; - = not reported)` , 
   sex.HC =`Data_Subjects_gender_control (M = male; F = female; - = not reported)` ,
-  age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
-  age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
-  age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
-  age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  # age.PTSD.m =`Data_Subjects_m_Age_ptsd (- = not reported)` , 
+  # age.PTSD.sd =`Data_Subjects_sd_Age_ptsd (- = not reported)` , 
+  # age.HC.m =`Data_Subjects_m_Age_control (- = not reported)` ,
+  # age.HC.sd =`Data_Subjects_sd_Age_control (- = not reported)` ,
+  
+  age.PTSD = `Data_Subjects_m_Age_ptsd (- = not reported)`,
+  age.HC = `Data_Subjects_m_Age_control (- = not reported)`,
   
   # only in animal s3
- # shocks.num = `Data_Subjects_FS_#Shocks` , 
- # shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
- 
+  # shocks.num = `Data_Subjects_FS_#Shocks` , 
+  # shocks.amp =`Data_Subjects_FS_Amperage(mA)` , 
+  
   ptsd.type = `Data_Subjects_PTSDtypeSHORT2` , 
   control.type = `Data_Subjects_Controltype` , 
   population = `Data_Subjects_Strain_or_Population` , 
   
   # only in human s3
-   ptsd.measure = `Data_Subjects_ptsd-measure` , 
+  ptsd.measure = `Data_Subjects_ptsd-measure` , 
   
   # not in s1 or human s2
   # res.sus.split = `Data_Subjects_ResSus.split.final`,
   
   time = `Data_Method_TimeTask-Trauma` , 
   task = `task` , 
-  rhythm  =`Data_Method_animal light dark testing?` , 
+  
   measure = `measure` , 
   comparison = `Comparison` , 
   idPTSD =`ID_Experimental_group` , 
@@ -314,25 +407,203 @@ df3h %>% rename(
   sdHC = `Data_Outcome2_SD` , 
   semHC = `Data_Outcome2_SEM` 
 ) -> df3h.renamed
+
+
+# add missing columns
+df3h.renamed$shocks.num<-"NA"
+df3h.renamed$shocks.amp<-"NA"
+df3h.renamed$res.sus.split<-"NA"
+df3h.renamed$rhythm<-"NA"
+
+glimpse(df3h.renamed)
 ```
 
-# Add missing colnames
+
+```{r eval=FALSE, include=FALSE}
+df1.renamed$author # all ok
+df2a.renamed$author #(incl voorletter)
+df2h.renamed$author # all ok
+df3a.renamed$author #(incl voorletter).. en gekke typo in naam
+df3h.renamed$author # meerdere gekke typos in name P‚Äö√†√∂‚Äö√†√áhlchen D
+
+```
+
+# remove unneeded dataframes
+```{r}
+rm(s1, s2a, s2h, s3a, s3h,
+   df1, df2a, df2h, df3a, df3h)
+```
+
+# check if data has same columns
+```{r}
+all_equal(df1.renamed, df2a.renamed, ignore_col_order=T)
+all_equal(df2a.renamed, df2h.renamed, ignore_col_order=T)
+all_equal(df1.renamed, df3a.renamed, ignore_col_order=T)
+all_equal(df3a.renamed, df3h.renamed, ignore_col_order=T)
+```
+
+
+# merge data
+```{r}
+full_join(df1.renamed, df2a.renamed) %>%
+  full_join(., df2h.renamed) %>%
+  full_join(., df3a.renamed) %>%
+  full_join(., df3h.renamed) -> merged.data
+glimpse(merged.data)
+```
+
+
+
+# Recode age: set age groups
+
+subject:
+(0=humanmixed(Civiel&Military); 1=ActiveDutyMilitary; 2=Veteran; 12=ActiveDutyMilitary & Veteran; 3=Civilian; 4=Rat; 5=Mice)
+
+refs for age groups
+- [https://www.jax.org/news-and-insights/jax-blog/2017/november/when-are-mice-considered-old#]
+- [https://www.jax.org/news-and-insights/jax-blog/2017/november/when-are-mice-considered-old#] (based on C557BL/6J)
+- [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/[ table 2]
+
+- week month calculations
+https://www.google.com/search?q=2+months+weeks&oq=2+months+weeks&aqs=chrome..69i57j0i22i30l3.1762j0j4&sourceid=chrome&ie=UTF-8
+
+```{r}
+merged.data %>% mutate(
+  
+  # ptsd age
+  age.PTSD2 = as.numeric(age.PTSD),
+  age.PTSD.cat = case_when(
+    age.PTSD == 'adult'~'(mature) adult',
+    #human
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 < 20) ~ "young adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >= 20 & age.PTSD2 <35) ~ "(mature) adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >=35  & age.PTSD2 <50) ~ "middle-aged",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >=50) ~ "old adult",
+    # rat
+    (subject == "4") & (age.PTSD2 < 26) ~ "young adult", # < 6months ~ 26.0715 weeks
+    (subject == "4") & (age.PTSD2 >= 26 & age.PTSD2 <52) ~ "(mature) adult", # 6 months - 12 months (= 52)
+    (subject == "4") & (age.PTSD2 >= 52 & age.PTSD2 <78) ~ "middle-aged", # 12 months - 18 months (= 78)
+    (subject == "4") & (age.PTSD2 >=78) ~ "old adult",
+    # mice
+    (subject == "5") & (age.PTSD2 < 13) ~ "young adult", # 3 months
+    (subject == "5") & (age.PTSD2 >= 13 & age.PTSD2 <26) ~ "(mature) adult", # 3-6 months
+    (subject == "5") & (age.PTSD2 >= 26 & age.PTSD2 <60) ~ "middle-aged", # 10 - 14 months -> 6 - 14 (60 weeks)
+    (subject == "5") & (age.PTSD2 >=60) ~ "old adult" 
+  ),
+  
+  # HC
+  age.HC2 = as.numeric(age.HC),
+  age.HC.cat = case_when(
+    age.HC == 'adult'~'(mature) adult',
+    #human
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 < 20) ~ "young adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >= 20 & age.HC2 <35) ~ "(mature) adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >=35  & age.HC2 <50) ~ "middle-aged",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >=50) ~ "old adult",
+    
+    # rat
+    (subject == "4") & (age.HC2 < 26) ~ "young adult", # < 6months ~ 26.0715 weeks
+    (subject == "4") & (age.HC2 >= 26 & age.HC2 <52) ~ "(mature) adult", # 6 months - 12 months (= 52)
+    (subject == "4") & (age.HC2 >= 52 & age.HC2 <78) ~ "middle-aged", # 12 months - 18 months (= 78)
+    (subject == "4") & (age.HC2 >=78) ~ "old adult",
+    
+    # mice
+    (subject == "5") & (age.HC2 < 13) ~ "young adult", # 3 months
+    (subject == "5") & (age.HC2 >= 13 & age.HC2 <26) ~ "(mature) adult", # 3-6 months
+    (subject == "5") & (age.HC2 >= 26 & age.HC2 <60) ~ "middle-aged", # 10 - 14 months -> 6 - 14 (60 weeks)
+    (subject == "5") & (age.HC2 >=60) ~ "old adult" 
+  )
+  
+)-> merged.data.recoded
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# for checking
+merged.data.recoded %>% select(subject, decision, age.PTSD, age.PTSD2, age.PTSD.cat,
+                               age.HC, age.HC2, age.HC.cat) %>% View()
+```
+
+no missing values after recoding age in included papers
+```{r eval=FALSE, include=FALSE}
+merged.data.recoded %>% select(subject, decision, age.PTSD, age.PTSD2, age.PTSD.cat,
+                               age.HC, age.HC2, age.HC.cat) %>% filter(decision ==1) %>% filter(is.na(.))
+```
+
+
+```{r eval=FALSE, include=FALSE}
+merged.data.recoded %>% filter(age.PTSD2 > 65) %>% filter(decision ==1) %>% View()
+merged.data.recoded %>% filter(age.HC2 > 65) %>% filter(decision ==1) %>% View()
+```
+
+```{r}
+merged.data.recoded %>% select(!c(age.PTSD, age.PTSD2, age.HC, age.HC2))-> merged.data.recoded2
+```
+
+
+# recode rhytem
 
 ```{r}
 
+merged.data.recoded2 %>% 
+  mutate(rhythm = ifelse(subject %in% c("0", "1", "2", "12", "3"),"active", rhythm)) -> merged.data.recoded3
+ 
+merged.data.recoded3$rhythm <- recode(merged.data.recoded3$rhythm, 'dark' = 'active', 'light' = 'inactive')
+
+# for checking
+merged.data.recoded3 %>% filter(decision == 1) %>% filter(is.na(rhythm)) # good
+
+
 ```
 
 
-```{r}
 
-str(df1.renamed)
-str(df2a.renamed)
+# set variable types
+         
+all are current character
+```{r variable types}
+names(merged.data.recoded3) 
 
-merge(df1.renamed, df2a.renamed) %>% View()
+string_names <- c("author", "year",
 
-full_join(df1.renamed, df2a.renamed)
+"shocks.num", "shocks.amp",
 
-full_join(df2a.renamed, df3a.renamed)
+"time", "rhythm",
+"idPTSD", "idHC",
 
+"outcomePTSD", "outcomeHC"
+)
+
+factor_names <-c("PMID", "decision", "subject", "sex.PTSD", "sex.HC",
+"ptsd.type", 'control.type', 'population',"ptsd.measure", 
+
+"task", "measure",
+"comparison",
+"res.sus.split", "age.PTSD.cat", "age.HC.cat"
+)
+
+numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC")
+
+# For checking -> ok!
+# merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
+
+
+
+merged.data.recoded3 %>% 
+mutate_at(.vars=numeric_names, as.numeric) %>% 
+mutate_at(.vars=factor_names, factor) ->merged.data.recoded4
+
+# for checking
+ # cbind(merged.data.recoded3$nHC,merged.data.recoded4$nHC)
+unique(merged.data.recoded4$author) %>% data.frame() %>%head()
+str(merged.data.recoded4)
+```
+
+
+
+```{r save}
+ saveRDS(merged.data.recoded4, "processed_data/TRACEmerged.RDS")
+write.csv2(merged.data.recoded4, "processed_data/TRACEmerged.csv", fileEncoding = "UTF-8") # writes spec characters weird
+# write.table(merged.data.recoded4, "processed_data/TRACEmerged2.csv")
 ```
 

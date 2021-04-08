@@ -19,16 +19,16 @@ library(flextable) # to create tables
 library(officer)# to export tables to word
 
 #' import dataset (already processed with datasetPreparation)
-data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
-
+# data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
+data<-readRDS("processed_data/TRACEprepared.RData")
 
 #' Variable / level exclusion (see notes data prep file) 
 #' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
 #' Consider exclusion in 'analysis script'
-data <- data %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
+ data <- data %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
 #' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
 #' Consider exclusion in 'analysis script'
-data<- data %>% filter(phase != "E")%>% droplevels()
+ data<- data %>% filter(phase != "E")%>% droplevels()
 
 
 
@@ -50,36 +50,36 @@ data %>% filter(subject == "Human", Valence_Grouped == "neutral") %>% select(ref
 #' **papers included in the analysis**
 data %>% 
   #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(id)))
+  summarize( length(unique(PMID))) %>% write.csv2("results/unique.papers.csv") 
 
 data %>% 
-  group_by( subject) %>% 
-  summarize( length(unique(id)))
+  group_by( subject.cat) %>% 
+  summarize( length(unique(PMID))) %>% write.csv2("results/unique.papers.by.subject.csv") 
 
 #' **comparisons included in the analysis**
 data %>% 
   #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(each)))
+  summarize( length(unique(each))) %>% write.csv2("results/unique.comparisons.csv") 
 
 data %>% 
-  group_by( subject) %>% 
-  summarize( length(unique(each)))
+  group_by( subject.cat) %>% 
+  summarize( length(unique(each))) %>% write.csv2("results/unique.comparisons.by.subject.csv") 
 
-#' **Show Trauma & PTSD 'types' that are presenten in animals and humans**
-# Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
-data$ptsd[stringr::str_detect(as.character(data$ptsd), "SPS")] <- 'SPS'
-data$ptsd[stringr::str_detect(as.character(data$ptsd), "Deployment")] <- 'Deployment'     
-data$ptsd[stringr::str_detect(as.character(data$ptsd), "WarRelated")] <- 'Deployment'  
-
-data$ptsd[stringr::str_detect(as.character(data$ptsd), "of PSS?")] <- 'PSS'  
-data$ptsd[stringr::str_detect(as.character(data$ptsd), "UWT")] <- 'UT'  
-unique(data$ptsd)
-data %>% droplevels() ->data
+#' **Show Trauma & PTSD 'types' that are present in animals and humans**
+# # Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "SPS")] <- 'SPS'
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "Deployment")] <- 'Deployment'     
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "WarRelated")] <- 'Deployment'  
+# 
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "of PSS?")] <- 'PSS'  
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "UWT")] <- 'UT'  
+# unique(data$ptsd.type)
+# data %>% droplevels() ->data
 
 data %>% 
-  group_by(subject, ptsd) %>% 
+  group_by(subject.cat, ptsd.type) %>% 
   summarize( length(unique(each))) %>% 
-  arrange(desc(subject)) %>% 
+  arrange(desc(subject.cat)) %>% 
   flextable() %>%
   # change header names
   set_header_labels( ptsd = "Trauma", 
@@ -87,40 +87,40 @@ data %>%
 # Save to word
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = TRACEtrauma, align="center")
-print(doc, target = paste0("TRACEtrauma", date(),".docx"))
+print(doc, target = paste0("results/TRACEtrauma", date(),".docx"))
 
 
 
 
 #' **Show tasks that were used to measure stressful & non-stressful learning & memory in animals and humans**
 data %>% 
-  group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
+  group_by(Valence_Grouped, subject.cat, as.factor(task.d)) %>% 
   summarize( length(unique(each))) %>% # comparisons
  # summarize(length(unique(id)), length(unique(each))) %>% # papers & comparisons
-  select(subject, Valence_Grouped, everything())  %>% # NB everything() to leave the order of the other colums unchanged.
-  arrange(desc(subject), Valence_Grouped) %>% 
+  select(subject.cat, Valence_Grouped, everything())  %>% # NB everything() to leave the order of the other colums unchanged.
+  arrange(desc(subject.cat), Valence_Grouped) %>% 
   flextable() %>%  color(i = ~ Valence_Grouped == 'stress', color="red")      %>%
 
   # change header names
 set_header_labels( Valence_Grouped = "valence", 
-                   "as.factor(task_d)" = 'task',
+                   "as.factor(task.d)" = 'task',
                 #   'length(unique(id))'="papers",
                    'length(unique(each))'="comparisons") -> TRACEmeasures
 TRACEmeasures
 # Save to word
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = TRACEmeasures, align="center")
-print(doc, target = paste0("TraceMeasures", date(),".docx"))
+print(doc, target = paste0("results/TraceMeasures", date(),".docx"))
 
 
 #' **show the amount of papers, comparisions and subjects in each category**
 data %>% 
-  group_by(subject, Valence_Grouped, phase) %>% 
+  group_by(subject.cat, Valence_Grouped, phase) %>% 
  #  distinct(id_combination, .keep_all=T)  %>% 
  # distinct(idExp, .keep_all=T)  %>% 
   #  distinct(idControl, .keep_all=T)  %>% 
-  summarize(length(unique(id)), length(unique(each)), sum(nE), sum(nC))  %>% 
-  arrange(desc(subject), Valence_Grouped) %>% # nb desc() for descending order
+  summarize(papers=length(unique(PMID)), comparisons=length(unique(each)), `total n PTSD` = sum(nPTSD), `total n HC` = sum(nHC))  %>% 
+  arrange(desc(subject.cat), Valence_Grouped) %>% # nb desc() for descending order
   
   flextable() %>%  
   set_formatter_type(fmt_double="%.00f") %>% # change to no decimals 
@@ -135,17 +135,17 @@ data %>%
         color="red")  %>%
   # change header names
   set_header_labels( Valence_Grouped = "valence", 
-                     'length(unique(id))'="papers",
+                     'length(unique(PMID))'="papers",
                      'length(unique(each))'="comparisons",
-                     'sum(nE)'="nE",
-                     'sum(nC)'="nC") -> TRACEsamples
+                     'sum(nPTSD)'="nPTSD",
+                     'sum(nHC)'="nHC") -> TRACEsamples
 
 TRACEsamples
 
 # Save to word
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = TRACEsamples, align="center")
-print(doc, target = paste0("TraceSample", date(),".docx"))
+print(doc, target = paste0("results/TraceSample", date(),".docx"))
 
 
 
@@ -156,13 +156,13 @@ print(doc, target = paste0("TraceSample", date(),".docx"))
 
 #' **Split clinical and preclinical data**
 # Clinical data 
-data %>% filter(subject =="Human") %>% droplevels() ->clinical
+data %>% filter(subject.cat =="Human") %>% droplevels() ->clinical
 # Preclinical data 
-data %>% filter(subject =="Animal") %>% droplevels() ->preclinical
+data %>% filter(subject.cat =="Animal") %>% droplevels() ->preclinical
 
 #' **influential cases**
 # check influentials phase * valence analysis ------------------------------------------------------
-source("influentials_valence_phase.r")
+source("r/influentials_valence_phase.r")
 preclinical<-influentials_valence_phase(preclinical)
 preclinical[which(preclinical$outInf == 1),]
 
@@ -176,22 +176,21 @@ droplevels() -> preclinical # n=4 datapoints excluded animal
 clinical<-influentials_valence_phase(clinical)
 clinical[which(clinical$outInf == 1),] # n=4 datapoints excluded human 
 
-
 # remove outliers
 ##  influential (Viechtbauer & Cheung) 
 clinical %>%
   filter(outInf != 1) %>%
   droplevels() -> clinical
 
-
+# 8.4. no influentials?
 
 #' **multilevel models**
 # Analyses + Plot:
-source("model_valence_phase.r")
+source("r/model_valence_phase.r")
 
 #' *Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients*
 mod.H <- rma.mv(yi, vi,
-                random = list(~1 | each, ~1 | idExp),
+                random = list(~1 | each, ~1 | idPTSD),
                 mods   = ~phase:Valence_Grouped - 1,
                 method = "REML",
                 slab = clinical$reference,  # from old codes milou (change for author/year)
@@ -201,9 +200,16 @@ summary(mod.H)
 human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )
 human
 
+# to save
+jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
+human[[2]]
+dev.off()
+
+
+
 #' *Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD*
 mod.A <- rma.mv(yi, vi,
-                random = list(~1 | each, ~1 | idExp),
+                random = list(~1 | each, ~1 | idPTSD),
                 mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
                 method = "REML",
                 slab = preclinical$reference,  # from old codes milou (change for author/year)
@@ -212,6 +218,11 @@ summary(mod.A)
 
 animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
 animal
+
+# to save
+jpeg(file="results/preclinical.jpeg", height = 2000, width = 1500, res=300)
+animal[[2]]
+dev.off()
 
 
 #' **data presenation**
@@ -236,7 +247,7 @@ plots
 # Save figure to jpeg.x
 #ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 
-ggsave(paste0("LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+ggsave(paste0("results/LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"), device="jpg", dpi = 300, height = 4, width = 6, limitsize = T )
 
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 # ppt standard 4:3
