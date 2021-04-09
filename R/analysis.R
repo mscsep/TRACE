@@ -22,25 +22,37 @@ library(officer)# to export tables to word
 # data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
 data<-readRDS("processed_data/TRACEprepared.RData")
 
+# names(data)
+
 #' Variable / level exclusion (see notes data prep file) 
 #' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
 #' Consider exclusion in 'analysis script'
- data <- data %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
+ # data <- data %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
 #' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
 #' Consider exclusion in 'analysis script'
  data<- data %>% filter(phase != "E")%>% droplevels()
 
+ 
+ # filtering for comparisons:
+ 
+ # A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); 
+ # D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
 
-
+ #data <- data %>% filter(comparison %in% c("A","E"))%>% droplevels()
+ 
+ # data <- data %>% filter(comparison %in% c("B","D"))%>% droplevels()
+ 
+ # data <- data %>% filter(comparison %in% c("C","F"))%>% droplevels()
+ 
 # general ------------------------------------------------------------
 
 #' Inspect the data
 #+ include =F
-data %>% filter(subject == "Animal", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
-data %>% filter(subject == "Animal", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode, yi)
+data %>% filter(subject.cat == "Animal", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
+data %>% filter(subject.cat == "Animal", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode, yi)
 
-data %>% filter(subject == "Human", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
-data %>% filter(subject == "Human", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode)
+data %>% filter(subject.cat == "Human", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
+data %>% filter(subject.cat == "Human", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode)
 
 
 
@@ -50,20 +62,20 @@ data %>% filter(subject == "Human", Valence_Grouped == "neutral") %>% select(ref
 #' **papers included in the analysis**
 data %>% 
   #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(PMID))) %>% write.csv2("results/unique.papers.csv") 
+  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.csv") 
 
 data %>% 
   group_by( subject.cat) %>% 
-  summarize( length(unique(PMID))) %>% write.csv2("results/unique.papers.by.subject.csv") 
+  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.by.subject.csv") 
 
 #' **comparisons included in the analysis**
 data %>% 
   #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(each))) %>% write.csv2("results/unique.comparisons.csv") 
+  summarize( length(unique(each))) #%>% write.csv2("results/unique.comparisons.csv") 
 
 data %>% 
   group_by( subject.cat) %>% 
-  summarize( length(unique(each))) %>% write.csv2("results/unique.comparisons.by.subject.csv") 
+  summarize( length(unique(each)))# %>% write.csv2("results/unique.comparisons.by.subject.csv") 
 
 #' **Show Trauma & PTSD 'types' that are present in animals and humans**
 # # Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
@@ -82,8 +94,9 @@ data %>%
   arrange(desc(subject.cat)) %>% 
   flextable() %>%
   # change header names
-  set_header_labels( ptsd = "Trauma", 
+  set_header_labels( ptsd.type = "Trauma", 
                      'length(unique(each))'="comparisons") -> TRACEtrauma
+TRACEtrauma
 # Save to word
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = TRACEtrauma, align="center")
@@ -191,11 +204,14 @@ source("r/model_valence_phase.r")
 #' *Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients*
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idPTSD),
-                mods   = ~phase:Valence_Grouped - 1,
+                #mods = ~phase -1,
+                 mods   = ~phase:Valence_Grouped - 1,
                 method = "REML",
                 slab = clinical$reference,  # from old codes milou (change for author/year)
                 data = clinical) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.H)
+
+
 
 human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )
 human
@@ -210,6 +226,7 @@ dev.off()
 #' *Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD*
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | each, ~1 | idPTSD),
+               # mods = ~ phase -1,
                 mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
                 method = "REML",
                 slab = preclinical$reference,  # from old codes milou (change for author/year)
@@ -275,9 +292,66 @@ str(data)
 
 
 
+# sex
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                mods = ~sex.PTSD -1,
+                # mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
 
 
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                 mods = ~ sex.PTSD -1,
+                # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
 
+
+# age
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                mods = ~age.PTSD.cat -1,
+                # mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+
+
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                mods = ~ age.PTSD.cat -1,
+                # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
+
+# cue context
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                mods = ~cuectx -1,
+                # mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+
+
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | each, ~1 | idPTSD),
+                mods = ~ cuectx -1,
+                # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
 
 #'
 #+ include=F
