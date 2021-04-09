@@ -30,13 +30,13 @@ dataset %>%
   group_by(potInf) %>% 
   summarize(length(each), 
             length(unique(idPTSD)),
-            length(unique(id)))
+            length(unique(PMID)))
 
 dataset %>% 
   group_by(potOut) %>% 
   summarize(length(each), 
             length(unique(idPTSD)),
-            length(unique(id)))
+            length(unique(PMID)))
 
 
 # Cases that are potential outliers and influential
@@ -46,7 +46,7 @@ dataset %>%
   group_by(outInf) %>% 
   summarize(length(each), 
             length(unique(idPTSD)),
-            length(unique(id)))
+            length(unique(PMID)))
 
 
 return(dataset)
