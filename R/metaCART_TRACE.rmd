@@ -1,0 +1,132 @@
+---
+title: "meta-CART TRACE"
+author: "Milou Sep"
+date: "4/9/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+
+library(dplyr) #general
+library(metacart)
+```
+
+
+```{r data, include=FALSE}
+data<-readRDS("processed_data/TRACEprepared.RData")
+```
+
+
+
+
+
+
+# tree model
+```{r metaCART}
+
+
+str(data)
+
+data %>% filter(subject.cat == "Human") %>% droplevels() ->clinical
+str(clinical)
+
+set.seed(38923)
+REmrt(yi ~ #subject + 
+        sex.PTSD + control.type + #comparison + 
+        age.PTSD.cat + type + 
+        phase + valence + 
+        # Valence_Grouped +
+        cuectx,
+      vi = vi, data = clinical, #c=0.5,
+      maxL=10,
+      lookahead = T
+      )->REtree
+
+summary(REtree)
+
+plot(REtree)
+
+data %>% filter(subject.cat == "Animal") %>% droplevels() ->preclinical
+
+set.seed(38923)
+REmrt(yi ~ subject + 
+        sex.PTSD + control.type + 
+        #comparison + 
+        age.PTSD.cat + type + 
+        phase + 
+        valence + 
+        # Valence_Grouped +
+        cuectx,
+      vi = vi, data = preclinical, #c= 0.5,
+      maxL = 10,
+      lookahead = T
+      )->REtree
+
+summary(REtree)
+
+plot(REtree)
+```
+
+
+
+# random forest (= multiple trees)
+
+```{r metaforest}
+
+
+data %>% select(
+  # PMID, 
+  # idPTSD, 
+                id_combination,
+  # subject, 
+  subject.cat,
+        sex.PTSD , control.type , comparison ,
+        age.PTSD.cat , type ,
+        phase , valence , 
+        # Valence_Grouped +
+        cuectx,
+  rhythm,
+  yi, vi
+  
+  
+  
+) %>% 
+  droplevels()-> datForest
+
+library(caret)
+library(metaforest)
+
+set.seed(94372) #set seeds to a random number
+ModelInfo_mf()$notes # method from metaforest
+
+# Set up k-fold grouped CV
+fit_control <- trainControl(method = "cv", number = 5, index = groupKFold(datForest$id_combination, k = 5)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
+
+# Set up a custom tuning grid for the three tuning parameters of MetaForest
+rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
+                       mtry = c(2, 4, 6),
+                       min.node.size = c(2, 4, 6))
+
+
+set.seed(94372)
+# Train the model
+cv.mf.cluster <- train(y = datForest$yi, x = datForest[names(datForest) !="yi"], #from x remove yi
+                       study = "id_combination", 
+                       method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
+                       trControl = fit_control,
+                       tuneGrid = rf_grid,
+                        # num.trees = 600, # a bit more than default 500 (for better convergence)
+                       data=datForest)
+
+# saveRDS(cv.mf.cluster,file="processed_data/fitted.MetaForest.RDS")
+
+
+cv.mf.cluster
+
+VarImpPlot(cv.mf.cluster$finalModel)
+
+```
+
