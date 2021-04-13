@@ -1,0 +1,285 @@
+---
+title: "recode variables"
+author: "Milou Sep"
+date: "4/13/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+library(readxl)
+library(dplyr)
+```
+
+```{r}
+readRDS("processed_data/TRACEmerged.RDS")->merged.data
+```
+
+
+# select only inclusions (only this data double checked in recoding vars etc)
+```{r}
+merged.data %>% filter(decision == 1) %>% select(-decision) %>% droplevels() -> merged.inclusions
+```
+
+
+# Recoding
+
+## Age: set age groups
+
+subject:
+(0=humanmixed(Civiel&Military); 1=ActiveDutyMilitary; 2=Veteran; 12=ActiveDutyMilitary & Veteran; 3=Civilian; 4=Rat; 5=Mice)
+
+refs for age groups
+- [https://www.jax.org/news-and-insights/jax-blog/2017/november/when-are-mice-considered-old#]
+- [https://www.jax.org/news-and-insights/jax-blog/2017/november/when-are-mice-considered-old#] (based on C557BL/6J)
+- [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/[ table 2]
+
+- week month calculations
+https://www.google.com/search?q=2+months+weeks&oq=2+months+weeks&aqs=chrome..69i57j0i22i30l3.1762j0j4&sourceid=chrome&ie=UTF-8
+
+```{r}
+merged.inclusions %>% mutate(
+  
+  # ptsd age
+  age.PTSD2 = as.numeric(age.PTSD),
+  age.PTSD.cat = case_when(
+    age.PTSD == 'adult'~'(mature) adult',
+    #human
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 < 20) ~ "young adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >= 20 & age.PTSD2 <35) ~ "(mature) adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >=35  & age.PTSD2 <50) ~ "middle-aged",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.PTSD2 >=50) ~ "old adult",
+    # rat
+    (subject == "4") & (age.PTSD2 < 26) ~ "young adult", # < 6months ~ 26.0715 weeks
+    (subject == "4") & (age.PTSD2 >= 26 & age.PTSD2 <52) ~ "(mature) adult", # 6 months - 12 months (= 52)
+    (subject == "4") & (age.PTSD2 >= 52 & age.PTSD2 <78) ~ "middle-aged", # 12 months - 18 months (= 78)
+    (subject == "4") & (age.PTSD2 >=78) ~ "old adult",
+    # mice
+    (subject == "5") & (age.PTSD2 < 13) ~ "young adult", # 3 months
+    (subject == "5") & (age.PTSD2 >= 13 & age.PTSD2 <26) ~ "(mature) adult", # 3-6 months
+    (subject == "5") & (age.PTSD2 >= 26 & age.PTSD2 <60) ~ "middle-aged", # 10 - 14 months -> 6 - 14 (60 weeks)
+    (subject == "5") & (age.PTSD2 >=60) ~ "old adult" 
+  ),
+  
+  # HC
+  age.HC2 = as.numeric(age.HC),
+  age.HC.cat = case_when(
+    age.HC == 'adult'~'(mature) adult',
+    #human
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 < 20) ~ "young adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >= 20 & age.HC2 <35) ~ "(mature) adult",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >=35  & age.HC2 <50) ~ "middle-aged",
+    (subject %in% c("0", "1", "2", "12", "3")) & (age.HC2 >=50) ~ "old adult",
+    
+    # rat
+    (subject == "4") & (age.HC2 < 26) ~ "young adult", # < 6months ~ 26.0715 weeks
+    (subject == "4") & (age.HC2 >= 26 & age.HC2 <52) ~ "(mature) adult", # 6 months - 12 months (= 52)
+    (subject == "4") & (age.HC2 >= 52 & age.HC2 <78) ~ "middle-aged", # 12 months - 18 months (= 78)
+    (subject == "4") & (age.HC2 >=78) ~ "old adult",
+    
+    # mice
+    (subject == "5") & (age.HC2 < 13) ~ "young adult", # 3 months
+    (subject == "5") & (age.HC2 >= 13 & age.HC2 <26) ~ "(mature) adult", # 3-6 months
+    (subject == "5") & (age.HC2 >= 26 & age.HC2 <60) ~ "middle-aged", # 10 - 14 months -> 6 - 14 (60 weeks)
+    (subject == "5") & (age.HC2 >=60) ~ "old adult" 
+  )
+  
+)-> merged.inclusions.recoded
+```
+
+
+no missing values after recoding age in included papers
+```{r eval=FALSE, include=FALSE}
+merged.inclusions.recoded %>% select(subject, age.PTSD, age.PTSD2, age.PTSD.cat,
+                               age.HC, age.HC2, age.HC.cat) %>% filter(is.na(.))
+```
+
+
+```{r eval=FALSE, include=FALSE}
+merged.inclusions.recoded %>% filter(age.PTSD2 > 65)%>% View()
+merged.inclusions.recoded %>% filter(age.HC2 > 65)  %>% View()
+```
+
+```{r}
+ merged.inclusions.recoded %>% select(!c(age.PTSD, age.PTSD2, age.HC, age.HC2))-> merged.inclusions.recoded2
+```
+
+
+## Day/Night rhytem
+
+```{r}
+merged.inclusions.recoded2 %>% mutate(rhythm = ifelse(subject %in% c("0", "1", "2", "12", "3"),"active", rhythm)) -> merged.inclusions.recoded3
+merged.inclusions.recoded3$rhythm <- recode(merged.inclusions.recoded3$rhythm, 'dark' = 'active', 'light' = 'inactive')
+# for checking
+merged.inclusions.recoded3 %>%  filter(is.na(rhythm)) # good
+```
+
+
+## Time since trauma
+```{r}
+merged.inclusions.recoded3 %>% 
+  mutate( 
+    #sort year/month/day in new vars
+    time.year = ifelse(grepl("year", time), yes=time, no=NA),
+    time.month = ifelse(grepl("month", time), yes=time, no=NA),
+    time.day= ifelse(grepl("day", time), yes=time, no=NA),
+    # remove day/month/year text
+    time.year2 = sub("year|years", "",time.year),
+    time.month2 = sub("month|months", "",time.month),
+    time.day2 = sub("day|days", "",time.day),
+    # remove > ?signs
+    time.year3 = sub(">|<", "",time.year2),
+    time.month3 = sub(">|<", "",time.month2),
+    time.day3 = sub(">|<", "",time.day2),
+    # recode decimal sign , to . (otherwise NA after 'as.numeric', likely due to leading 0'zs etc)
+    time.year4 = sub(",", ".",time.year3),
+    time.month4 = sub(",", ".",time.month3),
+    time.day4 = sub(",", ".",time.day3)
+    
+  )-> merged.inclusions.recoded4
+
+# for checking
+# merged.inclusions.recoded4  %>% select(time, time.year, time.year2, time.year3,time.year4,
+#                                        time.month,time.month2,time.month3,time.month4,
+#                                        time.day,time.day2, time.day3, time.day4) %>% View() 
+
+# for checking
+# glimpse(merged.inclusions.recoded4)
+# merged.inclusions.recoded4$time.year4 %>% as.numeric()
+
+merged.inclusions.recoded4 %>% 
+  mutate(time.recoded = case_when(
+      # human all to years
+      (subject %in% c("0", "1", "2", "12", "3")) & (grepl("year", time, ignore.case = T)) ~ as.numeric(time.year4),
+      (subject %in% c("0", "1", "2", "12", "3")) & (grepl("month", time, ignore.case = T)) ~ (as.numeric(time.month4) / 12),
+      # rat & mice all to days
+      (subject %in% c("4", "5")) & (grepl("day", time, ignore.case = T)) ~ as.numeric(time.day4),
+      (subject %in% c("4", "5")) & (grepl("month", time, ignore.case = T)) ~ (as.numeric(time.month4) * 30.4)),
+#https://www.google.com/search?q=months+to+years&oq=months+to+&aqs=chrome.0.0l3j69i57j0l6.2154j0j7&sourceid=chrome&ie=UTF-8
+
+# All to pseudo-years
+#     - omrekenen tijd in mens, rat en muis
+# 	- in adulthood: 11.8 rat days = 1 human year [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
+# 	- in adulthood: 2.60 mice day = 1 human year  [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
+
+time.pseudo = case_when(
+  (subject %in% c("0", "1", "2", "12", "3")) ~ as.numeric(time.recoded),
+  #rat
+  (subject == "4") ~ (as.numeric(time.recoded)/11.8),
+  #mice
+  (subject == "5") ~ (as.numeric(time.recoded)/2.60)
+)
+) -> merged.inclusions.recoded5
+
+# for checking
+# merged.inclusions.recoded5 %>% 
+#   select(subject, time, time.year, time.year2, time.year3,
+#                time.month,time.month2,time.month3,
+#                time.day,time.day2, time.day3,
+#                time.recoded, time.pseudo) %>% 
+#   # filter(subject == "5") %>%
+#   # str(time.recoded)
+#    filter(is.na(time.pseudo)) %>%
+#   # (filter(time == "unclear")) %>% 
+#   View() # correct
+
+# merged.inclusions.recoded5 %>% filter(subject == "4")
+
+merged.inclusions.recoded5 %>% select(-c(time.year, time.month, time.day, time.year2, time.month2, time.day2, time.year3, time.month3, time.day3, time.year4, time.month4, time.day4, time.recoded)) -> merged.inclusions.recoded6
+```
+
+## Subject: new Human-Animal variable
+```{r}
+merged.inclusions.recoded6 %>% mutate(subject.cat = ifelse(subject %in% c("0", "1", "2", "12", "3"), "Human", "Animal")) ->merged.inclusions.recoded7
+```
+
+## recode control type
+```{r}
+merged.inclusions.recoded7$control.type = recode(merged.inclusions.recoded7$control.type, "Handled" = "UnExp")
+```
+
+
+
+# create variable with animal strain and human population based on trauma-type 
+
+-> in animal all correct..
+beter in human in data doen.
+
+```{r}
+merged.inclusions.recoded7 %>% glimpse()
+
+merged.inclusions.recoded7$ptsd.type %>% unique() # ok
+
+# merged.inclusions.recoded7 %>% select(subject, subject.cat, ptsd.type, population) %>% View()
+
+merged.inclusions.recoded7$population %>% unique() # ok
+
+# $population %>% unique()
+# 
+# merged.inclusions.recoded7 %>%
+#   mutate(
+#     population.recoded = case_when(
+#       
+#       #rodents
+#         (subject %in% c("4","5") ~ population,
+# 
+#     )
+#   )
+```
+
+
+
+# set variable types
+         
+all are current character
+```{r variable types}
+names(merged.inclusions.recoded7) 
+
+string_names <- c("author", "year",
+"PMID",
+"shocks.num", "shocks.amp",
+
+"idPTSD", "idHC",
+
+"outcomePTSD", "outcomeHC",
+"ptsd.measure", 
+"task", "measure",
+)
+
+factor_names <-c( #"decision", 
+                 "subject","subject.cat",
+                 "sex.PTSD", "sex.HC",
+"ptsd.type", 'control.type', 'population',
+"rhythm",
+
+"comparison",
+"res.sus.split", "age.PTSD.cat", "age.HC.cat"
+)
+
+numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC", "time.pseudo")
+
+# For checking -> ok!
+# merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
+
+
+
+merged.inclusions.recoded7 %>% 
+mutate_at(.vars=numeric_names, as.numeric) %>% 
+mutate_at(.vars=factor_names, factor) ->merged.inclusions.recoded8
+
+# for checking
+ # cbind(merged.data.recoded3$nHC,merged.data.recoded4$nHC)
+# unique(merged.inclusions.recoded8$author) %>% data.frame() %>%head()
+str(merged.inclusions.recoded8)
+```
+
+
+
+```{r save}
+saveRDS(merged.inclusions.recoded8, "processed_data/TRACErecoded.RDS")
+# write.csv2(merged.data.recoded4, "processed_data/TRACEmerged.csv", fileEncoding = "UTF-8") # writes spec characters weird
+# write.table(merged.data.recoded4, "processed_data/TRACEmerged2.csv")
+```
+
