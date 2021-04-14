@@ -1,19 +1,15 @@
 ---
+title: "Datapreparation TRACE dataset"
+author: "Valeria Bonapersona & Milou Sep"
+date: "March 2019"
 output: html_document
 editor_options: 
   chunk_output_type: console
 ---
-#' ---
-#' title: "Datapreparation TRACE dataset"
-#' author: "Valeria Bonapersona & Milou Sep"
-#' date: "March 2019"
-#' ---
 
 
-#' **Preparation of the environment**
-
-
-```{r}
+# Preparation of the environment
+```{r setup}
 rm(list = ls()) #clean environment
 # libraries
 library(metafor) # for effect size estimation
@@ -22,7 +18,7 @@ library(osfr)
 library(readxl)
 ```
 
-# import data files 
+## import data files 
 ```{r}
  data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
  #data <- read.csv("processed_data/TRACEmerged.csv", sep = ";", dec = c(",", ".")) # Data
@@ -36,7 +32,7 @@ library(readxl)
 ```
 
 
-#' **Select relevant colums dataset**
+## **Select relevant colums dataset**
 
 ```{r}
 method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
@@ -47,7 +43,7 @@ df1<-data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>%
 
 
 
-#' **Add method codes to data**
+## **Add method codes to data**
 NB the combination of task and measure indicates which method is used to measure behavior. Those values are combined into a new variable ..
 ```{r}
 df1 %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> df3
@@ -67,7 +63,7 @@ left_join(df3,method1, by="measureID", suffix = c(".d", ".m"))->df4
 
 ```
 
-#
+# Check missing values
 ```{r}
 which(is.na(df4$subject.cat))
 ```
@@ -83,19 +79,47 @@ which(is.na(df4$comparison))
 ```
 
 
-# recode measure
+# recode measure, PTSD type and population
 ```{r}
+
+# df4$subject.cat
+
+# df4.1 %>% select(subject.cat, measure.d, measure2, ptsd.type, ptsd.type2, population, population2) %>% View()
+
+
 df4 %>% mutate(
   measure2 = case_when(
+    # measure
     (subject.cat == "Animal") & grepl("freezing", measure.d, ignore.case = T) ~ "freezing",
-     (subject.cat == "Animal") & grepl("latency|exploration|time|entrie|avoidance|cross|error|DR|DI", measure.d, ignore.case = T) ~ "exploration",
-     (subject.cat == "Animal") & grepl("Object", measure.d, ignore.case = T) ~ "manipulation",
+    (subject.cat == "Animal") & grepl("latency|exploration|time|entrie|avoidance|cross|error|DR|DI", measure.d, ignore.case = T) ~ "exploration",
+    (subject.cat == "Animal") & grepl("Object", measure.d, ignore.case = T) ~ "manipulation",
     # human
     (subject.cat == "Human") & grepl("EMG|SCR", measure.d, ignore.case = T) ~ "physiology",
-    (subject.cat == "Human") & !grepl("EMG|SCR", measure.d, ignore.case = T) ~ "non-physiology"
-    
-  )
-) ->df4.1
+    (subject.cat == "Human") & !grepl("EMG|SCR", measure.d, ignore.case = T) ~ "non-physiology"),
+  # PTSD type
+  # ptsd.type2 = ifelse(grepl("Mixed", ptsd.type, fixed = T), "Mixed", as.character(ptsd.type)),
+  
+  ptsd.type2 = case_when(
+    (subject.cat == "Human") & grepl("Mixed", ptsd.type, fixed = T) ~ "Mixed",
+    (subject.cat == "Animal") & (grepl("+", ptsd.type, fixed=T) #| grepl("SPS", ptsd.type, fixed=T)
+                                 ) ~ "Mixed",
+    TRUE ~ as.character(ptsd.type)),
+  
+  # Population
+  population2 = case_when(
+    #human
+    (subject.cat == "Human") & grepl("Veterans", population, fixed = T) ~ "Veterans",
+    (subject.cat == "Human") & grepl("Civilian", population, fixed = T) ~ "Civilian",
+    (subject.cat == "Human") & grepl("Refugee", population, fixed = T) ~ "Civilian",
+    #animals
+    (subject.cat == "Animal") & grepl("C57BL/6", population, fixed = T) ~ "C57BL/6",
+    (subject.cat == "Animal") & grepl("Charles Foster", population, fixed = T) ~ "Charles Foster",
+    (subject.cat == "Animal") & grepl("Wistar", population, fixed = T) ~ "Wistar",
+    TRUE ~ as.character(population))) %>%
+    # mutate(
+    #   ptsd.type2= as.factor(ptsd.type2),
+    #   population2= as.factor(population2)) %>% 
+    droplevels()->df4.1
 
 # # for checking
 # df4.1 %>% 
@@ -110,90 +134,47 @@ df4 %>% mutate(
 
 #' **Set variable properties**
 ```{r}
-#' Change factors to numbers:
-# stat.vars <- c("nPTSD", "meanPTSD", "sdPTSD", "semPTSD", "nHC", "meanHC", "sdHC", "semHC", "recode")
-
-# new milou
-# string_names <- c("author", "year",
-#                   
-#                   "shocks.num", "shocks.amp",
-#                   
-#                  # "time", 
-#                   "idPTSD", "idHC",
-#                   
-#                   "outcomePTSD", "outcomeHC"
-# )
-
-factor_names <-c(#"PMID", #"decision", 
-                 # "subject", 
-                 # "subject.cat",
-                 # 
-                 # "sex.PTSD", "sex.HC",
-                 # "ptsd.type", 'control.type', 'population',
-                 # "rhythm",
-                 # "ptsd.measure", 
-                 # 
-                  "task.d", "measure.d", "measure2",
-                 # "comparison",
-                 # "res.sus.split", "age.PTSD.cat", "age.HC.cat",
-                 
-                 "type", "phase", "valence", "cuectx"
-)
-
+new_factor_names <-c("ptsd.type2", "population2","task.d", "measure.d", "measure2", "type", "phase", "valence", "cuectx")
 # numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC", "recode")
 
  # df4 %>% select(numeric_names) %>% str()
-
 #' # update 9.4 ik denk dat dit niet meer nodig is.. omdat de numeric al numeric zijn
 #' for(i in 1:length(numeric_names)){
 #'   df5[,numeric_names[i]]<- sub("-", "-", as.character(df5[,numeric_names[i]]), fixed = TRUE) # Correction of - signs
 #'   df5[,numeric_names[i]]<- as.numeric(sub(",", ".", as.character(df5[,numeric_names[i]]), fixed = TRUE))
 #' }
-#' #' and create factors from character/numeric:
-#' # factor.vars<-c("PMID", "decision", "subject.cat", "comparison", "idPTSD", "idHC")
-#' # # df6<-mutate_each(df5, as.factor, factor.vars)
-#' # 
-#' # mutate_at(df5, .vars=factor.vars, as.factor )->df6
-
-# str(df4)
-
-
-# For checking -> ok!
-# merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
-
 
 df4.1 %>% 
   # mutate_at(.vars=numeric_names, as.numeric) %>% 
-  mutate_at(.vars=factor_names, factor) ->df6
-
+  mutate_at(.vars=new_factor_names, factor) ->df6
  # str(df6)
 ```
 
 
 
 
-#' **correct ID coding PTSD and HC groups**
-```{r}
-# - [ ] exp & control ID -> als sub group gebruikt is moet die dezelfde code als de totale group hebben, anders krijgen ze unique codes in de analyses (en dat is incorrect ivm nesting)
-# - [ ] in S3 correct
-# - [ ] animal two exp groups together: "exp ID 355+347"
-# - [x] in human all correct
-# - [ ] in S1 en S2 heb ik steeds 'part of..' opgeschreven
-# - [ ] pas aan in r in S2 animal:
-#   - [ ] in exp ID: "part of #" en controlID_#
-# - [ ] in control ID: "part of #" en "part of exp ID #"
-# - [x] s2 human NA
-# - [ ] s1 :
-#   - [ ] in exp ID: "part of #" en ControlID_#
-# - [ ] in control ID: "part of exp ID #"
+# **correct ID coding PTSD and HC groups**
+If part of the subjects in a experimental/control group is reused, this group must get the same identification code as the complete group (otherwise groups get incorrect unique codes in the analyses). In datafiles currently:
 
+ - [ ] exp & control ID -> als sub group gebruikt is moet die dezelfde code als de totale group hebben, anders krijgen ze unique codes in de analyses (en dat is incorrect ivm nesting)
+ - [ ] in S3 correct
+ - [ ] animal two exp groups together: "exp ID 355+347"
+ - [x] in human all correct
+ - [ ] in S1 en S2 heb ik steeds 'part of..' opgeschreven
+ - [ ] pas aan in r in S2 animal:
+   - [ ] in exp ID: "part of #" en controlID_#
+ - [ ] in control ID: "part of #" en "part of exp ID #"
+ - [x] s2 human NA
+ - [ ] s1 :
+   - [ ] in exp ID: "part of #" en ControlID_#
+ - [ ] in control ID: "part of exp ID #"
+```{r}
 df6 %>% mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
                idHC = sub("part of ", "",idHC, fixed = TRUE)) ->df7
 ```
 
             
-
-#' **Correction for multiple use control group**
+# **Correction for multiple use control group**
 
  Merge ID's of experimental and control groups.
 ```{r}
