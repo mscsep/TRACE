@@ -154,8 +154,6 @@ summary(REtree.P)
 
 ```{r }
 plot(REtree.P)
-
-# predict(REtree.P)
 ```
 
 
@@ -165,6 +163,12 @@ plot(REtree.P)
 dev.off()
 ```
 
+
+
+```{r}
+# new.data<-data.frame( ) # create 1 row with values van de variableen waarvor je wil weten wat het effect is.
+# predict(REtree.P)
+```
 
 
 # random forest (= multiple trees)
