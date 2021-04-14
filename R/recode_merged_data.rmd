@@ -269,12 +269,22 @@ merged.inclusions.recoded7 %>%
 mutate_at(.vars=numeric_names, as.numeric) %>% 
 mutate_at(.vars=factor_names, factor) ->merged.inclusions.recoded8
 
+
 # for checking
  # cbind(merged.data.recoded3$nHC,merged.data.recoded4$nHC)
 # unique(merged.inclusions.recoded8$author) %>% data.frame() %>%head()
 str(merged.inclusions.recoded8)
 ```
 
+add factor labels subject
+(0=humanmixed(Civiel&Military); 1=ActiveDutyMilitary; 2=Veteran; 12=ActiveDutyMilitary & Veteran; 3=Civilian; 4=Rat; 5=Mice)
+
+```{r}
+str(merged.inclusions.recoded8$subject)
+merged.inclusions.recoded8$subject = factor(merged.inclusions.recoded8$subject,
+                                            levels = c("0", "1", "2", "12", "3", "4", "5"),
+                                            labels = c("Mixed", "Military", "Veteran", "Military+Veteran", "Civilian", "Rat", "Mice"))
+```
 
 
 ```{r save}
