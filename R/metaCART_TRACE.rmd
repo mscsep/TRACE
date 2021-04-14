@@ -47,9 +47,23 @@ data %>% select(subject, nPTSD, nHC,
                 ) %>% droplevels()->data1
 ```
 
+# tree-model: metaCART
+- strength of the package metacart is that it can easily
+explore the interaction effects among multiple moderators
+using an interpretable tree model.
+- multi-categorical variables, it creates automatically the contrasts
+between (combinations of) categories that account for the
+highest amount of heterogeneity.
 
+from: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods [Internet]. 2020;52(6):2657–73. Available from: http://dx.doi.org/10.3758/s13428-020-01360-0
 
-# tree model
+- RE model
+- c=0.5
+- first fit without lookahead -> then recommended to use lookahead = T (especially in REmrt)
+
+idee-> misschien komt warning bij lookahead T door missing values in data?
+(check functie code in evernote)  # met alleen complete cases oon geen moderators...
+
 ```{r metaCART clinical}
 # data1 %>% filter( (comparison == "B") )
  # str(data1)
@@ -57,9 +71,9 @@ data %>% select(subject, nPTSD, nHC,
 # 
  # data1 %>% is.na() %>% any()
 # 
-# data1 %>% filter(complete.cases(data1)) ->data2
+data1 %>% filter(complete.cases(data1)) ->data2
 
-data1 %>% 
+data2 %>% 
   filter(subject.cat == "Human") %>% 
   filter(comparison != "B") %>% 
            droplevels() ->clinical
@@ -92,7 +106,7 @@ REmrt(yi ~ subject +
       # cp=0.1,
       maxL=15,
       xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
-      lookahead = F  # warning kwam door lookahead true, if T no tree detected
+      lookahead = T  # warning kwam door lookahead true, if T no tree detected
       )->REtree.C
 ```
 
@@ -140,7 +154,7 @@ REmrt(yi ~ subject +
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
       maxL=15,
       xval=10,
-      lookahead = F  # warnings due to lookahead true  [In if (class(tempQ) == "list") { ... : the condition has length > 1 and only the first element will be used]
+      lookahead = T  # warnings due to lookahead true  [In if (class(tempQ) == "list") { ... : the condition has length > 1 and only the first element will be used]
       )->REtree.P
 ```
 
