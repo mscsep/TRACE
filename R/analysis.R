@@ -22,6 +22,18 @@ library(officer)# to export tables to word
 # data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
 data<-readRDS("processed_data/TRACEprepared.RData")
 
+# explore
+str(data)
+
+data %>% distinct(ptsd.type)
+
+unique(data$control.type)
+
+
+
+
+
+
 # names(data)
 
 #' Variable / level exclusion (see notes data prep file) 
