@@ -17,57 +17,152 @@ library(metacart)
 
 ```{r data, include=FALSE}
 data<-readRDS("processed_data/TRACEprepared.RData")
+
+data %>% select(subject, nPTSD, nHC,
+                sex.PTSD, sex.HC, 
+                
+                control.type, 
+                
+                ptsd.type2, 
+                population2,
+                measure2, 
+                
+                time.pseudo,
+                
+                rhythm,
+                comparison,
+                idPTSD, idHC,
+                
+                age.PTSD.cat,
+                age.HC.cat,
+                
+                subject.cat,
+                
+                reference,
+                
+                type, phase, valence, cuectx, id_combination,
+                
+                yi, vi, each, Valence_Grouped,
+                
+                ) %>% droplevels()->data1
 ```
 
 
 
-
-
-
 # tree model
-```{r metaCART}
+```{r metaCART clinical}
+# data1 %>% filter( (comparison == "B") )
+ # str(data1)
+# glimpse(data1)
+# 
+ # data1 %>% is.na() %>% any()
+# 
+# data1 %>% filter(complete.cases(data1)) ->data2
 
+data1 %>% 
+  filter(subject.cat == "Human") %>% 
+  filter(comparison != "B") %>% 
+           droplevels() ->clinical
+# str(clinical)
 
-str(data)
-
-data %>% filter(subject.cat == "Human") %>% droplevels() ->clinical
-str(clinical)
-
-set.seed(38923)
-REmrt(yi ~ #subject + 
-        sex.PTSD + control.type + #comparison + 
-        age.PTSD.cat + type + 
-        phase + valence + 
-        # Valence_Grouped +
-        cuectx,
-      vi = vi, data = clinical, #c=0.5,
-      maxL=10,
-      lookahead = T
-      )->REtree
-
-summary(REtree)
-
-plot(REtree)
-
-data %>% filter(subject.cat == "Animal") %>% droplevels() ->preclinical
+# Inclusion sex.PTSD sufficient?
+# clinical %>% filter(clinical$sex.PTSD != clinical$sex.HC) # one paper different HF and M .. indeed one group only male (trauma exposed PTSD), others UNexp HC and ptsd (M &F)
 
 set.seed(38923)
 REmrt(yi ~ subject + 
-        sex.PTSD + control.type + 
-        #comparison + 
-        age.PTSD.cat + type + 
-        phase + 
-        valence + 
-        # Valence_Grouped +
+        sex.PTSD + #sex.HC +
+        control.type + 
+        rhythm +
+         ptsd.type2 + 
+        population2 +
+        
+        measure2 + # newest
+        
+        comparison + 
+          
+        age.PTSD.cat + 
+           #age.HC.cat +
+          time.pseudo +
+          type + 
+        phase + valence + 
+         Valence_Grouped +
         cuectx,
-      vi = vi, data = preclinical, #c= 0.5,
-      maxL = 10,
-      lookahead = T
-      )->REtree
+      vi = vi, data = clinical, 
+      c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
+      # cp=0.1,
+      maxL=15,
+      xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
+      lookahead = F  # warning kwam door lookahead true, if T no tree detected
+      )->REtree.C
+```
 
-summary(REtree)
 
-plot(REtree)
+```{r }
+summary(REtree.C)
+```
+
+
+```{r }
+plot(REtree.C)
+```
+
+
+```{r}
+jpeg(file="results/metaCART.clinical.jpeg", height = 2000, width = 1500, res=300, pointsize = 12)
+plot(REtree.C)
+dev.off()
+```
+
+
+```{r metaCART preclinical}
+data1 %>% filter(subject.cat == "Animal") %>% droplevels() ->preclinical
+
+set.seed(38923)
+REmrt(yi ~ subject + 
+        sex.PTSD + #sex.HC +
+        control.type + 
+        rhythm +
+         ptsd.type2 + 
+        population2 +
+        
+        measure2+ # newest
+        
+        comparison + 
+          
+        age.PTSD.cat + 
+           #age.HC.cat +
+          time.pseudo +
+          type + 
+        phase + valence + 
+         Valence_Grouped +
+        cuectx,
+      vi = vi, data = preclinical, 
+      c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
+      maxL=15,
+      xval=10,
+      lookahead = F  # warnings due to lookahead true  [In if (class(tempQ) == "list") { ... : the condition has length > 1 and only the first element will be used]
+      )->REtree.P
+```
+
+NB 14.4.21 identical results for lookahead is T or F
+
+
+```{r }
+summary(REtree.P)
+```
+
+
+```{r }
+plot(REtree.P)
+
+# predict(REtree.P)
+```
+
+
+```{r}
+jpeg(file="results/metaCART.preclinical.lookahead.jpeg", height = 3000, width = 3000, res=300, pointsize = 12)
+plot(REtree.P)
+dev.off()
 ```
 
 
