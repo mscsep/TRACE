@@ -1,3 +1,8 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
 #' ---
 #' title: "Datapreparation TRACE dataset"
 #' author: "Valeria Bonapersona & Milou Sep"
@@ -78,6 +83,31 @@ which(is.na(df4$comparison))
 ```
 
 
+# recode measure
+```{r}
+df4 %>% mutate(
+  measure2 = case_when(
+    (subject.cat == "Animal") & grepl("freezing", measure.d, ignore.case = T) ~ "freezing",
+     (subject.cat == "Animal") & grepl("latency|exploration|time|entrie|avoidance|cross|error|DR|DI", measure.d, ignore.case = T) ~ "exploration",
+     (subject.cat == "Animal") & grepl("Object", measure.d, ignore.case = T) ~ "manipulation",
+    # human
+    (subject.cat == "Human") & grepl("EMG|SCR", measure.d, ignore.case = T) ~ "physiology",
+    (subject.cat == "Human") & !grepl("EMG|SCR", measure.d, ignore.case = T) ~ "non-physiology"
+    
+  )
+) ->df4.1
+
+# # for checking
+# df4.1 %>% 
+#   filter(subject.cat == "Human") %>%
+#     filter(subject.cat == "Animal") %>%
+#   # filter(is.na(measure2)) %>%
+#   select(task.d, valence, phase, measure.d, measure2) %>% 
+#   # distinct(measure.d) %>%
+#    View()
+```
+
+
 #' **Set variable properties**
 ```{r}
 #' Change factors to numbers:
@@ -103,7 +133,7 @@ factor_names <-c(#"PMID", #"decision",
                  # "rhythm",
                  # "ptsd.measure", 
                  # 
-                  "task.d", "measure.d",
+                  "task.d", "measure.d", "measure2",
                  # "comparison",
                  # "res.sus.split", "age.PTSD.cat", "age.HC.cat",
                  
@@ -132,7 +162,7 @@ factor_names <-c(#"PMID", #"decision",
 # merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
 
 
-df4 %>% 
+df4.1 %>% 
   # mutate_at(.vars=numeric_names, as.numeric) %>% 
   mutate_at(.vars=factor_names, factor) ->df6
 
