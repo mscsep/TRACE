@@ -8,7 +8,7 @@ editor_options:
 ---
 
 
-# Preparation of the environment
+## Preparation of the environment
 ```{r setup}
 rm(list = ls()) #clean environment
 # libraries
@@ -18,7 +18,7 @@ library(osfr)
 library(readxl)
 ```
 
-## import data files 
+## Import datafiles
 ```{r}
  data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
  #data <- read.csv("processed_data/TRACEmerged.csv", sep = ";", dec = c(",", ".")) # Data
@@ -28,22 +28,14 @@ library(readxl)
 # method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
 
  method %>% select(!notes) %>% filter(is.na(.)) # check, should be no missing.
-
-```
-
-
-## **Select relevant colums dataset**
-
-```{r}
+ # Select relevant colums dataset
 method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
 # Create reference var as character
 df1<-data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 
 ```
 
-
-
-## **Add method codes to data**
+## Add method codes to data
 NB the combination of task and measure indicates which method is used to measure behavior. Those values are combined into a new variable ..
 ```{r}
 df1 %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> df3
@@ -63,7 +55,7 @@ left_join(df3,method1, by="measureID", suffix = c(".d", ".m"))->df4
 
 ```
 
-# Check missing values
+## Check missing values
 ```{r}
 which(is.na(df4$subject.cat))
 ```
@@ -79,7 +71,7 @@ which(is.na(df4$comparison))
 ```
 
 
-# recode measure, PTSD type and population
+## recode measure, PTSD type and population
 ```{r}
 
 # df4$subject.cat
@@ -132,7 +124,7 @@ df4 %>% mutate(
 ```
 
 
-#' **Set variable properties**
+## Set variable properties
 ```{r}
 new_factor_names <-c("ptsd.type2", "population2","task.d", "measure.d", "measure2", "type", "phase", "valence", "cuectx")
 # numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC", "recode")
@@ -153,7 +145,8 @@ df4.1 %>%
 
 
 
-# **correct ID coding PTSD and HC groups**
+## correct ID coding PTSD and HC groups
+
 If part of the subjects in a experimental/control group is reused, this group must get the same identification code as the complete group (otherwise groups get incorrect unique codes in the analyses). In datafiles currently:
 
  - [ ] exp & control ID -> als sub group gebruikt is moet die dezelfde code als de totale group hebben, anders krijgen ze unique codes in de analyses (en dat is incorrect ivm nesting)
@@ -174,9 +167,9 @@ df6 %>% mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
 ```
 
             
-# **Correction for multiple use control group**
+## Correction for multiple use control group
 
- Merge ID's of experimental and control groups.
+### Merge ID's of experimental and control groups.
 ```{r}
 df8 <- df7 %>% mutate(id_combination = as.factor(paste(idPTSD, idHC, sep=".")))
 # str(df8)
@@ -185,7 +178,7 @@ df8 %>% filter(is.na(semPTSD) & is.na(sdPTSD)) #%>% View()
 df8 %>% filter(is.na(semHC) & is.na(sdHC)) #%>% View()
 ```
 
- Check which control groups are used multiple times
+### Check which control groups are used multiple times
 ```{r}
 reused_controls <- df8 %>%
   select(idPTSD, idHC, id_combination)%>%
@@ -211,15 +204,15 @@ df8$nHC<-round(df8$nHC_corrected)
 
 
 
-#' **Calculate SD from SEM**
+## Calculate SD from SEM
 ```{r}
 df8$sdPTSD <- ifelse(is.na(df8$sdPTSD), (df8$semPTSD * sqrt(df8$nPTSD)), df8$sdPTSD)
 df8$sdHC <- ifelse(is.na(df8$sdHC), (df8$semHC * sqrt(df8$nHC)), df8$sdHC)
-```
+``` 
 
 
 
-#' **Check Missing values (should be none)**
+## Check Missing values (should be none)
 ```{r}
 #' Sample sizes ok
 which(is.na(df8$nPTSD))
@@ -243,7 +236,7 @@ df9 %>% select(!c("shocks.num", "shocks.amp", "time","res.sus.split")) %>% filte
 # head(is.na(df9)) 
 ```
 
-#' **Calculation of effect sizes and checks**
+## Calculation of effect sizes and checks
 ```{r}
 df10 <- escalc(
   m1i = meanPTSD, sd1i = as.numeric(sdPTSD), n1i = nPTSD, 
@@ -252,7 +245,7 @@ df10 <- escalc(
               data = df9)
 ```
 
-#' **Recode Effect sizes in same direction (higher score = better performance)**
+## Recode Effect sizes in same direction (higher score = better performance)
 ```{r}
 #' Based on recode variable, which is specified in "Trace_methode_codes.csv"
 df10$yi <- df10$yi * df10$recode
@@ -262,101 +255,92 @@ df10$yi <- df10$yi * df10$recode
 
 ```
 
-#' **add unique id's**
+## add unique id's
 ```{r}
 df10$each <- c(1:nrow(df10)) 
 ```
 
 
-#' **Explore frequencies of potential moderators** 
-#' Potential moderators in dataset: (NB valence, phase, cuectx follow from task & measure in dataset (see code above)):
-#' - comparisionControl: CODES: A="ptsd_nontrauma_H", B="trauma_nontrauma_H", C="ptsd_trauma_H", 
-#' D="trauma_nontrauma_A", E="ptsd_nontrauma_A",F="ptsd_trauma_A"
-#' - valence # NB codes: # T=trauma; N=non_trauma_neutral; E=non_trauma_emotional; F=non-trauma_fearfull
-#' - phase: L=learning or M=memory (or E=extinction) (THINK:--> extinction droppen / indelen bij learing?)
-#' - cuectx: cue or context
+# Explore frequencies of potential moderators
 
-#' NB for the analysis 2 moderator possible.
-```{r}
- df10 %>% filter(is.na(valence)) %>% select(PMID, task.d, measure.d, task.m, measure.m) %>% head()
-```
+Potential moderators in dataset: (NB valence, phase, cuectx follow from task & measure in dataset (see code above)):
+- comparison: CODES: A="ptsd_nontrauma_H", B="trauma_nontrauma_H", C="ptsd_trauma_H",  D="trauma_nontrauma_A", E="ptsd_nontrauma_A",F="ptsd_trauma_A"
+- valence # NB codes: # T=trauma; N=non_trauma_neutral; E=non_trauma_emotional; F=non-trauma_fearful
+- phase: L=learning or M=memory (or E=extinction) (THINK:--> extinction droppen / indelen bij learing?)
+- cuectx: cue or context
+
+> NB for the analysis 2 moderator possible.
 
 
+> Animal and human data will be analysed separatly
 
-#'*Comparison and subject as moderators?*
-```{r}
-df10 %>% group_by(subject.cat, valence, comparison) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() %>% write.csv2("results/inclusions.by.comparisons.valence.csv") # to save
-#' Not enough datapoints in some categories --> not possible
-
-#' NB If comparisontypes is no longer included in analyses, comparision B needs to be excluded 
-#' (in which healhty trauma exposed humans are compared to heathy non-trauma exposed humans; so NO PTSD patients)
-# dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat
-
-```
-
-
-
-#' *Valence and subject as moderators?*
+## Valence as moderator?
 ```{r}
 df10 %>% group_by(subject.cat, valence) %>%
-summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() %>% write.csv2("results/inclusions.by.valence.csv") 
-#' Problems with distribution valence categories in animal & human data, not al valence categories are in human & animal.
-#' Decided to group stressful vs non-stressful learning
+summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.valence.csv")
+```
+This moderator not possible: there are not enough data-points in some categories
+- only 3 human trauma papers, 
+- no emotional papers in animal
+
+> New valences grouping created: stressful vs non-stressful learning/memory
+
+```{r}
 df10$Valence_Grouped <- ifelse(df10$valence %in% c("T","F","E"), "stress", "neutral") #NB nu trauma ook bij stressed!
 df10$Valence_Grouped <-as.factor(df10$Valence_Grouped)
 df10 %>% select(task.d, Valence_Grouped, valence) # to check. 
-#' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
-#' Consider exclusion in 'analysis script'
-
 ```
 
+> NB Trauma could be a special form of stressful learning, Consider exclusion of T from 'stresfful' in 'analysis script'
 
- 
-#' *Phase and subject as moderators?*
+
+## Comparison x valence as moderators?
 ```{r}
-# Explore distribution learning and memory data per subject & valence type
-df10 %>% 
-  group_by(subject.cat, Valence_Grouped, phase, cuectx) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% write.csv2("results/inclusions.by.phase.cuectx.csv")
-#' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
-#' Consider exclusion in 'analysis script'
+# df10 %>% filter(is.na(valence)) %>% select(PMID, task.d, measure.d, task.m, measure.m) %>% head()
+df10 %>% group_by(subject.cat, Valence_Grouped, comparison) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.comparisons.valence.csv") # to save
 ```
+This moderator interaction term not possible: there are not enough data-points in some categories
+
+> consider comparison type as follow-up / subgroup analysis for categories with enough data.. or explore the contribution of 'comparison' in data-driven analysis
+
+NB If comparison types is no longer included in analyses, comparison B needs to be excluded (in which healthy trauma exposed humans are compared to healthy non-trauma exposed humans; so NO PTSD patients)
+
+ dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat
 
 
-
-#' *cuectx and Valence as moderators, Animal & Human separate?*
-```{r}
-df10 %>% 
-  group_by(subject.cat, Valence_Grouped, cuectx) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% write.csv2("results/inclusions.by.cuectx.csv") 
-```
-
-
-
-#' *Phase and Valence, in animal human separately?*
+## Phase x valence as moderators?
 ```{r}
 df10 %>% 
   group_by(subject.cat, Valence_Grouped, phase) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% write.csv2("results/inclusions.by.phase.csv") 
-
+  summarize(papers=length(unique(PMID)), comparisons=length(each))
 
 df10 %>% group_by(subject.cat, phase, valence) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() %>% write.csv2("results/inclusions.by.phase.valence.csv")
-
-# dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="L")
-# dat %>% filter(subject == "Animal", Valence_Grouped == "neutral", phase=="M")
-
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.phase.valence.csv")
 ```
+Possible moderator interaction term: phase x valence_grouped: enough observations in each category
 
 
+## cuectx x Valence as moderators?
+```{r}
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.cuectx.csv") 
+
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, phase, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.phase.cuectx.csv")
+#' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
+#' Consider exclusion in 'analysis script'
+```
+This moderator interaction term not possible: there are not enough data-points in some categories
+- Only limited number of neutral context studies in human 
+- no stress context studies in human
 
 
 # Save resulting dataset --------------------------------------------------
 ```{r}
 df11 <- df10 %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
-
-#str(dat)
 
 saveRDS(df11, file = "processed_data/TRACEprepared.RData") #save
 ```
