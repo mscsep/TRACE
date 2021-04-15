@@ -13,6 +13,13 @@ recode variables in `recode_merged_data.rmd` output in `TRACErecoded.RDS`
 
 prepare data for analysis in `datasetPreparation.Rmd`  output in `TRACEprepared.RData`
 
-### step 4: Analysis
 
-- earlier analysis.r
+### step 4: Theory-driven Analysis: meta-regression Valence x Phase
+
+- `TheoryDrivenAnalysis.r` [earlier analysis.r]
+
+
+
+### step 5: Data-driven Analysis: metaForest / metaCART?
+
+- 
