@@ -1,0 +1,122 @@
+---
+title: "Prepare QA"
+author: "Milou Sep"
+date: "4/15/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+# load files from OSF
+library(osfr)
+# Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the commentline. (note PAT can be derived from OSF)
+
+library(readxl)
+library(dplyr)
+```
+
+# retrieve OSF files 
+```{r}
+osf_retrieve_file("tckb5") %>% osf_download(path = "data", conflicts="overwrite") # QA data
+```
+
+# load animal / preclinical data
+```{r}
+A1 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search1")
+str(A1)                 
+A1 = A1[-1,] # drop first row is sort of extra header
+
+A2 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search2")
+A2 = A2[-1,] # drop first row is sort of extra header
+str(A2)
+
+A3 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search3")
+A3 = A3[-1,] # drop first row is sort of extra header
+str(A3)
+```
+
+merge animal
+```{r}
+bind_rows(list(A1, A2, A3),.id="s") %>%
+  select(-c(Reference, notes))-> QA.A # When row-binding, columns are matched by name, and any missing columns will be filled with NA.
+head(QA.A)
+```
+
+# load human / clinical data
+```{r}
+H1 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_search1")
+H1 = H1[-1,] # drop first row is sort of extra header
+
+H2 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_search2")
+H2 = H2[-1,] # drop first row is sort of extra header
+str(H2)
+
+H3 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_search3")
+H3 = H3[-1,] # drop first row is sort of extra header
+str(H3)
+```
+
+merge human
+```{r}
+bind_rows(list(H1, H2, H3),.id="s") %>%
+  select(-c(Reference, notes))-> QA.H # When row-binding, columns are matched by name, and any missing columns will be filled with NA.
+head(QA.H)
+```
+
+# Recode data
+
+## Clinical
+```{r}
+glimpse(QA.H)
+Hcode <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_coding")
+
+QA.H %>% 
+  mutate_at( .vars=(Hcode$var[1:8]), ~substr(.,1,1)) %>%
+mutate_at(.vars=(Hcode$var[1:8]), ~case_when(
+  grepl("Y|y",.) ~"2",
+  grepl("N|n",.) ~ "0",
+  grepl("U|u",.) ~ "1")) %>%
+  mutate_at( .vars=(Hcode$var[1:8]), as.numeric) %>%
+  mutate(QA_score = select(.,Hcode$var[1:8]) %>% rowSums()) %>%
+  mutate_at( .vars=(Hcode$var[1:8]), factor) %>%
+  filter(RoBQA_NOS_S1_validPTSD == 2)->QA.H.recoded
+
+# checks
+head(QA.H.recoded)
+is.na(QA.H.recoded) %>% any()#should be non
+```
+
+## preclinical
+```{r}
+glimpse(QA.A)
+Acode <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_coding")
+
+Acode$var[1:10] # including extra measures
+Acode$var[1:8] # only SYRCLE rob
+
+QA.A %>% 
+  mutate_at( .vars=(Acode$var[1:10]), ~substr(.,1,1)) %>%
+  mutate_at(.vars=(Acode$var[1:10]), ~case_when(
+    grepl("Y|y",.) ~"2",
+    grepl("N|n",.) ~ "0",
+    grepl("U|u",.) ~ "1")) %>%
+  mutate_at( .vars=(Acode$var[1:10]), as.numeric) %>%
+  mutate(QA_score = select(.,Acode$var[1:8]) %>% rowSums()) %>%
+  mutate_at( .vars=(Acode$var[1:8]), factor) %>%
+  filter(RoBQA_extra_validModel == 2 & RoBQA_extra_behavioralTask == 2) %>%
+  select(-c("RoBQA_extra_validModel", "RoBQA_extra_behavioralTask"))->QA.A.recoded
+
+#checks
+head(QA.A.recoded)
+
+QA.A.recoded
+is.na(QA.A.recoded) %>% any() # should be non
+```
+
+# save recoded datafiles
+```{r}
+saveRDS(QA.A.recoded, file = "processed_data/TRACE_QA_animal.RData")
+saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
+```
