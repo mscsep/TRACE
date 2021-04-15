@@ -338,6 +338,41 @@ This moderator interaction term not possible: there are not enough data-points i
 - no stress context studies in human
 
 
+
+> above all information characteristics
+
+> what about subject characteristics
+
+```{r}
+str(df10)
+```
+
+## Valence by measure
+```{r}
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, #phase, 
+           measure2) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each))
+```
+also possible (behalve 'manipulation in animals', just one paper)
+
+
+## Age x valence
+```{r}
+
+df10 %>% 
+  group_by(subject.cat, Valence_Grouped, #phase, 
+           age.PTSD.cat
+           #measure2
+           ) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each))
+
+```
+could be possible if old adults are excluded (only possible in human studies..)
+
+
+
+
 # Save resulting dataset --------------------------------------------------
 ```{r}
 df11 <- df10 %>% droplevels() #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
