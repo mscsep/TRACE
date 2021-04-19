@@ -245,7 +245,7 @@ string_names <- c("author", "year",
 
 "outcomePTSD", "outcomeHC",
 "ptsd.measure", 
-"task", "measure",
+"task", "measure"
 )
 
 factor_names <-c( #"decision", 
@@ -289,7 +289,7 @@ merged.inclusions.recoded8$subject = factor(merged.inclusions.recoded8$subject,
 
 ```{r save}
 saveRDS(merged.inclusions.recoded8, "processed_data/TRACErecoded.RDS")
-# write.csv2(merged.data.recoded4, "processed_data/TRACEmerged.csv", fileEncoding = "UTF-8") # writes spec characters weird
-# write.table(merged.data.recoded4, "processed_data/TRACEmerged2.csv")
+ # write.csv2(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv", fileEncoding = "UTF-8") # writes spec characters weird
+ # write.table(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv") # same problem
 ```
 
