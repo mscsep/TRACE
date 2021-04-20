@@ -1,0 +1,176 @@
+---
+title: "Descriptives"
+author: "Milou Sep"
+date: "4/15/2021"
+output: html_document
+---
+
+# Environment Preparation
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+# libraries
+library(dplyr) #general
+# library(ggplot2) #for graphs
+# library(metafor) #for meta-analysis
+# library(ggpubr) # To show multiple plots in 1 figure
+# library(flextable) # to create tables
+# library(officer)# to export tables to word
+```
+
+# import dataset (already processed with datasetPreparation)
+```{r}
+# data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
+data<-readRDS("processed_data/TRACEprepared.RData")
+```
+
+uit oic meta
+
+# inspect study quality
+summary(sensitivity.data$quality)
+sd(sensitivity.data$quality)
+
+#plot study quality
+ggplot(sensitivity.data)+
+  geom_point(aes(x=PMID, y=quality)) +
+  # abline(h=2.101266) +
+  theme_classic() +
+  labs(x="PMID",
+       y="Quality Score") +
+  scale_x_discrete(breaks=NULL)
+ggsave("results/study.quality_new.jpeg", width=4,height = 4)
+
+# study quality as moderator?
+mod.sens <- rma.mv(yi, vi,
+               random = list(~1 | PMID, ~1 | EXP_group),
+               method = "REML",
+                mods = ~quality,
+               slab = label,
+               data = sensitivity.data) 
+summary(mod.sens)
+
+
+
+# uit oic meta (adapted)
+
+```{r}
+data %>% 
+  distinct(PMID, .keep_all = TRUE) %>% 
+   # group_by(subject, sex.PTSD) %>%
+     group_by(subject.cat) %>%
+  # group_by(subject) %>%  
+  tally(round(nPTSD,0)) 
+```
+
+
+# Descriptives (uit eerste analysis script)
+
+## **papers included in the analysis**
+```{r}
+
+data %>% 
+  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
+  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.csv") 
+
+data %>% 
+  group_by( subject.cat) %>% 
+  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.by.subject.csv")
+```
+
+## **comparisons included in the analysis**
+```{r}
+
+data %>% 
+  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
+  summarize( length(unique(each))) #%>% write.csv2("results/unique.comparisons.csv") 
+
+data %>% 
+  group_by( subject.cat) %>% 
+  summarize( length(unique(each)))# %>% write.csv2("results/unique.comparisons.by.subject.csv")
+```
+
+## **Show Trauma & PTSD 'types' that are present in animals and humans**
+```{r}
+
+# # Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "SPS")] <- 'SPS'
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "Deployment")] <- 'Deployment'     
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "WarRelated")] <- 'Deployment'  
+# 
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "of PSS?")] <- 'PSS'  
+# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "UWT")] <- 'UT'  
+# unique(data$ptsd.type)
+# data %>% droplevels() ->data
+
+data %>% 
+  group_by(subject.cat, ptsd.type) %>% 
+  summarize( length(unique(each))) %>% 
+  arrange(desc(subject.cat)) %>% 
+  flextable() %>%
+  # change header names
+  set_header_labels( ptsd.type = "Trauma", 
+                     'length(unique(each))'="comparisons") -> TRACEtrauma
+TRACEtrauma
+# Save to word
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = TRACEtrauma, align="center")
+print(doc, target = paste0("results/TRACEtrauma", date(),".docx"))
+```
+
+## **Show tasks that were used to measure stressful & non-stressful learning & memory in animals and humans**
+```{r}
+data %>% 
+  group_by(Valence_Grouped, subject.cat, as.factor(task.d)) %>% 
+  summarize( length(unique(each))) %>% # comparisons
+ # summarize(length(unique(id)), length(unique(each))) %>% # papers & comparisons
+  select(subject.cat, Valence_Grouped, everything())  %>% # NB everything() to leave the order of the other colums unchanged.
+  arrange(desc(subject.cat), Valence_Grouped) %>% 
+  flextable() %>%  color(i = ~ Valence_Grouped == 'stress', color="red")      %>%
+
+  # change header names
+set_header_labels( Valence_Grouped = "valence", 
+                   "as.factor(task.d)" = 'task',
+                #   'length(unique(id))'="papers",
+                   'length(unique(each))'="comparisons") -> TRACEmeasures
+TRACEmeasures
+# Save to word
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = TRACEmeasures, align="center")
+print(doc, target = paste0("results/TraceMeasures", date(),".docx"))
+```
+
+## **show the amount of papers, comparisions and subjects in each category**
+```{r}
+data %>% 
+  group_by(subject.cat, Valence_Grouped, phase) %>% 
+ #  distinct(id_combination, .keep_all=T)  %>% 
+ # distinct(idExp, .keep_all=T)  %>% 
+  #  distinct(idControl, .keep_all=T)  %>% 
+  summarize(papers=length(unique(PMID)), comparisons=length(unique(each)), `total n PTSD` = sum(nPTSD), `total n HC` = sum(nHC))  %>% 
+  arrange(desc(subject.cat), Valence_Grouped) %>% # nb desc() for descending order
+  
+  flextable() %>%  
+  set_formatter_type(fmt_double="%.00f") %>% # change to no decimals 
+  # theme_vanilla() %>%
+   # autofit() %>%
+  
+  # Conditional style change in flextable
+ # bold( i = ~ Valence_Grouped == 'stress', j = ~ subject) %>%   # i = row, j = colum
+ # italic( i = ~ subject == 'Animal') %>%   # i = row, j = colum
+  color(i = ~ Valence_Grouped == 'stress', 
+        # j = ~ Petal.Width + Species, 
+        color="red")  %>%
+  # change header names
+  set_header_labels( Valence_Grouped = "valence", 
+                     'length(unique(PMID))'="papers",
+                     'length(unique(each))'="comparisons",
+                     'sum(nPTSD)'="nPTSD",
+                     'sum(nHC)'="nHC") -> TRACEsamples
+
+TRACEsamples
+
+# Save to word
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = TRACEsamples, align="center")
+print(doc, target = paste0("results/TraceSample", date(),".docx"))
+
+```
