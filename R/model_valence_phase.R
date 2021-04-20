@@ -1,9 +1,15 @@
 # TRACE Meta-analyses output v6.3.19 [based on code Valeria]
+# "Valeria Bonapersona & Milou Sep"
+# Code based on / adapted from Bonapersona, V. (2019, May 20). The behavioral phenotype of early life adversity: a 3-level meta-analysis of rodent studies. Retrieved from osf.io/ra947
+
+
+# Visualisation & posthoc tests
+
 library(ggplot2)
 
 
 # for testing
-#model=mod.H
+# model=mod.A
 # TRACE_output(mod.H, 'clinical data')
 
 TRACE_output <- function (model, title, subtitle){
@@ -17,7 +23,7 @@ TRACE_output <- function (model, title, subtitle){
   # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
   # http://www.metafor-project.org/doku.php/tips:multiple_factors_interactions
   
-  # RQ2 "Main effects of
+  # RQ2 "Main effects of PTSD on neutral / stressful   # 20.4.21 now the other way around (with label emotional ipv stresvull)
   Neutral <- anova(model, L = c(.5,.5, 0, 0))
   Stressful <- anova(model, L = c(0,0, .5, .5))
   
@@ -30,11 +36,11 @@ TRACE_output <- function (model, title, subtitle){
   valence.memory <- anova(model, L = c(0,-1, 0, 1))
   
   
-  #RQ3: neutral and stressful learning and memory in  ## PRECIES hetzelfde als de values in ht model!
-  # nLearning <- anova(mod.H, L = c(1,0, 0, 0))
-  # nMemory <- anova(mod.H, L = c(0,1, 0, 0))
+  #RQ3: neutral and stressful learning and memory in  ## PRECIES hetzelfde als de values in ht model! -> so below values from e.g. model$se used
+  #  nLearning <- anova(mod.H, L = c(1,0, 0, 0))
+  #  nMemory <- anova(mod.H, L = c(0,1, 0, 0))
   # sLearning <- anova(mod.H, L = c(0,0, 1, 0))
-  # sMemory <- anova(mod.H, L = c(0,0, 0, 1))
+  #  sMemory <- anova(mod.H, L = c(0,0, 0, 1))
   # 
   
   ##Summary results organized in table
@@ -61,6 +67,7 @@ TRACE_output <- function (model, title, subtitle){
                             Neutral$se, Stressful$se,
                             phase.neutral$se, phase.stressful$se,
                             valence.learning$se, valence.memory$se,
+                            # nLearning$se, nMemory$se, sLearning$se, sMemory$se, # idem as model$se
                             model$se), digits = 4) #se
   
   resultMain[,6] <- round(c(Learning$zval, Memory$zval, 
@@ -78,21 +85,27 @@ TRACE_output <- function (model, title, subtitle){
   resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
   resultMain[,3] <- round(resultMain[,4] + (resultMain[,5] * 1.96), digits = 4) #CI upper
   
-  
+  # 16.4.21 was 2 changed to 12, as the number of comparisons (within one hypothesis).. NB same resutls for correction by 2 or 12 (for human & animal)
   # Beter checken! (not needed for now? only report model effect ("different from 0"), not yet the difference between each other.))
-  resultMain[,8] <- round(c(p.adjust(resultMain[ 1,7], method = "bonferroni", n = 2), # learning (I think 2, as each estimate is used once for a phase contras (L or M) and once for a valencce contrast (S,N))
-                            p.adjust(resultMain[ 2,7], method = "bonferroni", n = 2), # memory
-                            p.adjust(resultMain[ 3,7], method = "bonferroni", n = 2), # neutral
-                            p.adjust(resultMain[ 4,7], method = "bonferroni", n = 2), # stressful
-                            p.adjust(resultMain[ 5,7], method = "bonferroni", n = 2), # l vs m (neutral) (also 2 for all posthocs?)
-                            p.adjust(resultMain[ 6,7], method = "bonferroni", n = 2), # l vs m (stress)
-                            p.adjust(resultMain[ 7,7], method = "bonferroni", n = 2), # neutral vs stres (learning)
-                            p.adjust(resultMain[ 8,7], method = "bonferroni", n = 2), # neutral vs stres (memory)
+  resultMain[,8] <- round(c(p.adjust(resultMain[ 1,7], method = "bonferroni", n = 12), # learning (I think 2, as each estimate is used once for a phase contrast (L, M) and once for a valence contrast (S,N))
+                            p.adjust(resultMain[ 2,7], method = "bonferroni", n = 12), # memory
+                            p.adjust(resultMain[ 3,7], method = "bonferroni", n = 12), # neutral
+                            p.adjust(resultMain[ 4,7], method = "bonferroni", n = 12), # stressful
+                            p.adjust(resultMain[ 5,7], method = "bonferroni", n = 12), # l vs m (neutral) (also 2 for all posthocs?)
+                            p.adjust(resultMain[ 6,7], method = "bonferroni", n = 12), # l vs m (stress)
+                            p.adjust(resultMain[ 7,7], method = "bonferroni", n = 12), # neutral vs stres (learning)
+                            p.adjust(resultMain[ 8,7], method = "bonferroni", n = 12), # neutral vs stres (memory)
                             
-                            resultMain[9,7],
-                            resultMain[10,7],
-                            resultMain[11,7],
-                            resultMain[12,7]), digits = 4) #pvalue bonf correction
+                            p.adjust(resultMain[ 9,7], method = "bonferroni", n = 12), 
+                            p.adjust(resultMain[ 10,7], method = "bonferroni", n = 12), 
+                            p.adjust(resultMain[ 11,7], method = "bonferroni", n = 12), 
+                            p.adjust(resultMain[ 12,7], method = "bonferroni", n = 12)), 
+                            
+                            # resultMain[9,7],
+                            # resultMain[10,7],
+                            # resultMain[11,7],
+                            # resultMain[12,7])
+                           digits = 4) #pvalue bonf correction
 
   
   plot_data<-resultMain %>% filter(test %in% c("nLearning", "nMemory", "sLearning", "sMemory"))
@@ -100,7 +113,7 @@ TRACE_output <- function (model, title, subtitle){
   plot_data$phase <- ifelse(plot_data$test %in% c("nLearning", "sLearning"), "Learning", "Memory")
   
   # signal sig. categories. Add index for p-values smaller than 0.05
-    plot_data$sig<- ifelse(plot_data$Pvalue  <0.05, 1, 0)
+    plot_data$sig<- ifelse(plot_data$Pvalue_bonfCorr  <0.05, 1, 0)
 
     
   

@@ -77,29 +77,30 @@ data2 %>%
   filter(subject.cat == "Human") %>% 
   filter(comparison != "B") %>% 
            droplevels() ->clinical
-# str(clinical)
+ str(clinical)
 
 # Inclusion sex.PTSD sufficient?
 # clinical %>% filter(clinical$sex.PTSD != clinical$sex.HC) # one paper different HF and M .. indeed one group only male (trauma exposed PTSD), others UNexp HC and ptsd (M &F)
 
 set.seed(38923)
 REmrt(yi ~ subject + 
+        nPTSD +
         sex.PTSD + #sex.HC +
         control.type + 
-        rhythm +
+        # rhythm + # only 1 level
          ptsd.type2 + 
         population2 +
         
         measure2 + # newest
         
-        comparison + 
+        # comparison + 
           
         age.PTSD.cat + 
            #age.HC.cat +
           time.pseudo +
           type + 
         phase + valence + 
-         Valence_Grouped +
+         # Valence_Grouped +
         cuectx,
       vi = vi, data = clinical, 
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
@@ -108,6 +109,15 @@ REmrt(yi ~ subject +
       xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
       lookahead = T  # warning kwam door lookahead true, if T no tree detected
       )->REtree.C
+
+
+
+
+```
+
+inspect warnings
+```{r}
+REtree.C$initial.tree  # eerste split is NA
 ```
 
 
@@ -133,6 +143,7 @@ data1 %>% filter(subject.cat == "Animal") %>% droplevels() ->preclinical
 
 set.seed(38923)
 REmrt(yi ~ subject + 
+        nPTSD +
         sex.PTSD + #sex.HC +
         control.type + 
         rhythm +
@@ -159,6 +170,13 @@ REmrt(yi ~ subject +
 ```
 
 NB 14.4.21 identical results for lookahead is T or F
+
+
+inspect warnings
+```{r}
+REtree.P$initial.tree  # eerste split is NA
+```
+
 
 
 ```{r }

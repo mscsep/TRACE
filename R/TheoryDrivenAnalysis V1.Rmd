@@ -1,0 +1,329 @@
+---
+title: "Theory-driven meta-analysis TRACE"
+author: "Milou Sep"
+date: "4/15/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Analysis script for TRACE analyses (based on analyses script Valeria (meta behavior))
+# Code largely based on // adapted from Bonapersona, V. (2019, May 20). The behavioral phenotype of early life adversity: a 3-level meta-analysis of rodent studies. Retrieved from osf.io/ra947
+
+
+# Environment Preparation
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+# libraries
+library(dplyr) #general
+library(ggplot2) #for graphs
+library(metafor) #for meta-analysis
+library(ggpubr) # To show multiple plots in 1 figure
+library(flextable) # to create tables
+library(officer)# to export tables to word
+```
+
+# import dataset 
+(processed with merge_datasets.rmd, recode_merged_data.rmd, add_effect_size_QA.rmd)
+```{r}
+data<-readRDS("processed_data/TRACEprepared.RData")
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+data %>% filter(subject.cat =="Human") %>% droplevels() ->clinical
+# data %>% filter( PMID == "19345420")
+clinical %>% filter(valence == "F") ->df1
+unique(df1$PMID)
+
+# clinical$phase.valence
+
+clinical %>% group_by(#subject.cat, #type, 
+                  phase.valence, #phase, valence, #cuectx
+                  #, measure2, ptsd.type2, population2
+                  ) %>%
+summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
+
+
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                 mods   = ~phase.valence - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+
+ forest(mod.H, cex = .2)
+
+ clinical %>% filter(yi > 4) %>% View()
+
+clinical %>% filter(measure.d == "EXT_%CS+/maxCS+Acq_EMG") %>% View()
+
+
+data %>% filter(subject.cat =="Animal") %>% droplevels() ->preclinical
+preclinical %>% filter(valence == "F") ->df13
+
+df13 %>% select(PMID, task.d, measure.d, idPTSD,idHC, outcomePTSD, outcomeHC) %>% View()
+
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                  mods   = ~phase.valence - 1,
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
+```
+
+
+
+
+
+
+# Filter data
+
+## Filter data for phase x valence
+Excluded phase == extinction and valence == trauma -> to analyze Learning vs Memory & Neutral vs Stressful
+Excluded comparison "B": 
+ 
+ # A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); 
+ # D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
+```{r}
+data %>% 
+  filter(comparison !="B") %>%
+  filter(phase !="E") %>%
+  filter(valence !="T")%>% droplevels() ->data.phase.valence
+
+# names(data)
+
+#' Variable / level exclusion (see notes data prep file) 
+#' NB Learning & memory of "Trauma" information are never measured in human (with behavioral tasks), therefor not an 'fair' comparison between animal & human..
+#' Consider exclusion in 'analysis script'
+ # data <- data %>% filter(valence != "T")%>% droplevels() ## Use as 'sensitivity check?'
+
+#' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
+#' Consider exclusion in 'analysis script'
+#' 
+ # data<- data %>% filter(phase != "E")%>% droplevels()
+```
+
+Other filters
+```{r eval=FALSE, include=FALSE}
+ #data <- data %>% filter(comparison %in% c("A","E"))%>% droplevels()
+ # data <- data %>% filter(comparison %in% c("B","D"))%>% droplevels()
+ # data <- data %>% filter(comparison %in% c("C","F"))%>% droplevels()
+```
+
+inspect data
+```{r eval=FALSE, include=FALSE}
+data.phase.valence %>% filter(subject.cat == "Animal", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
+data.phase.valence %>% filter(subject.cat == "Animal", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode, yi)
+
+data.phase.valence %>% filter(subject.cat == "Human", Valence_Grouped == "stress") %>% select(reference, measureID, phase, recode)
+data.phase.valence %>% filter(subject.cat == "Human", Valence_Grouped == "neutral") %>% select(reference, measureID, phase, recode)
+```
+
+
+## Split clinical and preclinical data
+ Model 
+ In explore_data script frequency of obervations in groups checked.. for now decided to analyse clinical & preclinical data separatly 
+
+```{r}
+# Clinical data 
+data.phase.valence %>% filter(subject.cat =="Human") %>% droplevels() ->clinical
+# Preclinical data 
+data.phase.valence %>% filter(subject.cat =="Animal") %>% droplevels() ->preclinical
+```
+
+
+# **multilevel models**
+code for posthoc Analyses + Plot:
+```{r}
+source("r/model_valence_phase.r")
+```
+
+## *Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients*
+```{r}
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+
+
+
+human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )  # volgorde contrasten klopt niet meer met code (emotional - stressvul)
+human
+
+# to save
+jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
+human[[2]]
+dev.off()
+```
+
+## *Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD*
+```{r}
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
+
+animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
+animal
+
+# to save
+jpeg(file="results/preclinical.jpeg", height = 2000, width = 1500, res=300)
+animal[[2]]
+dev.off()
+```
+
+## **data presenation**
+```{r}
+# Show clincal & preclinical data in one figure.
+plots<-ggarrange(
+  human[[2]]
+#  + ylim(-7.5,3.5)  # If you want y-axis the same for clinical and preclinical
+  + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+ + rremove("y.axis") + rremove("y.ticks"),
+ 
+  animal[[2]]
+# + ylim(-7.5,3.5)   # If you want y-axis the same for clinical and preclinical
+ + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+ + rremove("ylab") + rremove("y.axis") + rremove("y.ticks"),
+  align = "v",
+  legend="bottom",
+  common.legend = T)
+
+plots
+```
+
+## **safe results**
+```{r}
+# Save figure to jpeg.x
+#ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+ggsave(paste0("results/LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"), device="jpg", dpi = 300, height = 4, width = 6, limitsize = T )
+#ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
+# ppt standard 4:3
+```
+
+
+
+# Sensitivity analysis
+
+## study quality
+
+### Clinical
+```{r}
+mod.H <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical$reference,  # from old codes milou (change for author/year)
+                data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.H)
+```
+
+### Preclinical
+```{r}
+mod.A <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical$reference,  # from old codes milou (change for author/year)
+                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A)
+```
+
+
+
+## Influential cases
+ phase x valence meta-regression
+
+without cases that were identified as influential &outlier -> for sensitivity analysis
+
+
+### clinical
+```{r}
+#clinical.inf<-influentials_valence_phase(clinical)
+ #saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
+ readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+ 
+  # potential outlier and influential cases
+clinical.inf[which(clinical.inf$outInf == 1),] %>% nrow()# 15 comparisons
+clinical.inf[which(clinical.inf$outInf == 1),]%>% distinct(PMID) %>% nrow() # 7 papers
+
+# # potential outliers
+# clinical.inf[which(clinical.inf$potOut == 1),] %>% nrow()# 15 comparision 
+# clinical.inf[which(clinical.inf$potOut == 1),]%>% distinct(PMID) %>% nrow()
+
+# remove outliers
+##  influential (Viechtbauer & Cheung) 
+clinical.inf %>%
+  filter(outInf != 1) %>%
+  droplevels() -> clinical.noinfout
+```
+
+
+```{r}
+mod.H.noinf <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,
+                method = "REML",
+                slab = clinical.noinfout$reference,  # from old codes milou (change for author/year)
+                data = clinical.noinfout) # Similar effects with dat2 (trauma learning excluded)
+
+summary(mod.H.noinf)
+
+```
+
+
+### preclinical
+```{r}
+source("r/influentials_valence_phase.r")
+#preclinical.inf<-influentials_valence_phase(preclinical)
+ #saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
+ readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
+ 
+ # potential outlier and influential cases
+preclinical.inf[which(preclinical.inf$outInf == 1),] %>% nrow() # 11 comparisons
+preclinical.inf[which(preclinical.inf$outInf == 1),] %>% distinct(PMID) %>% nrow() # 4 papers
+
+# preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% nrow() # 11 comparisons
+# preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% distinct(PMID) %>% nrow() # 4 papers
+
+# # potential outliers
+# preclinical.inf[which(preclinical.inf$potOut == 1),] %>% nrow() # 28 comparisons
+# preclinical.inf[which(preclinical.inf$potOut == 1),] %>% distinct(PMID) %>% nrow() # 14 papers
+# preclinical.inf %>% filter(potOut!=1) #->data.sens
+
+# remove outliers
+##  influential (Viechtbauer & Cheung) 
+# preclinical.inf %>%
+#  filter(outInf != 1) %>%
+# droplevels() -> preclinical.noinf # n=4 papers (11 comparison) excluded animal 
+
+preclinical.inf %>%
+ filter(outInf != 1) %>%  # potential outliers AND influential
+   # filter(potOut!=1) %>%
+droplevels() -> preclinical.noinfnoout
+```
+
+```{r}
+mod.A.noinf <- rma.mv(yi, vi,
+                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                method = "REML",
+                slab = preclinical.noinfnoout$reference,  # from old codes milou (change for author/year)
+                data = preclinical.noinfnoout) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.A.noinf)
+```
+
+
+
+

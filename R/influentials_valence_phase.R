@@ -1,6 +1,5 @@
 # Function to identify influential points in meta-regression phase x valence
 # "Valeria Bonapersona & Milou Sep"
-
 # Code based on / adapted from Bonapersona, V. (2019, May 20). The behavioral phenotype of early life adversity: a 3-level meta-analysis of rodent studies. Retrieved from osf.io/ra947
 
 influentials_valence_phase <- function(dataset){

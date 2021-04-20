@@ -11,20 +11,55 @@ editor_options:
 rm(list = ls()) #clean environment
 library(readxl)
 library(dplyr)
+
+library(osfr) # to download method codes
 ```
 
 ```{r}
 readRDS("processed_data/TRACEmerged.RDS")->merged.data
+
+ # data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
+ #data <- read.csv("processed_data/TRACEmerged.csv", sep = ";", dec = c(",", ".")) # Data
+
+ osf_retrieve_file("a6dmj") %>% osf_download(path = "data", conflicts="overwrite") # search 3
+ method <- read_excel("data/TRACE_method_codes.xlsx", sheet = "codes")
+# method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
+
+ method %>% select(!notes) %>% filter(is.na(.)) # check, should be no missing.
+ # Select relevant colums dataset
+method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
+# Create reference var as character
+merged.data1<-merged.data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 ```
+
 
 
 # select only inclusions (only this data double checked in recoding vars etc)
 ```{r}
-merged.data %>% filter(decision == 1) %>% select(-decision) %>% droplevels() -> merged.inclusions
+merged.data1 %>% filter(decision == 1) %>% select(-decision) %>% droplevels() -> merged.inclusions
 ```
 
 
-# Recoding
+## Add method codes to data
+NB the combination of task and measure indicates which method is used to measure behavior. Those values are combined into a new variable ..
+```{r}
+merged.inclusions %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> merged.inclusions.A
+method %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> method1
+#' ... that is used to merge data and method codes
+# df4<- merge(df3, method1, by="measureID", all=T, suffixes = c("_d", "_m"))
+
+left_join(merged.inclusions.A ,method1, by="measureID", suffix = c(".d", ".m"))->merged.inclusions.B
+
+# glimpse(df4)
+
+#' Quality check after merging.. (should be identical)
+ identical(as.character(merged.inclusions.B$task.d), as.character(merged.inclusions.B$task.m))
+ identical(as.character(merged.inclusions.B$measure.d), as.character(merged.inclusions.B$measure.m))
+# dat %>% select(-c(task_m, measure_m)) -> dat #remove duplicate colums (niet echt nodig...)
+```
+
+
+# Recoding Subject variables
 
 ## Age: set age groups
 
@@ -40,7 +75,7 @@ refs for age groups
 https://www.google.com/search?q=2+months+weeks&oq=2+months+weeks&aqs=chrome..69i57j0i22i30l3.1762j0j4&sourceid=chrome&ie=UTF-8
 
 ```{r}
-merged.inclusions %>% mutate(
+merged.inclusions.B %>% mutate(
   
   # ptsd age
   age.PTSD2 = as.numeric(age.PTSD),
@@ -202,40 +237,83 @@ merged.inclusions.recoded7$control.type = recode(merged.inclusions.recoded7$cont
 
 
 
-# create variable with animal strain and human population based on trauma-type 
 
--> in animal all correct..
-beter in human in data doen.
+## Check missing values
+```{r}
+which(is.na(merged.inclusions.recoded7$subject.cat))
+```
+
 
 ```{r}
-merged.inclusions.recoded7 %>% glimpse()
+which(is.na(merged.inclusions.recoded7$PMID))
+```
 
-merged.inclusions.recoded7$ptsd.type %>% unique() # ok
 
-# merged.inclusions.recoded7 %>% select(subject, subject.cat, ptsd.type, population) %>% View()
+```{r}
+which(is.na(merged.inclusions.recoded7$comparison))
+```
 
-merged.inclusions.recoded7$population %>% unique() # ok
 
-# $population %>% unique()
-# 
-# merged.inclusions.recoded7 %>%
-#   mutate(
-#     population.recoded = case_when(
-#       
-#       #rodents
-#         (subject %in% c("4","5") ~ population,
-# 
-#     )
-#   )
+## recode measure, PTSD type and population
+```{r}
+
+# df4$subject.cat
+
+# df4.1 %>% select(subject.cat, measure.d, measure2, ptsd.type, ptsd.type2, population, population2) %>% View()
+
+
+merged.inclusions.recoded7 %>% mutate(
+  measure2 = case_when(
+    # measure
+    (subject.cat == "Animal") & grepl("freezing", measure.d, ignore.case = T) ~ "freezing",
+    (subject.cat == "Animal") & grepl("latency|exploration|time|entrie|avoidance|cross|error|DR|DI", measure.d, ignore.case = T) ~ "exploration",
+    (subject.cat == "Animal") & grepl("Object", measure.d, ignore.case = T) ~ "manipulation",
+    # human
+    (subject.cat == "Human") & grepl("EMG|SCR", measure.d, ignore.case = T) ~ "physiology",
+    (subject.cat == "Human") & !grepl("EMG|SCR", measure.d, ignore.case = T) ~ "non-physiology"),
+  # PTSD type
+  # ptsd.type2 = ifelse(grepl("Mixed", ptsd.type, fixed = T), "Mixed", as.character(ptsd.type)),
+  
+  ptsd.type2 = case_when(
+    (subject.cat == "Human") & grepl("Mixed", ptsd.type, fixed = T) ~ "Mixed",
+    (subject.cat == "Animal") & (grepl("+", ptsd.type, fixed=T) #| grepl("SPS", ptsd.type, fixed=T)
+                                 ) ~ "Mixed",
+    TRUE ~ as.character(ptsd.type)),
+  
+  # Population
+  population2 = case_when(
+    #human
+    (subject.cat == "Human") & grepl("Veterans", population, fixed = T) ~ "Veterans",
+    (subject.cat == "Human") & grepl("Civilian", population, fixed = T) ~ "Civilian",
+    (subject.cat == "Human") & grepl("Refugee", population, fixed = T) ~ "Civilian",
+    #animals
+    (subject.cat == "Animal") & grepl("C57BL/6", population, fixed = T) ~ "C57BL/6",
+    (subject.cat == "Animal") & grepl("Charles Foster", population, fixed = T) ~ "Charles Foster",
+    (subject.cat == "Animal") & grepl("Wistar", population, fixed = T) ~ "Wistar",
+    TRUE ~ as.character(population))) %>%
+    # mutate(
+    #   ptsd.type2= as.factor(ptsd.type2),
+    #   population2= as.factor(population2)) %>% 
+    droplevels()->merged.inclusions.recoded7A
+
+# # for checking
+# merged.inclusions.recoded7A %>% 
+#   filter(subject.cat == "Human") %>%
+#     filter(subject.cat == "Animal") %>%
+#   # filter(is.na(measure2)) %>%
+#   select(task.d, valence, phase, measure.d, measure2) %>% 
+#   # distinct(measure.d) %>%
+#    View()
 ```
 
 
 
-# set variable types
+
+## set variable types
          
 all are current character
 ```{r variable types}
-names(merged.inclusions.recoded7) 
+names(merged.inclusions.recoded7A) 
 
 string_names <- c("author", "year",
 "PMID",
@@ -255,7 +333,10 @@ factor_names <-c( #"decision",
 "rhythm",
 
 "comparison",
-"res.sus.split", "age.PTSD.cat", "age.HC.cat"
+"res.sus.split", "age.PTSD.cat", "age.HC.cat",
+
+# and recoded factors
+"ptsd.type2", "population2","task.d", "measure.d", "measure2", "type", "phase", "valence", "cuectx"
 )
 
 numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "sdHC", "semHC", "time.pseudo")
@@ -265,7 +346,7 @@ numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "s
 
 
 
-merged.inclusions.recoded7 %>% 
+merged.inclusions.recoded7A %>% 
 mutate_at(.vars=numeric_names, as.numeric) %>% 
 mutate_at(.vars=factor_names, factor) ->merged.inclusions.recoded8
 
@@ -276,7 +357,7 @@ mutate_at(.vars=factor_names, factor) ->merged.inclusions.recoded8
 str(merged.inclusions.recoded8)
 ```
 
-add factor labels subject
+## add factor labels subject
 (0=humanmixed(Civiel&Military); 1=ActiveDutyMilitary; 2=Veteran; 12=ActiveDutyMilitary & Veteran; 3=Civilian; 4=Rat; 5=Mice)
 
 ```{r}
@@ -287,9 +368,67 @@ merged.inclusions.recoded8$subject = factor(merged.inclusions.recoded8$subject,
 ```
 
 
+## correct ID coding PTSD and HC groups
+
+If part of the subjects in a experimental/control group is reused, this group must get the same identification code as the complete group (otherwise groups get incorrect unique codes in the analyses). In datafiles currently:
+
+ - [ ] exp & control ID -> als sub group gebruikt is moet die dezelfde code als de totale group hebben, anders krijgen ze unique codes in de analyses (en dat is incorrect ivm nesting)
+ - [ ] in S3 correct
+ - [ ] animal two exp groups together: "exp ID 355+347"
+ - [x] in human all correct
+ - [ ] in S1 en S2 heb ik steeds 'part of..' opgeschreven
+ - [ ] pas aan in r in S2 animal:
+   - [ ] in exp ID: "part of #" en controlID_#
+ - [ ] in control ID: "part of #" en "part of exp ID #"
+ - [x] s2 human NA
+ - [ ] s1 :
+   - [ ] in exp ID: "part of #" en ControlID_#
+ - [ ] in control ID: "part of exp ID #"
+```{r}
+merged.inclusions.recoded8 %>% mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
+               idHC = sub("part of ", "",idHC, fixed = TRUE)) ->merged.inclusions.recoded9
+```
+
+
+## new variables for phase & valence
+```{r}
+merged.inclusions.recoded9 %>% mutate(
+  
+  phase.valence = case_when(
+    phase == "L" & valence %in% c("N") ~ "LN",
+    phase == "M" & valence %in% c("N") ~ "MN",
+    
+    phase == "L" & valence %in% c("E") ~ "LE",
+    phase == "M" & valence %in% c("E") ~ "ME",
+    
+    phase == "L" & valence %in% c("F") ~ "LF",
+    phase == "M" & valence %in% c("F") ~ "MF",
+    phase == "E" & valence %in% c("F") ~ "EF",
+    
+    phase == "L" & valence %in% c("T") ~ "LT",
+    phase == "M" & valence %in% c("T") ~ "MT",
+    phase == "E" & valence %in% c("T") ~ "ET"), 
+  
+  phase.valence = factor(phase.valence, 
+                          levels=c("LN", "MN", "LE", "ME", "LF", "MF", "EF", "LT", "MT", "ET"), 
+                          labels = c("neutral learning", "neutral memory", 
+                                     "emotional learning", "emotional memory", 
+                                     "fear learning", "fear memory", "fear memory persistence", 
+                                     "trauma learning", "trauma memory", "trauma memory persistence")),
+  
+phase_Grouped = ifelse(phase %in% c("M","E"), "memory", "learning"),
+phase_Grouped = factor(phase_Grouped),
+
+Valence_Grouped = ifelse(valence %in% c("T","F","E"), "emotional", "neutral"), #NB nu trauma ook bij emotional!
+Valence_Grouped = factor(Valence_Grouped)
+
+) ->merged.inclusions.recoded10
+
+```
+
+
 ```{r save}
-saveRDS(merged.inclusions.recoded8, "processed_data/TRACErecoded.RDS")
+saveRDS(merged.inclusions.recoded10, "processed_data/TRACErecoded.RDS")
  # write.csv2(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv", fileEncoding = "UTF-8") # writes spec characters weird
  # write.table(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv") # same problem
 ```
-

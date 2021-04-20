@@ -1,0 +1,156 @@
+---
+title: "Datapreparation TRACE dataset: calculate effect sizes and add QA scores"
+author: "Valeria Bonapersona & Milou Sep"
+date: "March 2019"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+## Preparation of the environment
+```{r setup}
+rm(list = ls()) #clean environment
+# libraries
+library(metafor) # for effect size estimation
+library(dplyr) #for general functions
+# library(osfr)
+library(readxl)
+```
+
+```{r}
+data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
+str(data)
+```
+
+## Correction for multiple use control group
+
+### Merge ID's of experimental and control groups.
+```{r}
+data1 <- data %>% mutate(
+  new.idPTSD = as.factor(paste(PMID,idPTSD, sep=".")),
+  new.idHC = as.factor(paste(PMID,idHC, sep=".")),
+  id_combination = as.factor(paste(new.idPTSD, new.idHC, sep=".")))
+# for checking (should be NA, if both missing excluded in dataset)
+data1 %>% filter(is.na(semPTSD) & is.na(sdPTSD)) #%>% View()
+data1 %>% filter(is.na(semHC) & is.na(sdHC)) #%>% View()
+```
+
+### Check which control groups are used multiple times
+```{r}
+reused_controls <- data1 %>%
+  select(new.idPTSD, new.idHC, id_combination)%>%
+   group_by(new.idHC) %>% #for each control groups
+  summarise(used=length(unique(id_combination)))%>%  # count the amount of unique id combinations
+  filter(used>1) # show control groups in which a unique combination is precent more than once
+reused_controls # 10 control groups are used in multiple unique id_combinations # 18.3.19 11 control grousp used multiple times # 8.4.21 66 are reused
+#20.4.21 na toevoegen PMID zijn er 21 reused.
+
+# NB: used is here het aantal experimentale groupen waarmee de controle group vergeleken is.. (niet het aantal measures oid, dus vergeleken met 1 exp group, op 10 maten, used =1)
+
+#' Check results
+# data1 %>% filter(new.idHC%in%reused_controls$new.idHC) %>% 
+#   # select(PMID, idHC, new.idHC, used, id_combination) %>% 
+#   # arrange(PMID, new.idHC) %>% 
+#   View()
+
+
+#' add to dataframe
+# left_join(data1,reused_controls, by="new.idHC") %>% View() # yes correct (old code was not)
+
+left_join(data1,reused_controls, by="new.idHC") -> data2
+
+# data1 %>% mutate(
+#   used = ifelse(new.idHC%in%reused_controls$new.idHC, reused_controls$used, NA )
+#   
+# )%>% filter(!is.na(used)) %>% View()
+
+#' Recalculate n's
+data2 %>% mutate(
+  nHC_corrected = ifelse(!is.na(used), nHC/used, nHC)
+) ->data3
+
+# data1$nHC_corrected<-ifelse(!is.na(data1$used), data1$nHC/data1$used, data1$nHC)
+
+#' Check if the effects are correct.. yes
+data3 %>% 
+  filter(new.idHC %in% reused_controls$new.idHC)  %>% 
+  select(nHC, nHC_corrected, used) %>% head()
+#' round
+data3$nHC<-round(data3$nHC_corrected)
+```
+
+
+## Calculate SD from SEM
+```{r}
+data3$sdPTSD <- ifelse(is.na(data3$sdPTSD), (data3$semPTSD * sqrt(data3$nPTSD)), data3$sdPTSD)
+data3$sdHC <- ifelse(is.na(data3$sdHC), (data3$semHC * sqrt(data3$nHC)), data3$sdHC)
+``` 
+
+## Check Missing values (should be none)
+```{r}
+#' Sample sizes ok
+which(is.na(data3$nPTSD))
+which(is.na(data3$nHC))
+#' sd ok
+which(is.na(data3$sdPTSD))
+which(is.na(data3$sdHC))
+
+#' #' Missing values SD? Original datafile checked: 5 papers don't report sem or sd: PMID: 7654154, 8731522, 9821567, 17392739, 27297027
+#' unique(data[which(is.na(data$sdHC)),"PMID"]) 
+#' #' Theses values correspond with original datafile, and are excluded from further analysis
+#' dat %>% filter(!is.na(sdC)) -> dat
+data3 %>% select(-c(semPTSD, semHC, idPTSD, idHC, used, nHC_corrected)) -> data4 # Remove unnecessary columns
+
+#' Missingvalues are checked again, should be non.. # update 8.4.21 -> there are missings.. as shock, time res.sus split are still in data
+# which(is.na(data1)) 
+
+data4 %>% select(!c("shocks.num", "shocks.amp", "time","res.sus.split")) %>% filter(!(is.na(.))) %>% nrow() # is idem als total  (=1643)
+
+#' update 19.3.19: na toevoeging "keyfinding", sommmige na, anders niet.
+# head(is.na(data1)) 
+```
+
+## Calculation of effect sizes and checks
+```{r}
+data5 <- escalc(
+  m1i = meanPTSD, sd1i = as.numeric(sdPTSD), n1i = nPTSD, 
+              m2i = meanHC, sd2i = as.numeric(sdHC), n2i = nHC, 
+              measure = "SMD", #method = "HE",  # calc hedge's G
+              data = data4)
+```
+
+## Recode Effect sizes in same direction (higher score = better performance)
+```{r}
+#' Based on recode variable, which is specified in "Trace_methode_codes.csv"
+data5$yi <- data5$yi * data5$recode
+#' INTERPRETATION: Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
+#' "SMD": The standardized mean difference is equal to (m1i m2i)/spi
+#' In the calulations above 1 = ptsd en 2 = control; therefore positive effect size = PTSD more, negative effectsize is HC more 
+
+```
+
+## add unique id's
+```{r}
+data5$each <- c(1:nrow(data5)) 
+```
+
+# Add QA info
+```{r}
+readRDS("processed_data/TRACE_QA_animal.RData") %>% select(PMID, QA_score)->QA.A
+readRDS("processed_data/TRACE_QA_human.RData") %>% select(PMID, QA_score)->QA.H
+
+bind_rows(QA.A, QA.H) %>% mutate(PMID = as.character(PMID))->QA
+
+left_join(data5, QA, by="PMID") %>% droplevels() -> data6 #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
+```
+
+#for checking
+```{r eval=FALSE, include=FALSE}
+data6 %>% select(type, phase, valence, recode, cuectx) %>% is.na() %>% any() # must be false (if method codes are added correctly)
+```
+
+# Save resulting dataset --------------------------------------------------
+```{r}
+saveRDS(data6, file = "processed_data/TRACEprepared.RData") #save
+```
