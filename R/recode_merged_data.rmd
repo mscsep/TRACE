@@ -27,7 +27,7 @@ readRDS("processed_data/TRACEmerged.RDS")->merged.data
 
  method %>% select(!notes) %>% filter(is.na(.)) # check, should be no missing.
  # Select relevant colums dataset
-method %>% select(task, measure, type, phase, valence, recode, cuectx) -> method 
+method %>% select(task, measure, type, phase, valence, recode, recode.for.ext, cuectx) -> method 
 # Create reference var as character
 merged.data1<-merged.data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
 ```

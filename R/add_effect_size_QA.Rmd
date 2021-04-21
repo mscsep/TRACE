@@ -121,9 +121,13 @@ data5 <- escalc(
 ```
 
 ## Recode Effect sizes in same direction (higher score = better performance)
+NB variable recode contains extinction recode codes were higher scores (higher anxiety) is coded as more memory persistence (would correspond to less extinction)
+
 ```{r}
 #' Based on recode variable, which is specified in "Trace_methode_codes.csv"
-data5$yi <- data5$yi * data5$recode
+# data5$yi <- data5$yi * data5$recode
+data5$yi <- data5$yi * data5$recode.for.ext
+
 #' INTERPRETATION: Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
 #' "SMD": The standardized mean difference is equal to (m1i m2i)/spi
 #' In the calulations above 1 = ptsd en 2 = control; therefore positive effect size = PTSD more, negative effectsize is HC more 
