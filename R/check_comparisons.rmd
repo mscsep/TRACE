@@ -5,15 +5,17 @@ date: "4/20/2021"
 output: html_document
 ---
 
+# Prepare environment
 ```{r setup, include=FALSE}
 rm(list = ls()) #clean environment
 # libraries
 library(dplyr) #general
+
+# sessionInfo() # show r info
 ```
 
 ```{r}
 data<-readRDS("processed_data/TRACEprepared.RData")
-str(data)
 ```
 
 
@@ -30,15 +32,36 @@ summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% data.frame
 
 
 Potential moderators in dataset: (NB valence, phase, cuectx follow from task & measure in dataset (see code above)):
-- comparison: CODES: A="ptsd_nontrauma_H", B="trauma_nontrauma_H", C="ptsd_trauma_H",  D="trauma_nontrauma_A", E="ptsd_nontrauma_A",F="ptsd_trauma_A"
-- valence # NB codes: # T=trauma; N=non_trauma_neutral; E=non_trauma_emotional (positive AND negative!); F=non-trauma_fearful (only FC)
-- phase: L=learning or M=memory (or E=extinction)
-- cuectx: cue or context (cuecue and cuecontext)
+```{r}
+names(data)
+```
 
 > NB for the analysis 2 moderator possible.
-
-
 > Animal and human data will be analysed separatly
+
+> at least 4 papers included in each level of categorical variable in meta-regression
+1. Fu R, Gartlehner G, Grant M, et al. Conducting quantitative synthesis when comparing medical interventions: AHRQ and the Effective Health Care Program. J Clin Epidemiol. 2011;64(11):1187-1197. doi:10.1016/j.jclinepi.2010.08.010
+
+```{r eval=FALSE, include=FALSE}
+str(data)
+```
+
+## Task related
+
+- time.pseudo
+- type
+
+- phase: L=learning or M=memory (or E=extinction)
+- valence # NB codes: # T=trauma; N=non_trauma_neutral; E=non_trauma_emotional (positive AND negative!); F=non-trauma_fearful (only FC)
+
+-> phase.valence
+-> phase_Grouped
+-> Valence_Grouped
+
+- cuectx: cue or context (cuecue and cuecontext) (5 levels)
+- measure2
+
+
 
 ## Valence as moderator?
 ```{r}
@@ -46,73 +69,100 @@ data %>% group_by(subject.cat, valence) %>%
 summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% data.frame() #%>% write.csv2("results/inclusions.by.valence.csv")
 ```
 
+This moderator might be possible: 
+- but 3 human trauma papers, 
+- and no emotional papers in animal (only neutral, fear and trauma)
 
-```{r}
-data %>% group_by(subject.cat, phase.valence) %>%
-summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% data.frame()
-```
-This moderator not possible: there are not enough data-points in some categories
-- only 3 human trauma papers, 
-- no emotional papers in animal (only fear and trauma)
+
+
 
 > New valences grouping created: emotional vs neutral learning/memory
 
-```{r eval=FALSE, include=FALSE}
-data %>% select(task.d, Valence_Grouped, valence) # to check. 
-```
+
 
 > NB Trauma could be a special form of emotional learning, Consider exclusion of T from 'emotional' in 'analysis script'
 
 
-## Comparison x valence as moderators?
-```{r}
-# data %>% filter(is.na(valence)) %>% select(PMID, task.d, measure.d, task.m, measure.m) %>% head()
-data %>% group_by(subject.cat, Valence_Grouped, comparison) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.comparisons.valence.csv") # to save
-```
-This moderator interaction term not possible: there are not enough data-points in some categories
-
-> consider comparison type as follow-up / subgroup analysis for categories with enough data.. or explore the contribution of 'comparison' in data-driven analysis
-
-NB If comparison types is no longer included in analyses, comparison B needs to be excluded (in which healthy trauma exposed humans are compared to healthy non-trauma exposed humans; so NO PTSD patients)
-
- dat %>% filter(comparisonControl != c("B")) %>% droplevels() -> dat
-
-
 ## Phase x valence as moderators?
+
+```{r}
+data %>% group_by(subject.cat, phase, valence) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.phase.valence.csv")
+```
+
+```{r eval=FALSE, include=FALSE}
+# idem is code above, but interaction effect coded in 1 variable
+data %>% group_by(subject.cat, phase.valence) %>%
+summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% data.frame()
+```
+
+> not possible moderator interaction term: phase x valence_grouped: not enough observations in all categories and not identical for human and animal)
+
+> would be possible if <4 papers categories are droped and if comparisions for human and animal are different
+
+```{r}
+data %>% group_by(subject.cat, phase, valence) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% filter(papers >=4)->df1
+
+df1 %>% filter(subject.cat == "Human")
+```
+
+```{r}
+df1 %>% filter(subject.cat == "Animal")
+```
+
+> follow groups are present in both animal and human:
+- Extinction Fear
+- Learning Fear
+- Learning Neutral
+- Memory Neutral
+
+
+### phase x valence with regrouped variables?
+
 ```{r}
 data %>% 
   group_by(subject.cat, Valence_Grouped, phase) %>%
   summarize(papers=length(unique(PMID)), comparisons=length(each))
 ```
 
+> all possible, but grouping emotional and fear together might be to rough
 
 ```{r}
 data %>% 
   group_by(subject.cat, Valence_Grouped, phase_Grouped) %>%
   summarize(papers=length(unique(PMID)), comparisons=length(each))
 ```
+> possible, but extinction coded as memory persistence grouped with memory (aribtrair)
 
 
-```{r}
-data %>% group_by(subject.cat, phase, valence) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.phase.valence.csv")
-```
-Possible moderator interaction term: phase x valence_grouped: enough observations in each category
+> het is veel interessanter om ze los te bekijken dus phase x valence (en nu genoeg data, als je cat met less dan 4 papers exclude / aangeeft)
+-> door middel van contrasten in het model kan je dan ook alle grouped vergelijkingen hierboven maken (als je dat wil)
 
 
-## cuectx x Valence as moderators?
-```{r}
-data %>% 
-  group_by(subject.cat, Valence_Grouped, cuectx) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.cuectx.csv")
-```
 
 
+## cuectx
 ```{r}
 data %>% 
-  group_by(subject.cat, Valence_Grouped, phase, cuectx) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% write.csv2("results/inclusions.by.phase.cuectx.csv")
+  group_by(subject.cat, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) #%>% filter(papers >=4) #%>% write.csv2("results/inclusions.by.cuectx.csv")
+```
+
+> cue context comparison only possible for animals (not enough context data of humans) ~ 2 papers
+
+## cuectx x Valence as moderators (idem as stated above, not enough context in human, might be follow-up for animals)
+```{r eval=FALSE, include=FALSE}
+data %>% 
+  group_by(subject.cat, valence, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% filter(papers >=4) #%>% write.csv2("results/inclusions.by.cuectx.csv")
+```
+
+## cuectx x valence x phase (> 2 moderators)
+```{r eval=FALSE, include=FALSE}
+data %>% 
+  group_by(subject.cat, valence, phase, cuectx) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% filter(papers >=4) #%>% write.csv2("results/inclusions.by.phase.cuectx.csv")
 #' NB extinction data is not available for all groups. Besides it is an specific for of fear learning..
 #' Consider exclusion in 'analysis script'
 ```
@@ -122,31 +172,55 @@ This moderator interaction term not possible: there are not enough data-points i
 
 
 
-> above all information characteristics
 
-> what about subject characteristics
-
-```{r}
-str(data)
-```
-
-## Valence by measure
+## Valence x measure
 ```{r}
 data %>% 
-  group_by(subject.cat, Valence_Grouped, #phase, 
+  group_by(subject.cat, valence, #phase, 
            measure2) %>%
-  summarize(papers=length(unique(PMID)), comparisons=length(each))
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% filter(papers >=4)
 ```
-also possible (except 'manipulation in animals', just one paper)
+also possible (except 'manipulation in animals', just one paper; not enough trauma valenced in humans)
+
+> not primary code, as measure grouping is arbitrairy
+> maybe in followup?
+
+
+## Subject related 
+- comparison: CODES: A="ptsd_nontrauma_H", B="trauma_nontrauma_H", C="ptsd_trauma_H",  D="trauma_nontrauma_A", E="ptsd_nontrauma_A",F="ptsd_trauma_A"
+- sex (3 levels)
+- age (5 levels)
+- ptsd.type2 (16 levels)
+- control type (3 levels)
+- population2 (16 levels)
+- rhythm (only different levels for animal)
+
+
+> besloten deze als follow-up / metaforest te doen. omdat het review zich in eerste instantie consentreerd op learning & memory (not subject characteristics per se), and subject characteristics might be usefull to further explore differences within groups
+
+
+## Comparison x valence as moderators?
+```{r}
+# data %>% filter(is.na(valence)) %>% select(PMID, task.d, measure.d, task.m, measure.m) %>% head()
+data %>% group_by(subject.cat, valence, comparison) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame() #%>% write.csv2("results/inclusions.by.comparisons.valence.csv") # to save
+```
+This moderator interaction term not possible: there are not enough data-points in some categories
+
+> consider comparison type as follow-up / subgroup analysis for categories with enough data.. or explore the contribution of 'comparison' in data-driven analysis
+
+NB If comparison types is no longer included in analyses, comparison B needs to be excluded (in which healthy trauma exposed humans are compared to healthy non-trauma exposed humans; so NO PTSD patients)
 
 
 ## Age x valence
 ```{r}
-data %>% group_by(subject.cat, Valence_Grouped, #phase, 
+data %>% group_by(subject.cat, valence, #phase, 
            age.PTSD.cat
            #measure2
            ) %>%  summarize(papers=length(unique(PMID)), comparisons=length(each))
 ```
+
+> not prefered, not same categories in animal and humen. not enough papers in all comparisons
 could be possible if old adults are excluded (only possible in human studies..)
 
 
@@ -157,6 +231,6 @@ data %>% group_by(subject.cat, Valence_Grouped, #phase,
            #measure2
            ) %>% summarize(papers=length(unique(PMID)), comparisons=length(each))
 ```
-Not enough females in all groups
+>Not enough females in all groups
 
 
