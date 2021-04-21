@@ -385,8 +385,14 @@ If part of the subjects in a experimental/control group is reused, this group mu
    - [ ] in exp ID: "part of #" en ControlID_#
  - [ ] in control ID: "part of exp ID #"
 ```{r}
-merged.inclusions.recoded8 %>% mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
-               idHC = sub("part of ", "",idHC, fixed = TRUE)) ->merged.inclusions.recoded9
+merged.inclusions.recoded8 %>% 
+  mutate(idPTSD = sub("part of ", "",idPTSD, fixed = TRUE),
+         idPTSD = ifelse(idPTSD == "exp ID 355+347", yes = "355", no= idPTSD),
+         idHC = sub("part of ", "",idHC, fixed = TRUE)) -> merged.inclusions.recoded9
+
+# for checking
+merged.inclusions.recoded9$idPTSD %>% unique()
+merged.inclusions.recoded9$idHC %>% unique()
 ```
 
 
