@@ -32,10 +32,13 @@ data<-readRDS("processed_data/TRACEprepared.RData")
 
 
 ```{r eval=FALSE, include=FALSE}
-data %>% filter(subject.cat =="Human") %>% droplevels() ->clinical
+data %>% filter(subject.cat =="Human") %>% 
+   # filter(comparison !="B") %>%
+  droplevels() ->clinical
+
 # data %>% filter( PMID == "19345420")
-clinical %>% filter(valence == "F") ->df1
-unique(df1$PMID)
+# clinical %>% filter(valence == "F") ->df1
+# unique(df1$PMID)
 
 # clinical$phase.valence
 
@@ -47,8 +50,11 @@ summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame(
 
 
 mod.H <- rma.mv(yi, vi,
-                random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                 mods   = ~phase.valence - 1,
+                 random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+               # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
+                 # mods   = ~phase.valence - 1,
+               # mods = ~Valence_Grouped:phase_Grouped-1, # all impaired
+               mods = ~valence:phase-1, # fear ext and fear memory impoved (trauma m NS), rest impaired
                 method = "REML",
                 slab = clinical$reference,  # from old codes milou (change for author/year)
                 data = clinical) # Similar effects with dat2 (trauma learning excluded)
@@ -62,14 +68,14 @@ clinical %>% filter(measure.d == "EXT_%CS+/maxCS+Acq_EMG") %>% View()
 
 
 data %>% filter(subject.cat =="Animal") %>% droplevels() ->preclinical
-preclinical %>% filter(valence == "F") ->df13
-
-df13 %>% select(PMID, task.d, measure.d, idPTSD,idHC, outcomePTSD, outcomeHC) %>% View()
+# preclinical %>% filter(valence == "F") ->df13
+# df13 %>% select(PMID, task.d, measure.d, idPTSD,idHC, outcomePTSD, outcomeHC) %>% View()
 
 mod.A <- rma.mv(yi, vi,
-                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                random = list(~1 | new.idPTSD , ~1 | PMID), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
                 # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
-                  mods   = ~phase.valence - 1,
+                  # mods   = ~phase.valence - 1, #NL & M impaired, rest improved
+                 mods = ~valence:phase-1, # identical resuls as above (so recoded var not needed)
                 method = "REML",
                 slab = preclinical$reference,  # from old codes milou (change for author/year)
                 data = preclinical) # Similar effects with dat2 (trauma learning excluded)
