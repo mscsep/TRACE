@@ -422,8 +422,8 @@ merged.inclusions.recoded9 %>% mutate(
                                      "fear learning", "fear memory", "fear memory persistence", 
                                      "trauma learning", "trauma memory", "trauma memory persistence")),
   
-phase_Grouped = ifelse(phase %in% c("M","E"), "memory", "learning"),
-phase_Grouped = factor(phase_Grouped),
+# phase_Grouped = ifelse(phase %in% c("M","E"), "memory", "learning"), # klopt allen met recoding als memory presistance (nu 21.4.21 veranderd)
+# phase_Grouped = factor(phase_Grouped),
 
 Valence_Grouped = ifelse(valence %in% c("T","F","E"), "emotional", "neutral"), #NB nu trauma ook bij emotional!
 Valence_Grouped = factor(Valence_Grouped)
