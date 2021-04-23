@@ -136,7 +136,8 @@ human[[2]]
 dev.off()
 ```
 
-```{r}
+# unfilterd data
+```{r eval=FALSE, include=FALSE}
 mod.H.total <- rma.mv(yi, vi,
                       random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
                       # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
@@ -165,24 +166,24 @@ summary(mod.H)
 
 add contrasts
 ```{r}
-TRACE_clinical_valence_phase <- function(model, title, subtitle){
+TRACE_clinical_valence_phase <- function(model){
   
   ##RQ 1: "Main effects PTSD on Learning and memory?
-  Learning <- anova(model, L = c(0, .5, .5, 0, 0))
-  Memory <- anova(model, L = c(0,0,0, .5, .5))
-  Extinction<-anova(model, L=c(1,0,0,0,0))
+  # Learning <- anova(model, L = c(0, .5, .5, 0, 0))
+  # Memory <- anova(model, L = c(0,0,0, .5, .5))
+  # Extinction<-anova(model, L=c(1,0,0,0,0))
   
   
   # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
   # http://www.metafor-project.org/doku.php/tips:multiple_factors_interactions
   
   # RQ2 "Main effects of PTSD on neutral / emotional   # 20.4.21 now the other way around (with label emotional ipv stresvull)
-  Neutral <- anova(model, L = c(0,0,.5,0,.5))
-  Emotional <- anova(model, L = c(1/3, 1/3, 0, 1/3,0))
+  # Neutral <- anova(model, L = c(0,0,.5,0,.5))
+  # Emotional <- anova(model, L = c(1/3, 1/3, 0, 1/3,0))
   
   ## posthoc RQ2. is learning or memory most effected by valence? (Posthoc)
-  phase.neutral <- anova(model, L = c(0,0,-1,0,1)) 
-  phase.emotional <- anova(model, L = c(0, -1,0, 1,0)) # learning -
+  # phase.neutral <- anova(model, L = c(0,0,-1,0,1)) 
+  # phase.emotional <- anova(model, L = c(0, -1,0, 1,0)) # learning -
   
   # Posthoc RQ2 influence of valence on learning or memory
   valence.learning <-anova(model, L = c(0, 1, -1, 0,0)) # neutral = -
@@ -197,80 +198,59 @@ TRACE_clinical_valence_phase <- function(model, title, subtitle){
   neutralMemory <- anova(model, L = c(0,0, 0, 0, 1))
   
   
-  
   ##Summary results organized in table
-  #resultMain <- data.frame(matrix(data = NA, nrow = 17, ncol = 8))
-  # resultMain <- data.frame(matrix(data = NA, nrow = 12, ncol = 8)) #v1
-  resultMain <- data.frame(matrix(data = NA, nrow = 13, ncol = 8)) #V new
+  resultMain <- data.frame(matrix(data = NA, nrow = 7, ncol = 8)) #V new
   
   colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
                             "effectsize", "se", "Zvalue",  
                             "Pvalue", "Pvalue_bonfCorr")
   
-  resultMain[,1] <- c("Learning (neutral + emotional)", "Memory (neutral + emotional)", 
-                      "Neutral (learning + memory)", "Emotional (learning + memory + extintion)",
-                      "phase.neutral: learning vs memory (neutral)", "phase.emotional: learning vs memory (emotional)",
-                      "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)",
-                      "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")
+  resultMain[,1] <- c(#"Learning (neutral + emotional)", "Memory (neutral + emotional)", 
+    #"Neutral (learning + memory)", "Emotional (learning + memory + extintion)",
+    # "phase.neutral: learning vs memory (neutral)", "phase.emotional: learning vs memory (emotional)",
+    "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)",
+    "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")
   
-  resultMain[,4] <- round(c(Learning$Lb, Memory$Lb, 
-                            Neutral$Lb, Emotional$Lb,
-                            phase.neutral$Lb, phase.emotional$Lb,
-                            valence.learning$Lb, valence.memory$Lb,
-                            # model$beta
-                            neutralLearning$Lb, neutralMemory$Lb,
-                            fearLearning$Lb, emotionalMemory$Lb,
-                            extinction$Lb
+  resultMain[,4] <- round(c(#Learning$Lb, Memory$Lb, 
+    #Neutral$Lb, Emotional$Lb,
+    # phase.neutral$Lb, phase.emotional$Lb,
+    valence.learning$Lb, valence.memory$Lb,
+    # model$beta
+    neutralLearning$Lb, neutralMemory$Lb,
+    fearLearning$Lb, emotionalMemory$Lb,
+    extinction$Lb
   ), digits = 4) #effect size
   
-  resultMain[,5] <- round(c(Learning$se, Memory$se, 
-                            
-                            Neutral$se, Emotional$se,
-                            phase.neutral$se, phase.emotional$se,
-                            valence.learning$se, valence.memory$se,
-                            # model$beta
-                            neutralLearning$se, neutralMemory$se,
-                            fearLearning$se, emotionalMemory$se,
-                            extinction$se
-                            
-                            # Neutral$se, Stressful$se,
-                            # phase.neutral$se, phase.stressful$se,
-                            # valence.learning$se, valence.memory$se,
-                            # # nLearning$se, nMemory$se, sLearning$se, sMemory$se, # idem as model$se
-                            # model$se
+  resultMain[,5] <- round(c(#Learning$se, Memory$se, 
+    
+    #Neutral$se, Emotional$se,
+    
+    # phase.neutral$se, phase.emotional$se,
+    valence.learning$se, valence.memory$se,
+    # model$beta
+    neutralLearning$se, neutralMemory$se,
+    fearLearning$se, emotionalMemory$se,
+    extinction$se
   ), digits = 4) #se
   
-  resultMain[,6] <- round(c(Learning$zval, Memory$zval, 
-                            
-                            Neutral$zval, Emotional$zval,
-                            phase.neutral$zval, phase.emotional$zval,
-                            valence.learning$zval, valence.memory$zval,
-                            # model$beta
-                            neutralLearning$zval, neutralMemory$zval,
-                            fearLearning$zval, emotionalMemory$zval,
-                            extinction$zval
-                            
-                            # Neutral$zval, Stressful$zval,
-                            # phase.neutral$zval, phase.stressful$zval,
-                            # valence.learning$zval, valence.memory$zval,
-                            # model$zval
+  resultMain[,6] <- round(c(#Learning$zval, Memory$zval, 
+    
+    #Neutral$zval, Emotional$zval,
+    # phase.neutral$zval, phase.emotional$zval,
+    valence.learning$zval, valence.memory$zval,
+    # model$beta
+    neutralLearning$zval, neutralMemory$zval,
+    fearLearning$zval, emotionalMemory$zval,
+    extinction$zval
   ), digits = 4)  #zvalues
   
-  resultMain[,7] <- round(c(Learning$pval, Memory$pval, 
-                            
-                            
-                            Neutral$pval, Emotional$pval,
-                            phase.neutral$pval, phase.emotional$pval,
-                            valence.learning$pval, valence.memory$pval,
-                            # model$beta
-                            neutralLearning$pval, neutralMemory$pval,
-                            fearLearning$pval, emotionalMemory$pval,
-                            extinction$pval
-                            
-                            # Neutral$pval, Stressful$pval,
-                            # phase.neutral$pval, phase.stressful$pval,
-                            # valence.learning$pval, valence.memory$pval,
-                            # model$pval
+  resultMain[,7] <- round(c(#Learning$pval, Memory$pval, 
+    #Neutral$pval, Emotional$pval,
+    # phase.neutral$pval, phase.emotional$pval,
+    valence.learning$pval, valence.memory$pval,
+    neutralLearning$pval, neutralMemory$pval,
+    fearLearning$pval, emotionalMemory$pval,
+    extinction$pval
   ), digits = 4)  #pvalues
   
   resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
@@ -298,171 +278,146 @@ TRACE_clinical_valence_phase <- function(model, title, subtitle){
   #                           # resultMain[12,7])
   #                          digits = 4) #pvalue bonf correction
   
-  resultMain[,8] <- round(c(p.adjust(resultMain[,7], method = "bonferroni", n = 13)),
+  resultMain[,8] <- round(p.adjust(resultMain[,7], method = "bonferroni", n = 7),
                           digits = 4) #pvalue bonf correction
   
+  return(resultMain)
   
-  # resultMain[,1] <- c("Learning (neutral + emotional)", "Memory (neutral + emotional)", 
-  #                   "Neutral (learning + memory)", "Emotional (learning + memory + extintion)",
-  #                   "phase.neutral: learning vs memory (neutral)", "phase.emotional: learning vs memory (emotional)",
-  #                   "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)",
-  #                   "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")
-  # 
-  
-  
-  plot_data<-resultMain %>% filter(test %in% c( "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction"))
-  plot_data %>% mutate(
+}
+
+TRACE_clinical_valence_phase(mod.H)->clinical.results
+
+clinical.results %>% 
+  filter(test %in% c( "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")) %>% 
+  mutate(
     valence = ifelse(test %in% c("neutral Learning", "neutral Memory"), "Neutral", "Emotional"),
     phase = case_when(
       test %in% c( "neutral Learning", "fear Learning") ~ "Learning", 
       test %in% c( "neutral Memory", "emotional Memory") ~ "Memory", 
       test == "fear Extinction" ~ "Extinction"
-    )#,
+    ),
     # phase = factor(phase, levels = c("Learning", "Memory", "Extinction"))  # dan error with plot
-  ) ->plot_data_coded
-  
-  # plot_data$valence <- 
-  # plot_data$phase <- ifelse(plot_data$test %in% c( "neutral Learning", "fear Learning",), "Learning", 
-  #                           
-  #                           "Memory")
-  
-  # signal sig. categories. Add index for p-values smaller than 0.05
-  plot_data_coded$sig<- ifelse(plot_data_coded$Pvalue_bonfCorr  <0.05, 1, 0)
-  
-  
-  
-  # my.comparisons.clinical<-list( c("fear Learning", "neutral Learning") )
-  # clinical.results + stat_compare_means(comparisons = my.comparisons.clinical)
-  
-  # https://www.datanovia.com/en/blog/ggpubr-how-to-add-p-values-generated-elsewhere-to-a-ggplot/
-  
-  resultMain %>% 
-    select(test,p=Pvalue_bonfCorr) %>% 
-    filter(grepl("valence",test,fixed = T)) %>% 
-    mutate(
-      group1 = case_when(
-        # grepl("phase.neutral",test) ~ "neutral Learning",
-        #   grepl("phase.emotional",test) ~ "fear Learning"#,
-        
-        grepl("valence.learning",test) ~ "neutral Learning",
-        grepl("valence.memory",test) ~ "neutral Memory"
-      ),
-      
-      group2 = case_when(
-        # grepl("phase.neutral",test) ~ "neutral Memory",
-        # grepl("phase.emotional",test) ~ "emotional Memory"#,
-        
-        grepl("valence.learning",test) ~ "fear Learning",
-        grepl("valence.memory",test) ~ "emotional Memory"
-      ),
-      
-      phase = c( "Learning", "Memory")
-      # valence = c("Neutral", "Emotional", NA, NA)
-    ) %>% group_by(phase)-> clinical.posthoc.valence
-  
-  
-  # clinical.posthoc.phase$y.position <-1
-  
-  
-  
-  #str(plot_data)
-  # title='test'
-  
-  
-  
-  PLOT.clinical <-
-    ggplot(plot_data_coded,
-           aes(x = test, y = effectsize, fill=valence)) +
     
-    ylab("Hedge's G (CI)") + # could also be "Standardized mean difference"
+    # signal sig. categories. Add index for p-values smaller than 0.05
+    sig =ifelse(Pvalue_bonfCorr<0.05, 1, 0),
     
-    xlab("") +
-    
-    # ggtitle(title, subtitle = subtitle) +
-    
-    # facet_wrap(.~ factor(phase, levels =c("Learning", "Memory", "Extinction")), scales='free_x', strip.position = "bottom" )+
-    
-    facet_grid (.~ factor(phase, levels =c("Learning", "Memory", "Extinction")),  # width scaled (better for extinction)
-                scales = "free_x", space = "free_x", switch = "x" # labels onder
-                # je kan de andere factor levels nog toevoegen en dan hier drop =F, bv voor het vergelijkbaar maken met dieren?
-    ) +
-    
-    theme_linedraw() +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
-    
-    scale_fill_manual(
-      values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
-                 "Emotional" = "tomato2")) +
-    
-    geom_bar(stat = "identity")+
-    
-    geom_hline(yintercept = 0, size = 1) +
-    geom_errorbar(aes(ymin = ci.lb,
-                      ymax = ci.ub),
-                  width = .3) +
-    
-    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
-    
-    geom_point(data = plot_data_coded[plot_data_coded$sig ==1, ],aes(x=test, y=1), shape = "*", size=10, show.legend = FALSE) +  # to make position dynamic use: y=ci.ub+1.5
-    
-    # y_sig_position <- 1 #  ifelse(title=='Clinical Data', 1  , 3.3 )
-    #  title='Preclinical Data'
-    
-    
-    #      geom_bracket(
-    #        xmin = c(1, 2), xmax = c(3, 4),
-    #   # xmin = "0.5", xmax = "1",
-    #   # inherit.aes = T,
-    #   y.position = 30,
-    #   label = "t-test, p < 0.05"
-  # )
-  
-  #       geom_bracket(
-  #  aes(xmin = group1, xmax = group2, label = signif(p, 2)),
-  #  data = clinical.posthoc, y.position = c(32, 35, 38, 30)
-  # )
-  
-  
-  # zelfde issue
-  
-  # code hieronder werkt
-  ggpubr::stat_pvalue_manual(
-    data.frame(clinical.posthoc.valence), inherit.aes=F,
-    # hide.ns = TRUE,
-    # step.group.by=factor(phase, levels =c("Learning", "Memory", "Extinction")),
-    
-    y.position = 0.3, #step.increase = 0.1,
-    label = "p = {p}"
-  )
-  
-  out<-list(resultMain,PLOT.clinical)
-  
-  return(out)
-  
-}
+    valence= factor(valence, levels =c("Neutral", "Emotional")),
+    # plot_data_coded$test = factor(plot_data_coded$test)
+    test = factor(test, levels = c("neutral Learning", "fear Learning", "neutral Memory", "emotional Memory", "fear Extinction")#,
+                  # labels = c("neutral", "fear", "neutral", "emotional", "fear")
+                  
+    )
+  ) ->clinical_plot_data_coded
 
 
+# plot_data_coded$sig<- ifelse(plot_data_coded$Pvalue_bonfCorr  <0.05, 1, 0)
+
+
+# https://www.datanovia.com/en/blog/ggpubr-how-to-add-p-values-generated-elsewhere-to-a-ggplot/
+
+clinical.results %>% 
+  select(test,p=Pvalue_bonfCorr) %>% 
+  filter(grepl("valence",test,fixed = T)) %>% 
+  mutate(
+    group1 = case_when(
+      # grepl("phase.neutral",test) ~ "neutral Learning",
+      #   grepl("phase.emotional",test) ~ "fear Learning"#,
+      
+      grepl("valence.learning",test) ~ "neutral Learning",
+      grepl("valence.memory",test) ~ "neutral Memory"
+    ),
+    
+    group2 = case_when(
+      # grepl("phase.neutral",test) ~ "neutral Memory",
+      # grepl("phase.emotional",test) ~ "emotional Memory"#,
+      
+      grepl("valence.learning",test) ~ "fear Learning",
+      grepl("valence.memory",test) ~ "emotional Memory"
+    ),
+    
+    phase = 
+      case_when(
+        grepl("learning",test) ~ "Learning",
+        grepl("memory",test) ~ "Memory"),
+    # c( "Learning", "Memory"),
+    p.adj = ifelse(p == 0, yes = "p<.001", no = paste0("p=",round(p,3)))
+    # valence = c("Neutral", "Emotional", NA, NA)
+  ) %>% group_by(phase)-> clinical.posthoc.valence
+
+
+# plot_data_coded$valence= factor(plot_data_coded$valence, levels =c("Neutral", "Emotional"))
+# # plot_data_coded$test = factor(plot_data_coded$test)
+# plot_data_coded$test = factor(plot_data_coded$test, levels = c("neutral Learning", "fear Learning", "neutral Memory", "emotional Memory", "fear Extinction")#,
+#                               # labels = c("neutral", "fear", "neutral", "emotional", "fear")
+# )
+
+PLOT.clinical <-
+  ggplot(clinical_plot_data_coded,
+         aes(x = test, y = effectsize, fill=valence)) +
+  labs(
+    title = "Clinical Data",
+    subtitle = "PTSD patients",
+    y="Hedge's G (CI)", # could also be "Standardized mean difference"
+    x="") + 
+  facet_grid (.~ factor(phase, levels =c("Learning", "Memory", "Extinction")),  # width scaled (better for extinction)
+              scales = "free_x", space = "free_x", switch = "x" # labels onder
+              # je kan de andere factor levels nog toevoegen en dan hier drop =F, bv voor het vergelijkbaar maken met dieren?
+  ) +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
+  scale_fill_manual(
+    values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+               "Emotional" = "tomato2")) +
+  geom_bar(stat = "identity")+
+  geom_hline(yintercept = 0, size = 1) +
+  geom_errorbar(aes(ymin = ci.lb,
+                    ymax = ci.ub),
+                width = .3) +
+  # theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  
+  # sig marks
+  geom_point(data = clinical_plot_data_coded[clinical_plot_data_coded$sig ==1, ],aes(x=test, y=1), shape = "*", size=10, show.legend = FALSE) +  # to make position dynamic use: y=ci.ub+1.5
+  
+  # y_sig_position <- 1 #  ifelse(title=='Clinical Data', 1  , 3.3 )
+  #  title='Preclinical Data'
+  
+  ggpubr::stat_pvalue_manual( data.frame(clinical.posthoc.valence), inherit.aes=F,
+                              y.position = 0.3, 
+                              # label = "p = {round(p,3)}", 
+                              label =  "p.adj",
+                              
+                              size=4) +
+  
+  scale_x_discrete(labels=c("neutral Learning" = "neutral", 
+                            "fear Learning" = "fear",
+                            "neutral Memory" = "neutral",
+                            "emotional Memory" = "emotional",
+                            "fear Extinction" = "fear"))
+
+#   out<-list(resultMain,PLOT.clinical)
+#   
+#   return(out)
+#   
+# }
+
+PLOT.clinical
 ```
 
 run function & save plots
 ```{r}
-TRACE_clinical_valence_phase(mod.H,"Clinical Data","PTSD patients") ->clinical.results
-clinical.results
-
-clinical.results[[2]]
-
-
+# TRACE_clinical_valence_phase(mod.H) ->clinical.results
+# clinical.results [[2]] +  theme(text = element_text(size = 12)) 
 
 # save
-write.csv2(clinical.results[[1]], paste0("results/LearningMemoryPTSD_clinical", date(),".csv"))
+write.csv2(clinical.results, paste0("results/phase_valence_PTSD_clinical", date(),".csv"))
+ggsave(paste0("results/phase_valence_PTSD_clinical", date(),".jpg"),
+       plot=PLOT.clinical+  theme(text = element_text(size = 12)),
+       device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
 
-ggsave(paste0("results/LearningMemoryPTSD_clinical", date(),".jpg"),
-       plot=clinical.results[[2]],
-       device="jpg", dpi = 300, height = 4, width = 6, limitsize = T )
-
-
-
+# jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
+# clinical.results[[2]]
+# dev.off()
 ```
 
 ```{r eval=FALSE, fig.height=40, fig.width=8, include=FALSE}
@@ -493,15 +448,13 @@ dev.off()
 ```
 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 mod.A <- rma.mv(yi, vi,
-                random = list(~1 | new.idPTSD , ~1 | PMID), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
-                # mods   = ~phase.valence - 1, #NL & M impaired, rest improved
-                mods = ~valence:phase-1, # identical resuls as above (so recoded var not needed)
+                random = list(~1 | new.idPTSD , ~1 | PMID),
+                mods = ~valence:phase-1,
                 method = "REML",
-                slab = preclinical$reference,  # from old codes milou (change for author/year)
-                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
+                slab = preclinical$reference, 
+                data = preclinical) 
 summary(mod.A)
 ```
 
@@ -510,6 +463,217 @@ forest(mod.A, cex = 0.4)
 ```
 
 
+```{r}
+
+TRACE_preclinical_valence_phase <- function(model){
+  
+  valence.learning <-anova(model, L = c(0,0,1,-1,
+                                        0,0,0)) # neutral (-) vs fear learning
+  
+  # valence.memoryNS <- anova(model, L = c(0,0,0,0,
+  #                                      0.5,-1, 0.5)) # neural =- (fear & trauma together compared to neutral)
+  
+  valence.memory.NF <- anova(model, L = c(0,0,0,0, # neutral (-) vs fear memory
+                                          1,-1, 0))
+  
+  valence.memory.NT <- anova(model, L = c(0,0,0,0, # neutral (-) vs trauma memory
+                                          0,-1, 1))
+  
+  valence.memory.FT <- anova(model, L = c(0,0,0,0, # fear (-) vs trauma memory
+                                          -1,0, 1))
+  
+  valence.extinction <- anova(model, L= c(-1, 1,0,0,
+                                          0,0,0)) # fear (-) vs trauma extinction
+  
+  #RQ3: neutral and stressful learning and memory in 
+  fearExtinction <- anova(model, L = c(1,0, 0, 0,0,0,0))
+  traumaExtinction <-anova(model, L = c(0,1, 0, 0,0,0,0))
+  
+  fearLearning <- anova(model, L = c(0,0,1, 0,0,0,0))
+  neutralLearning <- anova(model, L = c(0,0,0, 1, 0,0,0))
+  # emotionalMemory <- anova(model, L = c(0,0, 0, 1,0,0,0))
+  fearMemory <- anova(model, L = c(0,0, 0,0,1,0,0))
+  neutralMemory <- anova(model, L = c(0,0, 0, 0, 0,1,0))
+  traumaMemory <- anova(model, L = c(0,0, 0, 0, 0,0,1))
+  
+  
+  ##Summary results organized in table
+  resultMain <- data.frame(matrix(data = NA, nrow = 12, ncol = 8)) #V new
+  
+  colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
+                            "effectsize", "se", "Zvalue",  
+                            "Pvalue", "Pvalue_bonfCorr")
+  
+  resultMain[,1] <- c(
+    "valence.learning: neutral vs fear (learning)", 
+    "valence.memory NF: neutral vs fear (memory)", "valence.memory NT: neutral vs trauma (memory)",  "valence.memory FT: fear vs trauma (memory)",
+    "valence.extinction: fear vs trauma (extinction)",
+    "neutral Learning", "neutral Memory", 
+    "fear Learning", "fear Memory", "fear Extinction",
+    "trauma Memory","trauma Extinction")
+  
+  resultMain[,4] <- round(c(
+    valence.learning$Lb, 
+    valence.memory.NF$Lb, valence.memory.NT$Lb, valence.memory.FT$Lb,
+    valence.extinction$Lb,
+    neutralLearning$Lb, neutralMemory$Lb,
+    fearLearning$Lb, fearMemory$Lb,  fearExtinction$Lb,
+    traumaMemory$Lb, traumaExtinction$Lb
+    
+  ), digits = 4) #effect size
+  
+  resultMain[,5] <- round(c(
+    valence.learning$se, 
+    valence.memory.NF$se, valence.memory.NT$se, valence.memory.FT$se,
+    valence.extinction$se,
+    neutralLearning$se, neutralMemory$se,
+    fearLearning$se, fearMemory$se,  fearExtinction$se,
+    traumaMemory$se, traumaExtinction$se
+  ), digits = 4) #se
+  
+  resultMain[,6] <- round(c(
+    valence.learning$zval, 
+    valence.memory.NF$zval, valence.memory.NT$zval, valence.memory.FT$zval,
+    valence.extinction$zval,
+    neutralLearning$zval, neutralMemory$zval,
+    fearLearning$zval, fearMemory$zval,  fearExtinction$zval,
+    traumaMemory$zval, traumaExtinction$zval
+  ), digits = 4)  #zvalues
+  
+  resultMain[,7] <- round(c(
+    valence.learning$pval, 
+    valence.memory.NF$pval, valence.memory.NT$pval, valence.memory.FT$pval,
+    valence.extinction$pval,
+    neutralLearning$pval, neutralMemory$pval,
+    fearLearning$pval, fearMemory$pval,  fearExtinction$pval,
+    traumaMemory$pval, traumaExtinction$pval
+  ), digits = 4)  #pvalues
+  
+  resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
+  resultMain[,3] <- round(resultMain[,4] + (resultMain[,5] * 1.96), digits = 4) #CI upper
+  
+  resultMain[,8] <- round(p.adjust(resultMain[,7], method = "bonferroni", n = 12),
+                          digits = 4) #pvalue bonf correction
+  
+  return(resultMain)
+  
+}
+
+TRACE_preclinical_valence_phase(mod.A)->preclinical.results
+
+
+preclinical.results %>% 
+  filter(test %in% c("neutral Learning", "neutral Memory", 
+                       "fear Learning", "fear Memory", "fear Extinction",
+                       "trauma Memory","trauma Extinction"
+  )) %>% 
+  mutate(
+    valence = ifelse(test %in% c("neutral Learning", "neutral Memory"), "Neutral", "Emotional"),
+    phase = case_when(
+      grepl("Learning",test) ~ "Learning", 
+      grepl("Memory",test) ~ "Memory", 
+      grepl("Extinction",test) ~ "Extinction"
+    ),
+    # signal sig. categories. Add index for p-values smaller than 0.05
+    sig =ifelse(Pvalue_bonfCorr<0.05, 1, 0),
+    valence= factor(valence, levels =c("Neutral", "Emotional")),
+    test = factor(test, levels = c("neutral Learning", "fear Learning", "neutral Memory", "fear Memory", "trauma Memory", "fear Extinction", "trauma Extinction")#,
+                  # labels = c("neutral", "fear", "neutral", "emotional", "fear")
+    )
+  ) ->preclinical_plot_data_coded
+
+
+# https://www.datanovia.com/en/blog/ggpubr-how-to-add-p-values-generated-elsewhere-to-a-ggplot/
+preclinical.results %>% 
+  select(test,p=Pvalue_bonfCorr) %>% 
+  filter(grepl("valence",test,fixed = T)) %>% 
+  mutate(
+    group1 = case_when(
+      grepl("valence.learning",test) ~ "neutral Learning",
+      grepl("valence.memory NF",test) ~ "neutral Memory",
+      grepl("valence.memory NT",test) ~ "neutral Memory",
+      grepl("valence.memory FT",test) ~ "fear Memory",
+      grepl("valence.extinction",test) ~ "fear Extinction"
+    ),
+    group2 = case_when(
+      grepl("valence.learning",test) ~ "fear Learning",
+      grepl("valence.memory NF",test) ~ "fear Memory",
+      grepl("valence.memory NT",test) ~ "trauma Memory",
+      grepl("valence.memory FT",test) ~ "trauma Memory",
+      grepl("valence.extinction",test) ~ "trauma Extinction"
+    ),
+    phase = case_when(
+      grepl("learning",test) ~ "Learning",
+      grepl("memory",test) ~ "Memory",
+      grepl("extinction",test) ~ "Extinction"
+    ),
+    p.adj = ifelse(p == 0, yes = "p<.001", no = paste0("p=",round(p,3)))
+  ) %>% group_by(phase)-> preclinical.posthoc.valence
+
+
+PLOT.preclinical <-
+  ggplot(preclinical_plot_data_coded,
+         aes(x = test, y = effectsize, fill=valence)) +
+  labs(
+    title = "Preclinical Data",
+    subtitle = "PTSD animal models",
+    y="Hedge's G (CI)", # could also be "Standardized mean difference"
+    x="") + 
+  facet_grid (.~ factor(phase, levels =c("Learning", "Memory", "Extinction")),  # width scaled (better for extinction)
+              scales = "free_x", space = "free_x", switch = "x" # labels onder
+              # je kan de andere factor levels nog toevoegen en dan hier drop =F, bv voor het vergelijkbaar maken met dieren?
+  ) +
+  theme_linedraw() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
+  scale_fill_manual(
+    values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+               "Emotional" = "tomato2")) +
+  geom_bar(stat = "identity")+
+  geom_hline(yintercept = 0, size = 1) +
+  geom_errorbar(aes(ymin = ci.lb,
+                    ymax = ci.ub),
+                width = .3) +
+  # theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  
+  # sig marks
+  geom_point(data = preclinical_plot_data_coded[preclinical_plot_data_coded$sig ==1, ],aes(x=test, y=3.6), shape = "*", size=10, show.legend = FALSE) +  # to make position dynamic use: y=ci.ub+1.5
+  
+  ggpubr::stat_pvalue_manual(data.frame(preclinical.posthoc.valence), inherit.aes=F,
+                             y.position = 1.8, step.increase = 0.1,
+                             step.group.by ="phase",
+                             # label = "p = {round(p,3)}", # this works
+                             label = "p.adj",
+                             size=4) +
+  
+  scale_x_discrete(labels=c("neutral Learning" = "neutral",
+                            "fear Learning" = "fear",
+                            "neutral Memory" = "neutral",
+                            "fear Memory" = "fear",
+                            "trauma Memory" = "trauma",
+                            "fear Extinction" = "fear",
+                            "trauma Extinction"= "trauma"))
+
+PLOT.preclinical
+```
+
+
+
+run function & save plots
+```{r}
+# TRACE_clinical_valence_phase(mod.H) ->clinical.results
+# clinical.results [[2]] +  theme(text = element_text(size = 12)) 
+
+# save
+write.csv2(preclinical.results, paste0("results/phase_valence_PTSD_preclinical", date(),".csv"))
+ggsave(paste0("results/phase_valence_PTSD_preclinical", date(),".jpg"),
+       plot=PLOT.preclinical+  theme(text = element_text(size = 12)),
+       device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
+
+# jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
+# clinical.results[[2]]
+# dev.off()
+```
 
 
 ## **data presenation**
