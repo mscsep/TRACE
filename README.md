@@ -29,8 +29,12 @@
 
 -  check potential comparisons `check_comparisons.rmd`
 
-
 - meta-regression Valence x Phase: `TheoryDrivenAnalysis.r` [earlier analysis.r]
+
+--> 1e analysis is phase x valence 
+[ with different sub comparisons for animal and human ]
+
+- follow-up might be with cuectx for animals (not enough context data for humans)
 
 
 
