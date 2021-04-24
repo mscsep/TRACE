@@ -107,36 +107,12 @@ excluded.levels.animal
 
 
 
-# **multilevel models**
-code for posthoc Analyses + Plot:
-
-```{r eval=FALSE, include=FALSE}
-source("r/model_valence_phase.r")
-```
+# multilevel models
 
 
 ## *Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients*
-```{r eval=FALSE, include=FALSE}
-mod.H <- rma.mv(yi, vi,
-                random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                mods   = ~phase:Valence_Grouped - 1,
-                method = "REML",
-                slab = clinical$reference,  # from old codes milou (change for author/year)
-                data = clinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.H)
 
-
-
-human<-TRACE_output(mod.H, title='Clinical Data', subtitle='PTSD patients' )  # volgorde contrasten klopt niet meer met code (emotional - stressvul)
-human
-
-# to save
-jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
-human[[2]]
-dev.off()
-```
-
-# unfilterd data
+### Model - unfilterd data
 ```{r eval=FALSE, include=FALSE}
 mod.H.total <- rma.mv(yi, vi,
                       random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
@@ -150,7 +126,7 @@ mod.H.total <- rma.mv(yi, vi,
 summary(mod.H.total)
 ```
 
-
+### Model - filtered data
 ```{r}
 mod.H <- rma.mv(yi, vi,
                 random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
@@ -164,7 +140,7 @@ mod.H <- rma.mv(yi, vi,
 summary(mod.H)
 ```
 
-add contrasts
+### add contrasts
 ```{r}
 TRACE_clinical_valence_phase <- function(model){
   
@@ -286,7 +262,10 @@ TRACE_clinical_valence_phase <- function(model){
 }
 
 TRACE_clinical_valence_phase(mod.H)->clinical.results
+```
 
+###create plot
+```{r}
 clinical.results %>% 
   filter(test %in% c( "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")) %>% 
   mutate(
@@ -395,23 +374,15 @@ PLOT.clinical <-
                             "emotional Memory" = "emotional",
                             "fear Extinction" = "fear"))
 
-#   out<-list(resultMain,PLOT.clinical)
-#   
-#   return(out)
-#   
-# }
-
 PLOT.clinical
 ```
 
-run function & save plots
+### run function & save plots
 ```{r}
-# TRACE_clinical_valence_phase(mod.H) ->clinical.results
-# clinical.results [[2]] +  theme(text = element_text(size = 12)) 
-
-# save
-write.csv2(clinical.results, paste0("results/phase_valence_PTSD_clinical", date(),".csv"))
-ggsave(paste0("results/phase_valence_PTSD_clinical", date(),".jpg"),
+write.csv2(clinical.results, paste0("results/phase_valence_PTSD_clinical", #date(),
+                                    ".csv"))
+ggsave(paste0("results/phase_valence_PTSD_clinical", #date(),
+              ".jpg"),
        plot=PLOT.clinical+  theme(text = element_text(size = 12)),
        device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
 
@@ -428,26 +399,106 @@ forest(mod.H, cex = .2)
 ```
 
 
-## *Research Question 2: Learning and Memory of stressful and non-stressful information in animal models of PTSD*
-```{r eval=FALSE, include=FALSE}
-mod.A <- rma.mv(yi, vi,
-                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
-                method = "REML",
-                slab = preclinical$reference,  # from old codes milou (change for author/year)
-                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.A)
+### diagnostics clinical
 
-animal<-TRACE_output(mod.A, title='Preclinical Data', subtitle='animal models for PTSD')
-animal
+#### Heterogeneity
+out oic meta code
+"The I² statistic was used to assess heterogeneity of effect sizes. According to Higgins et al. (2003) values of 25, 50 and 75% are indicative of low, moderate and high heterogeneity, respectively. Rosenthal’s fail-safe N was used to assess the robustness of effect sizes. Fail-safe N determines the number of studies with effect size 0 that would be necessary to cancel out significant effect sizes. Effect sizes were considered robust when N values>5k + 10, where k refers to the number of studies used in the meta-analysis (Rosenthal, 1995). The possibility of publication bias was also assessed by Egger Funnel plot asymmetry (Egger et al., 1997) and all reported significance tests were two tailed with α = .05." [Sep MSC, Steenmeijer A, Kennis M. The relation between anxious personality traits and fear generalization in healthy subjects: A systematic review and meta-analysis. Neurosci Biobehav Rev 2019; 107: 320–328.]
 
-# to save
-jpeg(file="results/preclinical.jpeg", height = 2000, width = 1500, res=300)
-animal[[2]]
+
+```{r}
+# heterogeneity from multilevel model
+# heterogeneity (i2)
+# http://www.metafor-project.org/doku.php/tips:i2_multilevel_multivariate
+# dat=data6
+Wc <- diag(1/clinical.filtered$vi)
+Xc <- model.matrix(mod.H)
+Pc <- Wc - Wc %*% Xc %*% solve(t(Xc) %*% Wc %*% Xc) %*% t(Xc) %*% Wc
+100 * sum(mod.H$sigma2) / (sum(mod.H$sigma2) + (mod.H$k-mod.H$p)/sum(diag(Pc)))
+```
+
+
+```{r}
+# between & within variance
+100 * mod.H$sigma2 / (sum(mod.H$sigma2) + (mod.H$k-mod.H$p)/sum(diag(Pc)))
+# sig 2.1 -> variance in xperimental group
+# 8.55% within study ( experimental group) 75,4% between study ( PMID)
+```
+
+
+
+#### Publication bias: funnel
+
+```{r}
+tiff(file="results/funnel.colours.clinical.tiff", height=1500, width=1500, pointsize=8, res=300)
+funnel(mod.H, legend = F, col=clinical.filtered$PMID, 
+       back = 'white'#,xlab='mean DR'
+       )
 dev.off()
 ```
 
 
+
+#### robustness of effect
+```{r}
+# #random effects model for evaluation of publication bias
+# modRanEff <- rma.uni(yi, vi,
+#                      #random = list(~1 | each, ~1 | exp),
+#                      mods = ~domain:hit2Grouped - 1,
+#                      method = "REML",
+#                      digits = 3,
+#                      data = dat)
+
+mod.H.bias <- rma.uni(yi, vi,
+                # random = list(~1 | new.idPTSD , ~1 | PMID),
+                mods = ~valence:phase-1,
+                method = "REML",
+                slab = clinical.filtered$reference, 
+                data = clinical.filtered) 
+# summary(mod.A.bias)
+```
+
+##### Egger's regression
+```{r}
+regtest(mod.H.bias, ret.fit = TRUE) #Egger's regression random effects (mixed not available)
+```
+
+
+
+
+
+##### Begg's test
+```{r}
+regtest(clinical.filtered$yi, clinical.filtered$vi)
+```
+
+##### file drawer analysis (fail and safe)
+```{r}
+fsn(yi = yi, vi = vi, 
+           data = clinical.filtered, type = "Rosenthal")
+```
+
+
+##### trim and fill
+```{r}
+mod.H.bias2 <- rma.uni(yi, vi,
+                # random = list(~1 | new.idPTSD , ~1 | PMID),
+                #mods = ~valence:phase-1,
+                method = "REML",
+                slab = clinical.filtered$reference, 
+                data = clinical.filtered) 
+# summary(mod.A.bias)
+trimfill(mod.H.bias2) # only available for model with moderators
+```
+
+
+
+
+
+
+## *Research Question 2: Learning and Memory of emotional and non-emotional information in animal models of PTSD*
+
+### Model
 ```{r}
 mod.A <- rma.mv(yi, vi,
                 random = list(~1 | new.idPTSD , ~1 | PMID),
@@ -462,9 +513,8 @@ summary(mod.A)
 forest(mod.A, cex = 0.4)
 ```
 
-
+### add contrasts
 ```{r}
-
 TRACE_preclinical_valence_phase <- function(model){
   
   valence.learning <-anova(model, L = c(0,0,1,-1,
@@ -560,8 +610,10 @@ TRACE_preclinical_valence_phase <- function(model){
 }
 
 TRACE_preclinical_valence_phase(mod.A)->preclinical.results
+```
 
-
+### create plot
+```{r}
 preclinical.results %>% 
   filter(test %in% c("neutral Learning", "neutral Memory", 
                        "fear Learning", "fear Memory", "fear Extinction",
@@ -659,14 +711,16 @@ PLOT.preclinical
 
 
 
-run function & save plots
+### run function & save plots
 ```{r}
 # TRACE_clinical_valence_phase(mod.H) ->clinical.results
 # clinical.results [[2]] +  theme(text = element_text(size = 12)) 
 
 # save
-write.csv2(preclinical.results, paste0("results/phase_valence_PTSD_preclinical", date(),".csv"))
-ggsave(paste0("results/phase_valence_PTSD_preclinical", date(),".jpg"),
+write.csv2(preclinical.results, paste0("results/phase_valence_PTSD_preclinical", #date(),
+                                       ".csv"))
+ggsave(paste0("results/phase_valence_PTSD_preclinical", #date(),
+              ".jpg"),
        plot=PLOT.preclinical+  theme(text = element_text(size = 12)),
        device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
 
@@ -675,20 +729,103 @@ ggsave(paste0("results/phase_valence_PTSD_preclinical", date(),".jpg"),
 # dev.off()
 ```
 
+### Diagnostics preclinical
 
-## **data presenation**
+#### Heterogeneity
+```{r}
+# heterogeneity from multilevel model
+# heterogeneity (i2)
+# http://www.metafor-project.org/doku.php/tips:i2_multilevel_multivariate
+# dat=data6
+Wp <- diag(1/preclinical$vi)
+Xp <- model.matrix(mod.A)
+Pp <- Wp - Wp %*% Xp %*% solve(t(Xp) %*% Wp %*% Xp) %*% t(Xp) %*% Wp
+100 * sum(mod.A$sigma2) / (sum(mod.A$sigma2) + (mod.A$k-mod.A$p)/sum(diag(Pp)))
+```
+
+
+```{r}
+# between & within variance
+100 * mod.A$sigma2 / (sum(mod.A$sigma2) + (mod.A$k-mod.H$p)/sum(diag(Pp)))
+# sig 2.1 -> variance in xperimental group
+# 5.3% within study ( experimental group) 89,4% between study ( PMID)
+```
+
+#### Publication bias: funnel
+```{r}
+tiff(file="results/funnel.colours.preclinical.tiff", height=1500, width=1500, pointsize=8, res=300)
+funnel(mod.A, legend = F, col=preclinical$PMID, back = 'white'#,xlab='mean DR'
+       )
+dev.off()
+```
+
+
+#### robustness of effect
+```{r}
+# #random effects model for evaluation of publication bias
+# modRanEff <- rma.uni(yi, vi,
+#                      #random = list(~1 | each, ~1 | exp),
+#                      mods = ~domain:hit2Grouped - 1,
+#                      method = "REML",
+#                      digits = 3,
+#                      data = dat)
+
+mod.A.bias <- rma.uni(yi, vi,
+                # random = list(~1 | new.idPTSD , ~1 | PMID),
+                mods = ~valence:phase-1,
+                method = "REML",
+                slab = preclinical$reference, 
+                data = preclinical) 
+# summary(mod.A.bias)
+```
+
+##### Egger's regression
+```{r}
+regtest(mod.A.bias, ret.fit = TRUE) #Egger's regression random effects (mixed not available)
+```
+
+##### Begg's test
+```{r}
+regtest(preclinical$yi, preclinical$vi)
+```
+
+##### file drawer analysis (fail and safe)
+```{r}
+fsn(yi = yi, vi = vi, 
+           data = preclinical, type = "Rosenthal")
+```
+
+
+##### trim and fill
+```{r}
+mod.A.bias2 <- rma.uni(yi, vi,
+                # random = list(~1 | new.idPTSD , ~1 | PMID),
+                #mods = ~valence:phase-1,
+                method = "REML",
+                slab = preclinical$reference, 
+                data = preclinical) 
+# summary(mod.A.bias)
+trimfill(mod.A.bias2) # only available for model with moderators
+```
+
+
+## Merge clinical and preclinical plots
 ```{r}
 # Show clincal & preclinical data in one figure.
 plots<-ggarrange(
-  human[[2]]
+  PLOT.clinical
   #  + ylim(-7.5,3.5)  # If you want y-axis the same for clinical and preclinical
-  + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+  # + rremove("x.text") 
+  + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
   + rremove("y.axis") + rremove("y.ticks"),
   
-  animal[[2]]
+  PLOT.preclinical
   # + ylim(-7.5,3.5)   # If you want y-axis the same for clinical and preclinical
-  + rremove("x.text") + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
-  + rremove("ylab") + rremove("y.axis") + rremove("y.ticks"),
+  # + rremove("x.text") 
+  + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+  + #rremove("ylab") + 
+    rremove("y.axis") + rremove("y.ticks"),
+  ncol =1, nrow=2,
   align = "v",
   legend="bottom",
   common.legend = T)
@@ -698,9 +835,10 @@ plots
 
 ## **safe results**
 ```{r}
-# Save figure to jpeg.x
-#ggsave(paste0("LearningMemoryPTSD_TRACE", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
-ggsave(paste0("results/LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"), device="jpg", dpi = 300, height = 4, width = 6, limitsize = T )
+ggsave(paste0("results/PTSD.clinical.preclinical", #date(),
+              ".jpg"), 
+       plot=plots,
+       device="jpg", dpi = 300, height = 8, width = 6, limitsize = T )
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 # ppt standard 4:3
 ```
@@ -713,24 +851,26 @@ ggsave(paste0("results/LearningMemoryPTSD_TRACE_NOinfluentials", date(),".jpg"),
 
 ### Clinical
 ```{r}
-mod.H <- rma.mv(yi, vi,
-                random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                mods   = ~phase:Valence_Grouped - 1,
+mod.H.QA <- rma.mv(yi, vi,
+                random = list(~1 | new.idPTSD , ~1 | PMID),  
+                # mods = ~valence:phase-1, 
+                   mods = ~QA_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
                 method = "REML",
-                slab = clinical$reference,  # from old codes milou (change for author/year)
-                data = clinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.H)
+                slab = clinical.filtered$reference, 
+                data = clinical.filtered) 
+summary(mod.H.QA)
 ```
 
 ### Preclinical
 ```{r}
-mod.A <- rma.mv(yi, vi,
-                random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+# str(preclinical)
+mod.A.QA <- rma.mv(yi, vi,
+                random = list(~1 | new.idPTSD , ~1 | PMID),
+                mods = ~QA_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
                 method = "REML",
-                slab = preclinical$reference,  # from old codes milou (change for author/year)
-                data = preclinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.A)
+                slab = preclinical$reference, 
+                data = preclinical) 
+summary(mod.A.QA)
 ```
 
 
@@ -739,13 +879,16 @@ summary(mod.A)
 phase x valence meta-regression
 
 without cases that were identified as influential &outlier -> for sensitivity analysis
+```{r}
+source("R/influentials_valence_phase.R")
+```
 
 
 ### clinical
 ```{r}
-#clinical.inf<-influentials_valence_phase(clinical)
+clinical.inf<-influentials_valence_phase(clinical.filtered)
 #saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
-readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+# readRDS("processed_data/influentials.clinical.rds")->clinical.inf
 
 # potential outlier and influential cases
 clinical.inf[which(clinical.inf$outInf == 1),] %>% nrow()# 15 comparisons
@@ -765,23 +908,21 @@ clinical.inf %>%
 
 ```{r}
 mod.H.noinf <- rma.mv(yi, vi,
-                      random = list(~1 | PMID, ~1 | idPTSD),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                      mods   = ~phase:Valence_Grouped - 1,
-                      method = "REML",
+                             random = list(~1 | new.idPTSD , ~1 | PMID),  
+                mods = ~valence:phase-1, 
+                method = "REML",
                       slab = clinical.noinfout$reference,  # from old codes milou (change for author/year)
                       data = clinical.noinfout) # Similar effects with dat2 (trauma learning excluded)
 
 summary(mod.H.noinf)
-
 ```
 
 
 ### preclinical
 ```{r}
-source("r/influentials_valence_phase.r")
-#preclinical.inf<-influentials_valence_phase(preclinical)
+preclinical.inf<-influentials_valence_phase(preclinical)
 #saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
-readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
+# readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
 
 # potential outlier and influential cases
 preclinical.inf[which(preclinical.inf$outInf == 1),] %>% nrow() # 11 comparisons
@@ -809,14 +950,14 @@ preclinical.inf %>%
 
 ```{r}
 mod.A.noinf <- rma.mv(yi, vi,
-                      random = list(~1 | PMID, ~1 | idPTSD), # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                      mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
-                      method = "REML",
+                random = list(~1 | new.idPTSD , ~1 | PMID),  
+                mods = ~valence:phase-1, 
+                method = "REML",
                       slab = preclinical.noinfnoout$reference,  # from old codes milou (change for author/year)
                       data = preclinical.noinfnoout) # Similar effects with dat2 (trauma learning excluded)
 summary(mod.A.noinf)
 ```
 
 
-
+## comparision types?
 
