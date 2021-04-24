@@ -11,7 +11,8 @@ influentials_valence_phase <- function(dataset){
   #available in rma.uni model of metafor package
   univarMOD <- rma.uni(yi, vi,
                        #random = list(~1 | each, ~1 | idExp),
-                       mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                       # mods   = ~phase:Valence_Grouped - 1,  # NB only interaction term
+                       mods = ~valence:phase-1,
                        method = "REML",
                        data = dataset) # Similar effects with dat2 (trauma learning excluded)
   summary(univarMOD)
@@ -28,13 +29,13 @@ influentials_valence_phase <- function(dataset){
   dataset %>% 
     group_by(potInf) %>% 
     summarize(length(each), 
-              length(unique(idPTSD)),
+              length(unique(new.idPTSD)),
               length(unique(PMID)))
   
   dataset %>% 
     group_by(potOut) %>% 
     summarize(length(each), 
-              length(unique(idPTSD)),
+              length(unique(new.idPTSD)),
               length(unique(PMID)))
   
   
@@ -44,7 +45,7 @@ influentials_valence_phase <- function(dataset){
   dataset %>% 
     group_by(outInf) %>% 
     summarize(length(each), 
-              length(unique(idPTSD)),
+              length(unique(new.idPTSD)),
               length(unique(PMID)))
   
   
