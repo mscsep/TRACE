@@ -141,8 +141,8 @@ data5$each <- c(1:nrow(data5))
 
 # Add QA info
 ```{r}
-readRDS("processed_data/TRACE_QA_animal.RData") %>% select(PMID, QA_score)->QA.A
-readRDS("processed_data/TRACE_QA_human.RData") %>% select(PMID, QA_score)->QA.H
+readRDS("processed_data/TRACE_QA_animal.RData") %>% select(PMID, RoB_score)->QA.A
+readRDS("processed_data/TRACE_QA_human.RData") %>% select(PMID, RoB_score)->QA.H
 
 bind_rows(QA.A, QA.H) %>% mutate(PMID = as.character(PMID))->QA
 
