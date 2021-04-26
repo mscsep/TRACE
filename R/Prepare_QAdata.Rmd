@@ -4,7 +4,7 @@ author: "Milou Sep"
 date: "4/15/2021"
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +15,11 @@ library(osfr)
 
 library(readxl)
 library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+
+
 ```
 
 # retrieve OSF files 
@@ -25,16 +30,16 @@ osf_retrieve_file("tckb5") %>% osf_download(path = "data", conflicts="overwrite"
 # load animal / preclinical data
 ```{r}
 A1 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search1")
-str(A1)                 
+# str(A1)                 
 A1 = A1[-1,] # drop first row is sort of extra header
 
 A2 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search2")
 A2 = A2[-1,] # drop first row is sort of extra header
-str(A2)
+# str(A2)
 
 A3 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_animal_search3")
 A3 = A3[-1,] # drop first row is sort of extra header
-str(A3)
+# str(A3)
 ```
 
 merge animal
@@ -51,11 +56,11 @@ H1 = H1[-1,] # drop first row is sort of extra header
 
 H2 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_search2")
 H2 = H2[-1,] # drop first row is sort of extra header
-str(H2)
+# str(H2)
 
 H3 <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_search3")
 H3 = H3[-1,] # drop first row is sort of extra header
-str(H3)
+# str(H3)
 ```
 
 merge human
@@ -79,10 +84,10 @@ Hcode <- read_excel("data/TRACE_RoBQA_data.xlsx", sheet = "RoBQA_human_coding")
 
 QA.H %>% 
   mutate_at( .vars=(Hcode$var[1:8]), ~substr(.,1,1)) %>%
-mutate_at(.vars=(Hcode$var[1:8]), ~case_when(
+  mutate_at(.vars=(Hcode$var[1:8]), ~case_when(
     grepl("Y|y",.) ~"0",  # NB yes is low risk of bias
     grepl("N|n",.) ~ "1", # NB no is high risk of bias
-  grepl("U|u",.) ~ "0.5")) %>%
+    grepl("U|u",.) ~ "0.5")) %>%
   mutate_at( .vars=(Hcode$var[1:8]), as.numeric) %>%
   mutate(RoB_score = select(.,Hcode$var[1:8]) %>% rowSums()) %>%
   mutate_at( .vars=(Hcode$var[1:8]), factor) %>%
@@ -116,7 +121,7 @@ QA.A %>%
 #checks
 head(QA.A.recoded)
 
-QA.A.recoded
+# QA.A.recoded
 is.na(QA.A.recoded) %>% any() # should be non
 ```
 
@@ -129,131 +134,109 @@ saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
 
 ## Visualize study quality
 
-
+### Clinical data
 ```{r}
 pivot_longer(QA.H.recoded, cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
-count(question, score) %>%
-    mutate(
-       question = factor(question, levels = c(
-                         "RoBQA_NOS_S1_validPTSD", "RoBQA_NOS_S2_repCase", "RoBQA_NOS_S3_repControl", "RoBQA_NOS_S4_defControl", 
-                         "RoBQA_NOS_C_confounders", "RoBQA_NOS_E1_outcome", "RoBQA_NOS_E2_sameOut", "RoBQA_NOS_E3_nonRep"
-                         ),
-         labels = c("PTSD measure (S1)", "representative PTSD subjects (S2)", "representative control subjects (S3)", "control definition (S4)",
-                    "adjustments for confounders (C)", "behavioural measure (E1) ", "same task case control (E2)", "same non-response rate (E3)"
-                    )
-       ), # reorder levels
-         score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
-                      labels=c("Low RoB", "Unclear", "High RoB"))
-       ) -> QA.H.recoded.long
+  count(question, score) %>%
+  mutate(
+    question = factor(question, levels = c(
+      "RoBQA_NOS_S1_validPTSD", "RoBQA_NOS_S2_repCase", "RoBQA_NOS_S3_repControl", "RoBQA_NOS_S4_defControl", 
+      "RoBQA_NOS_C_confounders", "RoBQA_NOS_E1_outcome", "RoBQA_NOS_E2_sameOut", "RoBQA_NOS_E3_nonRep"
+    ),
+    labels = c("PTSD measure (S1)", "representative PTSD subjects (S2)", "representative control subjects (S3)", "control definition (S4)",
+               "adjustments for confounders (C)", "behavioural measure (E1) ", "same task case control (E2)", "same non-response rate (E3)"
+    )
+    ), # reorder levels
+    score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
+                 labels=c("Low RoB", "Unclear", "High RoB"))
+  ) -> QA.H.recoded.long
 
 QA.H.recoded %>% head()
 QA.H.recoded.long %>% head()
 
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) + 
-    geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
-             aes(
-                y = reorder(question, desc(question))
-                 # fill = reorder(score, desc(score)) 
-                 ) # reorder factor levels
-             ) +
+  geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
+           aes(
+             y = reorder(question, desc(question)),
+              fill = reorder(score, desc(score)) 
+           ) # reorder factor levels
+  ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
-  labs(x="", y="", title="Study Quality: Bias assessment", #tag = "C)", 
-       subtitle = "animal studies",
-       legend.title="test")+
-  scale_fill_brewer(palette = "Blues", direction = 1)+
-
-theme_minimal() +
-     theme(legend.title = element_blank())->QA.clincal
-QA.clincal
+  labs(x="", y="", title="Clinical studies"
+       #subtitle = "Clinical studies"
+  )+
+  scale_fill_brewer(palette = "BuGn", direction = 1)+
+  
+  theme_minimal() +
+  theme(legend.title = element_blank())->RoB.clincal
+RoB.clincal
 ```
 
-```{r}
-ggsave("results/RoB_clinical.jpeg",plot=QA.clincal,width = 15, height = 10, units = "cm")
+```{r eval=FALSE, include=FALSE}
+ggsave("results/RoB_clinical.jpeg",plot=RoB.clincal,width = 15, height = 10, units = "cm")
 ```
 
 
-
+### Preclinical data
 ```{r}
-str(QA.A.recoded)
-Acode
-
-
 pivot_longer(QA.A.recoded, cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
-count(question, score) %>%
-    mutate(
-     #  question = factor(question, levels = (unique(question))), # reorder levels
-# question = case_when(
-#   grepl("seqGeneration", question) ~ "Was the allocation sequence adequately generated and applied?",
-#   grepl("baseline", question) ~ "Were the groups similar at baseline or were they adjusted for confounders in the analysis?",
-#     grepl("allocation", question) ~ "Was the allocation adequately concealed?",
-#      grepl("housing", question) ~ "Were the animals randomly housed during the experiment?",
-#      grepl("blindExp", question) ~ "Were the caregivers and/or investigators blinded from knowledge which intervention each animal received during the experiment?",
-#      grepl("outAss", question) ~ "Were animals selected at random for outcome assessment?",
-#      grepl("outBlind", question) ~ "Was the outcome assessor blinded?",
-#      grepl("incData", question) ~ "Were incomplete outcome data adequately addressed?"
-# 
-# ),
-
-       question = factor(question, levels = c(
-                         "RoBQA_syrcle_1_seqGeneration", "RoBQA_syrcle_2_baseline", "RoBQA_syrcle_3_allocation", "RoBQA_syrcle_4_housing", 
-                         "RoBQA_syrcle_5_blindExp", "RoBQA_syrcle_6_outAss", "RoBQA_syrcle_7_outBlind", "RoBQA_syrcle_8_incData"
-                         ),
-         labels = c("sequence generation (1)", "baseline characteristics (2)", "allocation concealment (3)", "random housing (4)",
-                    "blinding experimenter (5)", "random outcome assessment (6) ", "blinded outcome assessment (7)", "incomplete data adequatly addressed (8)"
-                    )
-       ), # reorder levels
-
-# question=reorder(question, desc(question)),
-         score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
-                      labels=c("Low RoB", "Unclear", "High RoB"))
-       ) -> QA.A.recoded.long
-
-
+  count(question, score) %>%
+  mutate(
+    question = factor(question, levels = c(
+      "RoBQA_syrcle_1_seqGeneration", "RoBQA_syrcle_2_baseline", "RoBQA_syrcle_3_allocation", "RoBQA_syrcle_4_housing", 
+      "RoBQA_syrcle_5_blindExp", "RoBQA_syrcle_6_outAss", "RoBQA_syrcle_7_outBlind", "RoBQA_syrcle_8_incData"
+    ),
+    labels = c("sequence generation (1)", "baseline characteristics (2)", "allocation concealment (3)", "random housing (4)",
+               "blinding experimenter (5)", "random outcome assessment (6) ", "blinded outcome assessment (7)", "incomplete data adequatly addressed (8)"
+    )
+    ), # reorder levels
+    score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
+                 labels=c("Low RoB", "Unclear", "High RoB"))
+  ) -> QA.A.recoded.long
 
 QA.A.recoded %>% head()
 QA.A.recoded.long %>% head()
-
-str(QA.A.recoded.long)
-
+# str(QA.A.recoded.long)
 
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) + 
-    geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
-             aes(
-                y = reorder(question, desc(question)),
-                 # fill = reorder(score, desc(score)) 
-                 ) # reorder factor levels
-             ) +
- #  scale_y_discrete(labels=c(
- #      "Was the allocation sequence adequately generated and applied?",
- # "Were the groups similar at baseline or were they adjusted for confounders in the analysis?",
- #   "Was the allocation adequately concealed?",
- #  "Were the animals randomly housed during the experiment?",
- #   "Were the caregivers and/or investigators blinded from knowledge which intervention each animal received during the experiment?",
- #   "Were animals selected at random for outcome assessment?",
- #    "Was the outcome assessor blinded?",
- # "Were incomplete outcome data adequately addressed?"
- # 
- #  ))+
-  
-#   labels = c(
-#   unique(grep("seqGeneration", question,value = T)) = "Was the allocation sequence adequately generated and applied?",
-#   unique(grep("baseline", question,value = T)) = "Were the groups similar at baseline or were they adjusted for confounders in the analysis?",
-#    unique( grep("allocation", question,value = T)) = "Was the allocation adequately concealed?",
-#     unique( grep("housing", question,value = T)) = "Were the animals randomly housed during the experiment?",
-#     unique( grep("blindExp", question,value = T)) = "Were the caregivers and/or investigators blinded from knowledge which intervention each animal received during the experiment?",
-#     unique(grep("outAss", question,value = T) )= "Were animals selected at random for outcome assessment?",
-#      unique(grep("outBlind", question,value = T)) = "Was the outcome assessor blinded?",
-#     unique( grep("incData", question,value = T)) = "Were incomplete outcome data adequately addressed?")) +
-
+  geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
+           aes(
+             y = reorder(question, desc(question)),
+              fill = reorder(score, desc(score)) 
+           ) # reorder factor levels
+  ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
-  labs(x="", y="", title="Study Quality: Bias assessment", #tag = "C)", 
-       subtitle = "animal studies",
-       legend.title="test")+
-  scale_fill_brewer(palette = "Blues", direction = 1)+
-
-theme_minimal() +
-     theme(legend.title = element_blank())
+  labs(x="", y="", title="Preclinical studies"
+       #subtitle = "Preclinical studies"
+  )+
+  # scale_fill_brewer(palette = "Blues", direction = 1)+
+    scale_fill_brewer(palette = "BuGn", direction = 1)+
+  
+  theme_minimal() +
+  theme(legend.title = element_blank()) -> RoB.preclincal
+RoB.preclincal
 ```
 
+```{r eval=FALSE, include=FALSE}
+ggsave("results/RoB_preclinical.jpeg",plot=RoB.preclincal,width = 15, height = 10, units = "cm")
+```
+
+
+# save together
+
+```{r}
+ggarrange(
+  RoB.clincal,
+  RoB.preclincal,
+  ncol=1, nrow=2,
+  align = "v",
+  common.legend = T,
+  # labels = c("Clinical studies", "Preclinical studies"),
+  #  font.label = list(size = 12, color = "black", face = "bold", family = NULL)
+  legend="bottom"
+)->ROB.plot
+ROB.plot
+ggsave("results/RoB.jpeg",plot=ROB.plot,width = 12, height = 12, units = "cm")
+```
