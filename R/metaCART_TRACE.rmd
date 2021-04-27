@@ -17,7 +17,7 @@ library(metacart)
 
 ```{r data, include=FALSE}
 data<-readRDS("processed_data/TRACEprepared.RData")
-
+# str(data)
 data %>% select(subject, nPTSD, nHC,
                 sex.PTSD, sex.HC, 
                 
@@ -31,7 +31,7 @@ data %>% select(subject, nPTSD, nHC,
                 
                 rhythm,
                 comparison,
-                idPTSD, idHC,
+                new.idPTSD, new.idHC,
                 
                 age.PTSD.cat,
                 age.HC.cat,
@@ -42,9 +42,51 @@ data %>% select(subject, nPTSD, nHC,
                 
                 type, phase, valence, cuectx, id_combination,
                 
-                yi, vi, each, Valence_Grouped,
+                yi, vi, each, RoB_score
                 
                 ) %>% droplevels()->data1
+```
+
+# fix missing values
+
+```{r}
+# are there missing values?
+is.na(data1) %>% any()
+
+# are there variables with > 1/3 missing?
+which(colSums(is.na(data1)) > (1/3)*nrow(data1)) -> too.much.missing
+too.much.missing # no values with 1/3 missing
+
+# check variable types
+str(data1) # all correct
+
+#check missing values
+summary(data1) # in sex and time pseudo
+
+factors.to.fix <- c("sex.PTSD", "sex.HC")
+numeric.to.fix <- c("time.pseudo")
+
+for (i in c(1:length(numeric.to.fix))) {
+  # i=1
+  numeric.to.fix[[i]] -> varname
+  data1[is.na(data1[,varname]),varname] <- median(unlist(data1[,varname]), na.rm = T)
+}
+
+#categorical missing: substitute with most common category  {from mAP}
+categorical_mode <- function(x){
+  names(table(x))[which.max(table(x))]
+}
+
+
+for (i in c(1:length(factors.to.fix))) {
+  # i=1
+  factors.to.fix[[i]] -> varname
+  data1[is.na(data1[,varname]),varname] <- categorical_mode(unlist(data1[,varname]))
+}
+
+#any missing values left?
+summary(data1)
+any(is.na(data1)) # no
 ```
 
 # tree-model: metaCART
@@ -65,17 +107,9 @@ idee-> misschien komt warning bij lookahead T door missing values in data?
 (check functie code in evernote)  # met alleen complete cases oon geen moderators...
 
 ```{r metaCART clinical}
-# data1 %>% filter( (comparison == "B") )
- # str(data1)
-# glimpse(data1)
-# 
- # data1 %>% is.na() %>% any()
-# 
-data1 %>% filter(complete.cases(data1)) ->data2
-
-data2 %>% 
+data1 %>% 
   filter(subject.cat == "Human") %>% 
-  filter(comparison != "B") %>% 
+  # filter(comparison != "B") %>% 
            droplevels() ->clinical
  str(clinical)
 
@@ -86,22 +120,23 @@ set.seed(38923)
 REmrt(yi ~ subject + 
         nPTSD +
         sex.PTSD + #sex.HC +
-        control.type + 
+        control.type +
         # rhythm + # only 1 level
-         ptsd.type2 + 
+         ptsd.type2 +
         population2 +
-        
+
         measure2 + # newest
-        
-        # comparison + 
-          
-        age.PTSD.cat + 
+
+        # comparison +
+
+        age.PTSD.cat +
            #age.HC.cat +
           time.pseudo +
-          type + 
-        phase + valence + 
+          type +
+        phase + valence +
          # Valence_Grouped +
-        cuectx,
+        cuectx
+      ,
       vi = vi, data = clinical, 
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
       # cp=0.1,
@@ -109,9 +144,6 @@ REmrt(yi ~ subject +
       xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
       lookahead = T  # warning kwam door lookahead true, if T no tree detected
       )->REtree.C
-
-
-
 
 ```
 
@@ -159,7 +191,7 @@ REmrt(yi ~ subject +
           time.pseudo +
           type + 
         phase + valence + 
-         Valence_Grouped +
+         # Valence_Grouped +
         cuectx,
       vi = vi, data = preclinical, 
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
@@ -207,25 +239,66 @@ dev.off()
 
 ```{r metaforest}
 
+# data %>% select(subject, nPTSD, nHC,
+#                 sex.PTSD, sex.HC, 
+#                 
+#                 control.type, 
+#                 
+#                 ptsd.type2, 
+#                 population2,
+#                 measure2, 
+#                 
+#                 time.pseudo,
+#                 
+#                 rhythm,
+#                 comparison,
+#                 new.idPTSD, new.idHC,
+#                 
+#                 age.PTSD.cat,
+#                 age.HC.cat,
+#                 
+#                 subject.cat,
+#                 
+#                 reference,
+#                 
+#                 type, phase, valence, cuectx, id_combination,
+#                 
+#                 yi, vi, each, RoB_score
+#                 
+#                 ) %>% droplevels()->data1
 
-data %>% select(
-  # PMID, 
-  # idPTSD, 
-                id_combination,
-  # subject, 
-  subject.cat,
-        sex.PTSD , control.type , comparison ,
-        age.PTSD.cat , type ,
-        phase , valence , 
-        # Valence_Grouped +
-        cuectx,
-  rhythm,
-  yi, vi
+clinical %>% select(subject, nPTSD, nHC,
+                sex.PTSD, sex.HC, 
+                
+                control.type, 
+                
+                ptsd.type2, 
+                population2,
+                measure2, 
+                
+                time.pseudo,
+                
+                rhythm,
+                comparison,
+                new.idPTSD, #new.idHC,
+                
+                age.PTSD.cat,
+                age.HC.cat,
+                
+                # subject.cat,
+                
+              #  reference,
+                
+                type, phase, valence, cuectx,# id_combination,
+                
+                yi, vi, #each, 
+              RoB_score
+                
+                ) %>% droplevels()->clinicalForest
   
-  
-  
-) %>% 
-  droplevels()-> datForest
+
+
+
 
 library(caret)
 library(metaforest)
@@ -234,7 +307,7 @@ set.seed(94372) #set seeds to a random number
 ModelInfo_mf()$notes # method from metaforest
 
 # Set up k-fold grouped CV
-fit_control <- trainControl(method = "cv", number = 5, index = groupKFold(datForest$id_combination, k = 5)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
+fit_control <- trainControl(method = "cv", number = 5, index = groupKFold(clinicalForest$new.idPTSD, k = 5)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
 
 # Set up a custom tuning grid for the three tuning parameters of MetaForest
 rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
@@ -244,18 +317,23 @@ rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
 
 set.seed(94372)
 # Train the model
-cv.mf.cluster <- train(y = datForest$yi, x = datForest[names(datForest) !="yi"], #from x remove yi
-                       study = "id_combination", 
+cv.mf.cluster <- train(y = clinicalForest$yi, x = clinicalForest[names(clinicalForest) !="yi"], #from x remove yi
+                       study = "new.idPTSD", 
                        method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
                        trControl = fit_control,
                        tuneGrid = rf_grid,
-                        # num.trees = 600, # a bit more than default 500 (for better convergence)
-                       data=datForest)
+                         num.trees = 700, # a bit more than default 500 (for better convergence)
+                       data=clinicalForest)
 
 # saveRDS(cv.mf.cluster,file="processed_data/fitted.MetaForest.RDS")
 
+# {jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+plot(cv.mf.cluster$finalModel) 
+# dev.off()}
 
-cv.mf.cluster
+cv.mf.cluster$finalModel
+
+
 
 VarImpPlot(cv.mf.cluster$finalModel)
 
