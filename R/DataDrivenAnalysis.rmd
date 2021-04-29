@@ -1,0 +1,409 @@
+---
+title: "meta-CART TRACE"
+author: "Milou Sep"
+date: "4/9/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+# prepare environment
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+
+library(dplyr) #general
+library(metacart)
+
+library(caret)
+library(metaforest)
+```
+
+# load and select data
+
+```{r data, include=FALSE}
+data<-readRDS("processed_data/TRACEprepared.RData")
+
+data %>% select(subject, 
+#nPTSD, nHC,
+                       sex.PTSD, #sex.HC,
+                       control.type,
+                       ptsd.type2,
+                       population2,
+                       measure2,
+                       time.pseudo,
+                       rhythm,
+                       comparison,
+                       new.idPTSD, #new.idHC,
+                       age.PTSD.cat, #age.HC.cat,
+                        subject.cat,
+                       # reference,
+                       type, phase, valence, cuectx, #id_combination,
+                       yi, vi#, #each, RoB_score
+) %>% droplevels()-> data.explore #%>%data.frame()
+
+```
+
+# fix missing values
+
+ are there missing values?
+```{r}
+is.na(data.explore) %>% any()
+```
+
+ are there variables with > 1/3 missing?
+```{r}
+which(colSums(is.na(data.explore)) > (1/3)*nrow(data.explore)) # no values with 1/3 missing
+```
+
+ check variable types
+```{r}
+str(data.explore) # all correct
+```
+
+
+```{r}
+#check missing values
+summary(data.frame(data.explore)) # in sex and time pseudo
+```
+
+
+```{r}
+factors.to.fix <- c("sex.PTSD"#, "sex.HC"
+                    )
+numeric.to.fix <- c("time.pseudo")
+
+for (i in c(1:length(numeric.to.fix))) {
+  # i=1
+  numeric.to.fix[[i]] -> varname
+  data.explore[is.na(data.explore[,varname]),varname] <- median(unlist(data.explore[,varname]), na.rm = T)
+}
+
+#categorical missing: substitute with most common category  {from mAP}
+categorical_mode <- function(x){
+  names(table(x))[which.max(table(x))]
+}
+
+
+for (i in c(1:length(factors.to.fix))) {
+  # i=1
+  factors.to.fix[[i]] -> varname
+  data.explore[is.na(data.explore[,varname]),varname] <- categorical_mode(unlist(data.explore[,varname]))
+}
+
+#any missing values left?
+summary(data.frame(data.explore))
+```
+
+
+```{r}
+any(is.na(data.explore)) # no
+```
+
+## split data 
+
+Comparison B [B=non-exposed vs trauma exposed no PTSD (human)] is excluded from clinical data, as the experimental group does not contain PTSD patients. Note, this comparison is used in the sensitivity analysis of the theorydriven analysis. The comparison variable is also excluded from the human dataset, as the difference between comparison A [A= non-exposed vs trauma-exposed PTSD (human)] and comparison C [C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human)] is captured by the 'control type' variable (with levels unexposed, shamexposed, trauma exposed).
+
+[A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
+
+```{r}
+data.explore %>% 
+  filter(subject.cat == "Human") %>% 
+   filter(comparison != "B") %>% 
+  select(-c(rhythm, subject.cat, comparison)) %>%
+  droplevels() ->clinical
+str(clinical)
+```
+
+Comparison is included in the preclinical dataset, as most datapoints come from comparison D and we want to explore the influence of this experimental variation. 
+
+D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
+```{r}
+data.explore %>% 
+  filter(subject.cat == "Animal") %>% 
+  select(-subject.cat) %>%
+  droplevels() ->preclinical
+str(preclinical)
+```
+
+
+# metaCART: tree-model
+- strength of the package metacart is that it can easily
+explore the interaction effects among multiple moderators
+using an interpretable tree model.
+- multi-categorical variables, it creates automatically the contrasts
+between (combinations of) categories that account for the
+highest amount of heterogeneity.
+
+from: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods [Internet]. 2020;52(6):2657–73. Available from: http://dx.doi.org/10.3758/s13428-020-01360-0
+
+- RE model
+- c=0.5
+- first fit without lookahead -> then recommended to use lookahead = T (especially in REmrt)
+
+## Clinical
+```{r metaCART clinical, warning=FALSE}
+colnames(clinical)[which(!colnames(clinical) %in% c("yi", "vi", "new.idPTSD"))] ->c.vars
+paste("yi ~", paste(c.vars,collapse="+")) ->c.vars.form
+
+set.seed(38923)
+REmrt(formula(c.vars.form),
+      vi = vi, data = clinical, 
+      c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
+      # cp=0.1,
+      maxL=15,
+      xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
+      lookahead = T  # warning kwam door lookahead true, if T no tree detected
+)->REtree.C
+```
+
+inspect warnings
+```{r}
+REtree.C$initial.tree  # eerste split is NA  (ongeacht lookahead true or false)
+```
+
+```{r }
+summary(REtree.C)
+```
+
+```{r }
+plot(REtree.C)
+```
+
+```{r}
+jpeg(file="results/metaCART.clinical.lookaheadT.jpeg", height = 2000, width = 1500, res=300, pointsize = 12)
+plot(REtree.C)
+dev.off()
+```
+
+## Preclinical
+```{r metaCART preclinical, warning=FALSE}
+colnames(preclinical)[which(!colnames(preclinical) %in% c("yi", "vi", "new.idPTSD"))] ->p.vars
+paste("yi ~", paste(p.vars,collapse="+")) ->p.vars.form
+
+set.seed(38923)
+REmrt(formula(p.vars.form),
+      vi = vi, data = preclinical, 
+      c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
+      # cp=0.1,
+      maxL=15,
+      xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
+      lookahead = T # warning kwam door lookahead true, if T no tree detected
+)->REtree.P
+```
+
+NB 14.4.21 identical results for lookahead is T or F
+
+
+inspect warnings
+```{r}
+REtree.P$initial.tree  # eerste split is NA
+```
+
+```{r }
+summary(REtree.P)
+```
+
+```{r }
+plot(REtree.P)
+```
+
+```{r}
+jpeg(file="results/metaCART.preclinical.lookaheadT.jpeg", height = 3000, width = 3000, res=300, pointsize = 12)
+plot(REtree.P)
+dev.off()
+```
+
+```{r}
+# new.data<-data.frame( ) # create 1 row with values van de variableen waarvor je wil weten wat het effect is.
+# predict(REtree.P)
+```
+
+
+# metaForest: random forest (= multiple trees)
+
+```{r}
+ModelInfo_mf()$notes # method from metaforest
+```
+
+## Clinical
+
+```{r eval=FALSE, include=FALSE}
+set.seed(94372) #set seeds to a random number
+# Set up k-fold grouped CV
+fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
+
+# Set up a custom tuning grid for the three tuning parameters of MetaForest
+rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
+                                mtry = c(2, 4, 6),
+                                min.node.size = c(2, 4, 6))
+
+set.seed(94372)
+# Train the model
+cv.mf.cluster.clinical <- train(y = clinical$yi, x = clinical[names(clinical) !="yi"], #from x remove yi
+                       study = "new.idPTSD", 
+                       method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
+                       trControl = fit_control.clinical,
+                       tuneGrid = rf_grid,
+                       num.trees = 500, # a bit more than default 500 (for better convergence)
+                       data=clinical)
+
+saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest2.RDS")
+```
+
+
+```{r}
+readRDS(file="processed_data/fitted.clinicalMetaForest2.RDS")->cv.mf.cluster.clinical
+```
+
+### Tuning parameters
+```{r}
+cv.mf.cluster.clinical
+```
+
+```{r}
+plot(cv.mf.cluster.clinical) # 
+```
+
+### Model convergence
+```{r}
+# {jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+plot(cv.mf.cluster.clinical$finalModel) 
+# dev.off()}
+```
+
+### Model summary
+```{r}
+summary(cv.mf.cluster.clinical)
+```
+
+### R(oob)
+https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
+```{r}
+cv.mf.cluster.clinical$finalModel
+```
+
+### Cross validated R2 with SD
+```{r }
+cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights == "fixed" & 
+                              cv.mf.cluster.clinical$results$mtry == 2 & 
+                              cv.mf.cluster.clinical$results$min.node.size == 4),] #details with the "best" model
+```
+
+### Variable importance
+```{r}
+# tiff(file="results/metaforest_varImportance.tiff", height=1500, width=1500, pointsize=8, res=300)
+VarImpPlot(cv.mf.cluster.clinical$finalModel)
+# +  geom_hline(yintercept=11.5) +
+#   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
+# dev.off()
+```
+
+uit oic meta code
+```{r eval=FALSE, include=FALSE}
+# https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
+varImp(cv.mf.cluster.clinical) ->imp.scores
+
+# export variable importance scores (ordered) to csv
+imp <- as.data.frame(imp.scores$importance)
+imp <- data.frame(overall = imp$Overall,
+                  names   = rownames(imp))
+write.csv2(imp[order(imp$overall,decreasing = T),],"results/important_variables_metaforest.csv")
+
+# select top half most imporant variables
+imp[order(imp$overall,decreasing = T),] %>%
+  slice_head(.,n=nrow(.) / 2) -> important.vars 
+
+important.vars$names ->variable
+variable
+
+saveRDS(variable,"processed_data/important_variables.RDS")
+```
+
+
+
+## Preclinical
+```{r eval=FALSE, include=FALSE}
+set.seed(94372) #set seeds to a random number
+# Set up k-fold grouped CV
+fit_control.preclinical <- trainControl(method = "cv", number = 10, index = groupKFold(preclinical$new.idPTSD, k = 10)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
+
+set.seed(94372)
+# Train the model
+cv.mf.cluster.preclinical <- train(y = preclinical$yi, x = preclinical[names(preclinical) !="yi"], #from x remove yi
+                       study = "new.idPTSD", 
+                       method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
+                       trControl = fit_control.preclinical,
+                       tuneGrid = rf_grid,
+                       # num.trees = 700, # a bit more than default 500 (for better convergence)
+                       data=preclinical)
+
+saveRDS(cv.mf.cluster.preclinical,file="processed_data/fitted.preclinicalMetaForest.RDS")
+```
+
+```{r}
+readRDS(file="processed_data/fitted.preclinicalMetaForest.RDS")->cv.mf.cluster.preclinical
+```
+
+### Tuning parameters
+```{r}
+cv.mf.cluster.preclinical
+```
+
+```{r}
+plot(cv.mf.cluster.preclinical) # 
+```
+
+### Model convergence
+```{r}
+# {jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+plot(cv.mf.cluster.preclinical$finalModel) 
+# dev.off()}
+```
+
+### Model summary
+```{r}
+summary(cv.mf.cluster.preclinical)
+```
+
+### R(oob)
+https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
+```{r}
+cv.mf.cluster.preclinical$finalModel
+```
+
+### Cross validated R2 with SD
+```{r }
+cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichweights == "fixed" & 
+                              cv.mf.cluster.preclinical$results$mtry == 2 & 
+                              cv.mf.cluster.preclinical$results$min.node.size == 4),] #details with the "best" model
+```
+
+### Variable importance
+```{r}
+# tiff(file="results/metaforest_varImportance.tiff", height=1500, width=1500, pointsize=8, res=300)
+VarImpPlot(cv.mf.cluster.preclinical$finalModel)
+# +  geom_hline(yintercept=11.5) +
+#   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
+# dev.off()
+```
+
+uit oic meta code
+```{r eval=FALSE, include=FALSE}
+# https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
+varImp(cv.mf.cluster.preclinical) ->imp.scores
+
+# export variable importance scores (ordered) to csv
+imp <- as.data.frame(imp.scores$importance)
+imp <- data.frame(overall = imp$Overall,
+                  names   = rownames(imp))
+write.csv2(imp[order(imp$overall,decreasing = T),],"results/important_variables_metaforest.csv")
+
+# select top half most imporant variables
+imp[order(imp$overall,decreasing = T),] %>%
+  slice_head(.,n=nrow(.) / 2) -> important.vars 
+
+important.vars$names ->variable
+variable
+
+saveRDS(variable,"processed_data/important_variables.RDS")
+```
