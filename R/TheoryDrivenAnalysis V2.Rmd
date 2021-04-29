@@ -108,30 +108,30 @@ excluded.levels.animal
 
 ### Model - unfilterd data
 ```{r eval=FALSE, include=FALSE}
-mod.H.total <- rma.mv(yi, vi,
-                      random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                      # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
-                      # mods   = ~phase.valence - 1,
-                      # mods = ~Valence_Grouped:phase-1, # all impaired  (NB E, F and T were grouped as emotional)
-                      mods = ~valence:phase-1, # fear ext and fear memory impoved (trauma m NS), rest impaired
-                      method = "REML",
-                      slab = clinical$reference,  # from old codes milou (change for author/year)
-                      data = clinical) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.H.total)
+mod.clinical.total <- rma.mv(yi, vi,
+                             random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                             # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
+                             # mods   = ~phase.valence - 1,
+                             # mods = ~Valence_Grouped:phase-1, # all impaired  (NB E, F and T were grouped as emotional)
+                             mods = ~valence:phase-1, # fear ext and fear memory impoved (trauma m NS), rest impaired
+                             method = "REML",
+                             slab = clinical$reference,  # from old codes milou (change for author/year)
+                             data = clinical) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.clinical.total)
 ```
 
 ### Model - filtered data
 ```{r}
-mod.H <- rma.mv(yi, vi,
-                random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
-                # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
-                # mods   = ~phase.valence - 1,
-                # mods = ~Valence_Grouped:phase-1, # all impaired  (NB E, F and T were grouped as emotional)
-                mods = ~valence:phase-1, # fear ext and fear memory impoved (trauma m NS), rest impaired
-                method = "REML",
-                slab = clinical.filtered$reference,  # from old codes milou (change for author/year)
-                data = clinical.filtered) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.H)
+mod.clinical <- rma.mv(yi, vi,
+                       random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                       # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
+                       # mods   = ~phase.valence - 1,
+                       # mods = ~Valence_Grouped:phase-1, # all impaired  (NB E, F and T were grouped as emotional)
+                       mods = ~valence:phase-1, # fear ext and fear memory impoved (trauma m NS), rest impaired
+                       method = "REML",
+                       slab = clinical.filtered$reference,  # from old codes milou (change for author/year)
+                       data = clinical.filtered) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.clinical)
 ```
 
 ### add contrasts
@@ -255,7 +255,7 @@ TRACE_clinical_valence_phase <- function(model){
   
 }
 
-TRACE_clinical_valence_phase(mod.H)->clinical.results
+TRACE_clinical_valence_phase(mod.clinical)->clinical.results
 ```
 
 ### create plot
@@ -386,7 +386,7 @@ ggsave(paste0("results/phase_valence_PTSD_clinical", #date(),
 ```
 
 ```{r eval=FALSE, fig.height=40, fig.width=8, include=FALSE}
-forest(mod.H, cex = .2)
+forest(mod.clinical, cex = .2)
 # clinical %>% filter(yi > 4) %>% View()
 # clinical %>% filter(measure.d == "EXT_%CS+/maxCS+Acq_EMG") %>% View()
 ```
@@ -405,15 +405,15 @@ out oic meta code
 # http://www.metafor-project.org/doku.php/tips:i2_multilevel_multivariate
 # dat=data6
 Wc <- diag(1/clinical.filtered$vi)
-Xc <- model.matrix(mod.H)
+Xc <- model.matrix(mod.clinical)
 Pc <- Wc - Wc %*% Xc %*% solve(t(Xc) %*% Wc %*% Xc) %*% t(Xc) %*% Wc
-100 * sum(mod.H$sigma2) / (sum(mod.H$sigma2) + (mod.H$k-mod.H$p)/sum(diag(Pc)))
+100 * sum(mod.clinical$sigma2) / (sum(mod.clinical$sigma2) + (mod.clinical$k-mod.clinical$p)/sum(diag(Pc)))
 ```
 
 
 ```{r}
 # between & within variance
-100 * mod.H$sigma2 / (sum(mod.H$sigma2) + (mod.H$k-mod.H$p)/sum(diag(Pc)))
+100 * mod.clinical$sigma2 / (sum(mod.clinical$sigma2) + (mod.clinical$k-mod.clinical$p)/sum(diag(Pc)))
 # sig 2.1 -> variance in xperimental group
 # 8.55% within study ( experimental group) 75,4% between study ( PMID)
 ```
@@ -426,36 +426,31 @@ https://rdrr.io/cran/metafor/man/funnel.html:
 - "For fixed- and random-effects models (i.e., models not involving moderators), the plot shows the individual observed effect sizes or outcomes on the x-axis against the corresponding standard errors (i.e., the square root of the sampling variances) on the y-axis"
 
 ```{r}
+funnel(mod.clinical, legend = F, col=clinical.filtered$PMID, 
+       back = 'white')
+```
+
+```{r}
 tiff(file="results/funnel.colours.clinical.tiff", height=1000, width=1000, pointsize=6, res=300)
-funnel(mod.H, legend = F, col=clinical.filtered$PMID, 
-       back = 'white'#,xlab='mean DR'
-       
-)
+funnel(mod.clinical, legend = F, col=clinical.filtered$PMID, 
+       back = 'white')
 dev.off()
 ```
 
 #### robustness of effect
 ```{r}
-# #random effects model for evaluation of publication bias
-# modRanEff <- rma.uni(yi, vi,
-#                      #random = list(~1 | each, ~1 | exp),
-#                      mods = ~domain:hit2Grouped - 1,
-#                      method = "REML",
-#                      digits = 3,
-#                      data = dat)
-
-mod.H.bias <- rma.uni(yi, vi,
-                      # random = list(~1 | new.idPTSD , ~1 | PMID),
-                      mods = ~valence:phase-1,
-                      method = "REML",
-                      slab = clinical.filtered$reference, 
-                      data = clinical.filtered) 
-# summary(mod.A.bias)
+mod.clinical.bias <- rma.uni(yi, vi,
+                             # random = list(~1 | new.idPTSD , ~1 | PMID),
+                             mods = ~valence:phase-1,
+                             method = "REML",
+                             slab = clinical.filtered$reference, 
+                             data = clinical.filtered) 
+# summary(mod.preclinical.bias)
 ```
 
 ##### Egger's regression
 ```{r}
-regtest(mod.H.bias, ret.fit = TRUE) #Egger's regression random effects (mixed not available)
+regtest(mod.clinical.bias, ret.fit = TRUE) # Egger's regression random effects (mixed not available)
 ```
 
 ##### Begg's test
@@ -464,11 +459,12 @@ regtest(clinical.filtered$yi, clinical.filtered$vi)
 ```
 
 ##### file drawer analysis (fail and safe)
-```{r}
+```{r eval=FALSE, include=FALSE}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, type = "Rosenthal")
 ```
 
+file drawer analysis is performed within valence x phase subgroups
 
 ```{r}
 fsn.table.clincal <- data.frame(matrix(data = NA, nrow = 5, ncol = 3)) #V new
@@ -516,16 +512,16 @@ write.csv2(fsn.table.clincal, "results/phase_valence_PTSD_clinical.FSN.csv")
 ```
 
 ##### trim and fill
+only available for model without moderators, since moderation is present.. not valid test for robustness of the effects?
 ```{r}
-mod.H.bias2 <- rma.uni(yi, vi,
-                       # random = list(~1 | new.idPTSD , ~1 | PMID),
-                       #mods = ~valence:phase-1,
-                       method = "REML",
-                       slab = clinical.filtered$reference, 
-                       data = clinical.filtered) 
-# funnel(mod.H.bias2)
-# summary(mod.A.bias)
-trimfill(mod.H.bias2) # only available for model with moderators
+mod.clinical.bias2 <- rma.uni(yi, vi,
+                              # random = list(~1 | new.idPTSD , ~1 | PMID),
+                              #mods = ~valence:phase-1,
+                              method = "REML",
+                              slab = clinical.filtered$reference, 
+                              data = clinical.filtered) 
+# funnel(mod.clinical.bias2)
+trimfill(mod.clinical.bias2) 
 ```
 
 
@@ -533,14 +529,14 @@ trimfill(mod.H.bias2) # only available for model with moderators
 
 #### study quality
 ```{r}
-mod.H.QA <- rma.mv(yi, vi,
-                   random = list(~1 | new.idPTSD , ~1 | PMID),  
-                   # mods = ~valence:phase-1, 
-                   mods = ~RoB_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
-                   method = "REML",
-                   slab = clinical.filtered$reference, 
-                   data = clinical.filtered) 
-summary(mod.H.QA)
+mod.clinical.QA <- rma.mv(yi, vi,
+                          random = list(~1 | new.idPTSD , ~1 | PMID),  
+                          # mods = ~valence:phase-1, 
+                          mods = ~RoB_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
+                          method = "REML",
+                          slab = clinical.filtered$reference, 
+                          data = clinical.filtered) 
+summary(mod.clinical.QA)
 ```
 
 
@@ -551,34 +547,44 @@ source("R/influentials_valence_phase.R")
 ```
 
 ```{r}
-# clinical.inf<-influentials_valence_phase(clinical.filtered)
-# saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
-readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+ clinical.inf<-influentials_valence_phase(clinical.filtered)
+ saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
+# readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+```
 
-# potential outlier and influential cases
-clinical.inf[which(clinical.inf$outInf == 1),] %>% nrow()# 15 comparisons
-clinical.inf[which(clinical.inf$outInf == 1),]%>% distinct(PMID) %>% nrow() # 7 papers
+potential outlier and influential cases
+```{r}
+clinical.inf[which(clinical.inf$outInf == 1),] %>% nrow()
+```
 
+studies with potential outlier and influential cases
+```{r}
+clinical.inf[which(clinical.inf$outInf == 1),]%>% distinct(PMID) %>% nrow()
+```
+
+```{r}
 # # potential outliers
-# clinical.inf[which(clinical.inf$potOut == 1),] %>% nrow()# 15 comparision 
+# clinical.inf[which(clinical.inf$potOut == 1),] %>% nrow()
 # clinical.inf[which(clinical.inf$potOut == 1),]%>% distinct(PMID) %>% nrow()
+```
 
-# remove outliers
-##  influential (Viechtbauer & Cheung) 
+remove outliers + influential (Viechtbauer & Cheung) 
+```{r}
 clinical.inf %>%
   filter(outInf != 1) %>%
   droplevels() -> clinical.noinfout
 ```
 
+model without potential outliers + infuential cases
 ```{r}
-mod.H.noinf <- rma.mv(yi, vi,
-                      random = list(~1 | new.idPTSD , ~1 | PMID),  
-                      mods = ~valence:phase-1, 
-                      method = "REML",
-                      slab = clinical.noinfout$reference,  # from old codes milou (change for author/year)
-                      data = clinical.noinfout) # Similar effects with dat2 (trauma learning excluded)
+mod.clinical.noinf <- rma.mv(yi, vi,
+                             random = list(~1 | new.idPTSD , ~1 | PMID),  
+                             mods = ~valence:phase-1, 
+                             method = "REML",
+                             slab = clinical.noinfout$reference,  # from old codes milou (change for author/year)
+                             data = clinical.noinfout) # Similar effects with dat2 (trauma learning excluded)
 
-summary(mod.H.noinf)
+summary(mod.clinical.noinf)
 ```
 
 
@@ -588,50 +594,77 @@ summary(mod.H.noinf)
 [A= non-exposed vs trauma-exposed PTSD (human); 
 E=non-exposed vs trauma-exposed PTSD (animal)
 ```{r}
- # Clinical data 
- data %>% 
-   filter(subject.cat =="Human") %>% 
-   filter(comparison =="A") %>%
-   droplevels() ->clinical.filtered.HC.PTSD
- 
- clinical.filtered.HC.PTSD %>% group_by(phase, valence) %>%
-   summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
+# Clinical data 
+data %>% 
+  filter(subject.cat =="Human") %>% 
+  filter(comparison =="A") %>%
+  droplevels() ->clinical.filtered.HC.PTSD
+
+clinical.filtered.HC.PTSD %>% group_by(phase, valence) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
 ```
- 
+
 ```{r}
- rma.mv(yi, vi,
-        random = list(~1 | new.idPTSD , ~1 | PMID),
-        mods = ~valence:phase-1,
-        method = "REML",
-        slab = clinical.filtered.HC.PTSD$reference,
-        data = clinical.filtered.HC.PTSD) %>% summary()
+rma.mv(yi, vi,
+       random = list(~1 | new.idPTSD , ~1 | PMID),
+       mods = ~valence:phase-1,
+       method = "REML",
+       slab = clinical.filtered.HC.PTSD$reference,
+       data = clinical.filtered.HC.PTSD) ->mod.A
+summary(mod.A)
 ```
- 
+
+```{r}
+data.frame(cbind(mod.A$b, CIlb=mod.A$ci.lb, CIub=mod.A$ci.ub, p=mod.A$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.A.csv")
+```
+
 ##### non-trauma exposed vs trauma-exposed HC
 B=non-exposed vs trauma exposed no PTSD (human); 
 D=non-exposed vs trauma-exposed (no PTSD checked) (animal)
 ```{r}
- # Clinical data 
- data %>% 
-   filter(subject.cat =="Human") %>% 
-   filter(comparison =="B") %>% 
-   droplevels() ->clinical.filtered.HC.TC
- 
- 
- clinical.filtered.HC.TC %>% group_by(phase, valence) %>%
-   summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
+# Clinical data 
+data %>% 
+  filter(subject.cat =="Human") %>% 
+  filter(comparison =="B") %>% 
+  droplevels() ->clinical.filtered.HC.TC
+
+clinical.filtered.HC.TC %>% group_by(phase, valence) %>%
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
 ```
- 
+
 ```{r eval=FALSE, include=FALSE}
- rma.mv(yi, vi,
-        random = list(~1 | new.idPTSD , ~1 | PMID),
-        mods = ~valence:phase-1,
-        method = "REML",
-        slab = clinical.filtered.HC.TC$reference,
-        data = clinical.filtered.HC.TC) %>% summary()
+rma.mv(yi, vi,
+       random = list(~1 | new.idPTSD , ~1 | PMID),
+       mods = ~valence:phase-1,
+       method = "REML",
+       slab = clinical.filtered.HC.TC$reference,
+       data = clinical.filtered.HC.TC) %>% summary()
 ```
- 
- > not enough data
+
+> Only one level of valence (Neutral) is available for comparision B, therefore valence excluded from this model
+
+NOTE, model below contains only neutral valence
+```{r}
+rma.mv(yi, vi,
+       random = list(~1 | new.idPTSD , ~1 | PMID),
+       mods = ~phase-1,
+       method = "REML",
+       slab = clinical.filtered.HC.TC$reference,
+       data = clinical.filtered.HC.TC) ->mod.B
+
+summary(mod.B)
+```
+
+```{r}
+data.frame(cbind(mod.B$b, CIlb=mod.B$ci.lb, CIub=mod.B$ci.ub, p=mod.B$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.B.csv")
+```
+
 
 ##### trauma exposed vs PTSD
 C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human);
@@ -653,8 +686,15 @@ rma.mv(yi, vi,
        mods = ~valence:phase-1,
        method = "REML",
        slab = clinical.filtered.TC.PTSD$reference,
-       data = clinical.filtered.TC.PTSD) %>% summary()
+       data = clinical.filtered.TC.PTSD) -> mod.C
+summary(mod.C)
+```
 
+```{r}
+data.frame(cbind(mod.C$b, CIlb=mod.C$ci.lb, CIub=mod.C$ci.ub, p=mod.C$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.C.csv")
 ```
 
 
@@ -662,17 +702,17 @@ rma.mv(yi, vi,
 
 ### Model
 ```{r}
-mod.A <- rma.mv(yi, vi,
-                random = list(~1 | new.idPTSD , ~1 | PMID),
-                mods = ~valence:phase-1,
-                method = "REML",
-                slab = preclinical$reference, 
-                data = preclinical) 
-summary(mod.A)
+mod.preclinical <- rma.mv(yi, vi,
+                          random = list(~1 | new.idPTSD , ~1 | PMID),
+                          mods = ~valence:phase-1,
+                          method = "REML",
+                          slab = preclinical$reference, 
+                          data = preclinical) 
+summary(mod.preclinical)
 ```
 
 ```{r eval=FALSE, fig.height=80, fig.width=8, include=FALSE}
-forest(mod.A, cex = 0.4)
+forest(mod.preclinical, cex = 0.4)
 ```
 
 ### add contrasts
@@ -771,7 +811,7 @@ TRACE_preclinical_valence_phase <- function(model){
   
 }
 
-TRACE_preclinical_valence_phase(mod.A)->preclinical.results
+TRACE_preclinical_valence_phase(mod.preclinical)->preclinical.results
 ```
 
 ### create plot
@@ -875,7 +915,7 @@ PLOT.preclinical
 
 ### run function & save plots
 ```{r}
-# TRACE_clinical_valence_phase(mod.H) ->clinical.results
+# TRACE_clinical_valence_phase(mod.clinical) ->clinical.results
 # clinical.results [[2]] +  theme(text = element_text(size = 12)) 
 
 # save
@@ -900,42 +940,45 @@ ggsave(paste0("results/phase_valence_PTSD_preclinical", #date(),
 # http://www.metafor-project.org/doku.php/tips:i2_multilevel_multivariate
 # dat=data6
 Wp <- diag(1/preclinical$vi)
-Xp <- model.matrix(mod.A)
+Xp <- model.matrix(mod.preclinical)
 Pp <- Wp - Wp %*% Xp %*% solve(t(Xp) %*% Wp %*% Xp) %*% t(Xp) %*% Wp
-100 * sum(mod.A$sigma2) / (sum(mod.A$sigma2) + (mod.A$k-mod.A$p)/sum(diag(Pp)))
+100 * sum(mod.preclinical$sigma2) / (sum(mod.preclinical$sigma2) + (mod.preclinical$k-mod.preclinical$p)/sum(diag(Pp)))
 ```
 
 
 ```{r}
 # between & within variance
-100 * mod.A$sigma2 / (sum(mod.A$sigma2) + (mod.A$k-mod.H$p)/sum(diag(Pp)))
+100 * mod.preclinical$sigma2 / (sum(mod.preclinical$sigma2) + (mod.preclinical$k-mod.preclinical$p)/sum(diag(Pp)))
 # sig 2.1 -> variance in xperimental group
 # 5.3% within study ( experimental group) 89,4% between study ( PMID)
 ```
 
 #### Publication bias: funnel
 ```{r}
+funnel(mod.preclinical, legend = F, col=preclinical$PMID, back = 'white')
+```
+
+```{r}
 tiff(file="results/funnel.colours.preclinical.tiff", height=1000, width=1000, pointsize=6, res=300)
-funnel(mod.A, legend = F, col=preclinical$PMID, back = 'white'#,xlab='mean DR'
+funnel(mod.preclinical, legend = F, col=preclinical$PMID, back = 'white'#,xlab='mean DR'
 )
 dev.off()
 ```
 
-
 #### robustness of effect
 ```{r}
-mod.A.bias <- rma.uni(yi, vi,
-                      # random = list(~1 | new.idPTSD , ~1 | PMID),
-                      mods = ~valence:phase-1,
-                      method = "REML",
-                      slab = preclinical$reference, 
-                      data = preclinical) 
-funnel(mod.A.bias) # same shape as above
+mod.preclinical.bias <- rma.uni(yi, vi,
+                                # random = list(~1 | new.idPTSD , ~1 | PMID),
+                                mods = ~valence:phase-1,
+                                method = "REML",
+                                slab = preclinical$reference, 
+                                data = preclinical) 
+# funnel(mod.preclinical.bias) # same shape as above
 ```
 
 ##### Egger's regression
 ```{r}
-regtest(mod.A.bias, ret.fit = TRUE) #Egger's regression random effects (mixed not available)
+regtest(mod.preclinical.bias, ret.fit = TRUE) #Egger's regression random effects (mixed not available)
 ```
 
 ##### Begg's test
@@ -944,21 +987,12 @@ regtest(preclinical$yi, preclinical$vi)
 ```
 
 ##### file drawer analysis (fail and safe)
-```{r}
+```{r eval=FALSE, include=FALSE}
 fsn(yi = yi, vi = vi, 
     data = preclinical, type = "Rosenthal")
 ```
 
-misschien beter op subsets om moderatie te respecteren?
-
-valenceF:phaseE   -0.9416  0.1345  -6.9992  <.0001  -1.2053  -0.6779  *** 
-valenceT:phaseE   -1.4740  0.2114  -6.9725  <.0001  -1.8884  -1.0597  *** 
-valenceF:phaseL    0.4790  0.1812   2.6441  0.0082   0.1239   0.8340   ** 
-valenceN:phaseL   -1.1640  0.1533  -7.5922  <.0001  -1.4645  -0.8635  *** 
-valenceF:phaseM    1.2359  0.1537   8.0384  <.0001   0.9345   1.5372  *** 
-valenceN:phaseM   -1.3116  0.1735  -7.5595  <.0001  -1.6517  -0.9716  *** 
-valenceT:phaseM    2.0467  0.1390  14.7285  <.0001   1.7743   2.3190  *** 
-
+file drawer analysis is performed within valence x phase subgroups
 
 ```{r}
 fsn.table <- data.frame(matrix(data = NA, nrow = 7, ncol = 3)) #V new
@@ -1022,47 +1056,53 @@ write.csv2(fsn.table, "results/phase_valence_PTSD_preclinical.FSN.csv")
 
 
 ##### trim and fill
+only available for model without moderators, since moderation is present (with opposit effects).. not valid test for robustness of the effects?
 ```{r}
-mod.A.bias2 <- rma.uni(yi, vi,
-                       # random = list(~1 | new.idPTSD , ~1 | PMID),
-                       #mods = ~valence:phase-1,
-                       method = "REML",
-                       slab = preclinical$reference, 
-                       data = preclinical) 
-
-# funnel(mod.A.bias) # same shape
-
-# summary(mod.A.bias)
-trimfill(mod.A.bias2) # only available for model with moderators  -> maar eigenlijk vraag ik me af of deze analyse dan wel valid is.. want de moderatie effecten zitten WEL in de data.. (en zijn tegenovergesteld voor sommige levels...)
+mod.preclinical.bias2 <- rma.uni(yi, vi,
+                                 # random = list(~1 | new.idPTSD , ~1 | PMID),
+                                 #mods = ~valence:phase-1,
+                                 method = "REML",
+                                 slab = preclinical$reference, 
+                                 data = preclinical) 
+# funnel(mod.preclinical.bias) # same shape
+# summary(mod.preclinical.bias)
+trimfill(mod.preclinical.bias2) 
 ```
-
 
 
 ### Sensitivity analysis
 
 #### study quality
 ```{r}
-mod.A.QA <- rma.mv(yi, vi,
-                   random = list(~1 | new.idPTSD , ~1 | PMID),
-                   mods = ~RoB_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
-                   method = "REML",
-                   slab = preclinical$reference, 
-                   data = preclinical) 
-summary(mod.A.QA)
+mod.preclinical.QA <- rma.mv(yi, vi,
+                             random = list(~1 | new.idPTSD , ~1 | PMID),
+                             mods = ~RoB_score,#*valence:phase-1,  # valeria doet ook alleen 'blinding and randomized variable as moderator in model"
+                             method = "REML",
+                             slab = preclinical$reference, 
+                             data = preclinical) 
+summary(mod.preclinical.QA)
 ```
 
 
 #### Influential cases
 phase x valence meta-regression without cases that were identified as influential & outlier -> for sensitivity analysis
 ```{r}
-# preclinical.inf<-influentials_valence_phase(preclinical)
-# saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
-readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
+preclinical.inf<-influentials_valence_phase(preclinical)
+saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
+# readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
+```
 
-# potential outlier and influential cases
-preclinical.inf[which(preclinical.inf$outInf == 1),] %>% nrow() # 11 comparisons
-preclinical.inf[which(preclinical.inf$outInf == 1),] %>% distinct(PMID) %>% nrow() # 4 papers
+potential outliers and influential cases
+```{r}
+preclinical.inf[which(preclinical.inf$outInf == 1),] %>% nrow()
+```
 
+studies with potential outliers and influential cases
+```{r}
+preclinical.inf[which(preclinical.inf$outInf == 1),] %>% distinct(PMID) %>% nrow()
+```
+
+```{r}
 # preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% nrow() # 11 comparisons
 # preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% distinct(PMID) %>% nrow() # 4 papers
 
@@ -1070,9 +1110,11 @@ preclinical.inf[which(preclinical.inf$outInf == 1),] %>% distinct(PMID) %>% nrow
 # preclinical.inf[which(preclinical.inf$potOut == 1),] %>% nrow() # 28 comparisons
 # preclinical.inf[which(preclinical.inf$potOut == 1),] %>% distinct(PMID) %>% nrow() # 14 papers
 # preclinical.inf %>% filter(potOut!=1) #->data.sens
+```
 
-# remove outliers
-##  influential (Viechtbauer & Cheung) 
+remove potential outliers and influential cases (Viechtbauer & Cheung) 
+```{r}
+
 # preclinical.inf %>%
 #  filter(outInf != 1) %>%
 # droplevels() -> preclinical.noinf # n=4 papers (11 comparison) excluded animal 
@@ -1083,14 +1125,15 @@ preclinical.inf %>%
   droplevels() -> preclinical.noinfnoout
 ```
 
+Model without potential outliers and influential cases
 ```{r}
-mod.A.noinf <- rma.mv(yi, vi,
-                      random = list(~1 | new.idPTSD , ~1 | PMID),  
-                      mods = ~valence:phase-1, 
-                      method = "REML",
-                      slab = preclinical.noinfnoout$reference,  # from old codes milou (change for author/year)
-                      data = preclinical.noinfnoout) # Similar effects with dat2 (trauma learning excluded)
-summary(mod.A.noinf)
+mod.preclinical.noinf <- rma.mv(yi, vi,
+                                random = list(~1 | new.idPTSD , ~1 | PMID),  
+                                mods = ~valence:phase-1, 
+                                method = "REML",
+                                slab = preclinical.noinfnoout$reference,  # from old codes milou (change for author/year)
+                                data = preclinical.noinfnoout) # Similar effects with dat2 (trauma learning excluded)
+summary(mod.preclinical.noinf)
 ```
 
 
@@ -1102,21 +1145,30 @@ summary(mod.A.noinf)
 E=non-exposed vs trauma-exposed PTSD (animal)
 ```{r}
 data %>% 
-filter(subject.cat =="Animal") %>% 
-filter(comparison =="E") %>%
-droplevels() ->preclinical.HC.PTSD
+  filter(subject.cat =="Animal") %>% 
+  filter(comparison =="E") %>%
+  droplevels() ->preclinical.HC.PTSD
 
 preclinical.HC.PTSD %>% group_by(phase, valence) %>%
-summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
 ```
 
 ```{r}
 rma.mv(yi, vi,
-random = list(~1 | new.idPTSD , ~1 | PMID),
-mods = ~valence:phase-1,
-method = "REML",
-slab = preclinical.HC.PTSD$reference,
-data = preclinical.HC.PTSD) %>% summary()
+       random = list(~1 | new.idPTSD , ~1 | PMID),
+       mods = ~valence:phase-1,
+       method = "REML",
+       slab = preclinical.HC.PTSD$reference,
+       data = preclinical.HC.PTSD) -> mod.E
+mod.E%>% summary()
+```
+
+```{r}
+data.frame(cbind(mod.E$b, CIlb=mod.E$ci.lb, CIub=mod.E$ci.ub, p=mod.E$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.E.csv")
+
 ```
 
 ##### non-trauma exposed vs trauma-exposed HC
@@ -1125,26 +1177,36 @@ D=non-exposed vs trauma-exposed (no PTSD checked) (animal)
 ```{r}
 # Preclinical data 
 data %>% 
-filter(subject.cat =="Animal") %>% 
-filter(comparison =="D") %>%
-droplevels() ->preclinical.HC.TC
+  filter(subject.cat =="Animal") %>% 
+  filter(comparison =="D") %>%
+  droplevels() ->preclinical.HC.TC
 
 preclinical.HC.TC %>% group_by(phase, valence) %>%
-summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
+  summarize(papers=length(unique(PMID)), comparisons=length(each)) %>% data.frame()
 ```
 
 ```{r}
 rma.mv(yi, vi,
-random = list(~1 | new.idPTSD , ~1 | PMID),
-mods = ~valence:phase-1,
-method = "REML",
-slab = preclinical.HC.TC$reference,
-data = preclinical.HC.TC) %>% summary()
+       random = list(~1 | new.idPTSD , ~1 | PMID),
+       mods = ~valence:phase-1,
+       method = "REML",
+       slab = preclinical.HC.TC$reference,
+       data = preclinical.HC.TC) -> mod.D
+
+summary(mod.D)
 ```
- 
+
+```{r}
+data.frame(cbind(mod.D$b, CIlb=mod.D$ci.lb, CIub=mod.D$ci.ub, p=mod.D$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.D.csv")
+```
+
+
 ##### trauma exposed vs PTSD
- C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human);
- F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
+C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human);
+F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
 ```{r}
 # Preclinical data 
 data %>% 
@@ -1162,9 +1224,17 @@ rma.mv(yi, vi,
        mods = ~valence:phase-1,
        method = "REML",
        slab = preclinical.TC.PTSD$reference,
-       data = preclinical.TC.PTSD) %>% summary()
+       data = preclinical.TC.PTSD) -> mod.F
+
+summary(mod.F)
 ```
 
+```{r}
+data.frame(cbind(mod.F$b, CIlb=mod.F$ci.lb, CIub=mod.F$ci.ub, p=mod.F$pval)) %>% 
+  round(.,4) %>% 
+  # filter(p <=0.05) %>% 
+  write.csv2(.,"results/sens.F.csv")
+```
 
 # Merge clinical and preclinical plots
 ```{r}
