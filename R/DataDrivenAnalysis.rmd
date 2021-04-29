@@ -139,7 +139,7 @@ from: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis 
 - first fit without lookahead -> then recommended to use lookahead = T (especially in REmrt)
 
 ## Clinical
-```{r metaCART clinical, warning=FALSE}
+```{r metaCART clinical, eval=FALSE, warning=FALSE, include=FALSE}
 colnames(clinical)[which(!colnames(clinical) %in% c("yi", "vi", "new.idPTSD"))] ->c.vars
 paste("yi ~", paste(c.vars,collapse="+")) ->c.vars.form
 
@@ -154,6 +154,10 @@ REmrt(formula(c.vars.form),
 )->REtree.C
 
 saveRDS(REtree.C, "processed_data/REtree.C.rds")
+```
+
+```{r}
+readRDS( "processed_data/REtree.C.rds")->REtree.C
 ```
 
 inspect warnings
@@ -176,7 +180,7 @@ dev.off()
 ```
 
 ## Preclinical
-```{r metaCART preclinical, warning=FALSE}
+```{r metaCART preclinical, eval=FALSE, warning=FALSE, include=FALSE}
 colnames(preclinical)[which(!colnames(preclinical) %in% c("yi", "vi", "new.idPTSD"))] ->p.vars
 paste("yi ~", paste(p.vars,collapse="+")) ->p.vars.form
 
@@ -193,7 +197,10 @@ REmrt(formula(p.vars.form),
 saveRDS(REtree.P, "processed_data/REtree.P.rds")
 ```
 
-NB 14.4.21 identical results for lookahead is T or F
+```{r}
+readRDS("processed_data/REtree.P.rds")->REtree.P
+```
+
 
 
 inspect warnings
@@ -229,10 +236,10 @@ ModelInfo_mf()$notes # method from metaforest
 
 ## Clinical
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 set.seed(94372) #set seeds to a random number
 # Set up k-fold grouped CV
-fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
+fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10))
 
 # Set up a custom tuning grid for the three tuning parameters of MetaForest
 rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
@@ -249,12 +256,12 @@ cv.mf.cluster.clinical <- train(y = clinical$yi, x = clinical[names(clinical) !=
                                 num.trees = 500, # a bit more than default 500 (for better convergence)
                                 data=clinical)
 
-saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest2.RDS")
+saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest.RDS")
 ```
 
 
 ```{r}
-readRDS(file="processed_data/fitted.clinicalMetaForest2.RDS")->cv.mf.cluster.clinical
+readRDS(file="processed_data/fitted.clinicalMetaForest.RDS")->cv.mf.cluster.clinical
 ```
 
 ### Tuning parameters
@@ -280,15 +287,16 @@ summary(cv.mf.cluster.clinical)
 
 ### R(oob)
 https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
-```{r}
+```{r eval=FALSE, include=FALSE}
 cv.mf.cluster.clinical$finalModel
 ```
+Note, R(oob) also shown in summary above
 
 ### Cross validated R2 with SD
 ```{r }
 cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights == "fixed" & 
                                        cv.mf.cluster.clinical$results$mtry == 2 & 
-                                       cv.mf.cluster.clinical$results$min.node.size == 4),] #details with the "best" model
+                                       cv.mf.cluster.clinical$results$min.node.size == 6),] #details with the "best" model
 ```
 
 ### Variable importance
@@ -300,25 +308,66 @@ VarImpPlot(cv.mf.cluster.clinical$finalModel)
 # dev.off()
 ```
 
-uit oic meta code
-```{r eval=FALSE, include=FALSE}
+negative variable importance (in metaforest) ~ just no relation to outcome
+http://developmentaldatascience.org/post/29-01-18_metaforest_no_effect/
+
+### PD plots
+
+```{r}
 # https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
-varImp(cv.mf.cluster.clinical) ->imp.scores
+varImp(cv.mf.cluster.clinical,scale = F) ->imp.scores.clinical
+
 
 # export variable importance scores (ordered) to csv
-imp <- as.data.frame(imp.scores$importance)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-write.csv2(imp[order(imp$overall,decreasing = T),],"results/important_variables_metaforest.csv")
+imp.clinical <- as.data.frame(imp.scores.clinical$importance)
+imp.clinical <- data.frame(overall = imp.clinical$Overall,
+                  names   = rownames(imp.clinical))
+write.csv2(imp.clinical[order(imp.clinical$overall,decreasing = T),],"results/important_variables_clinical_metaforest.csv")
 
 # select top half most imporant variables
-imp[order(imp$overall,decreasing = T),] %>%
-  slice_head(.,n=nrow(.) / 2) -> important.vars 
+imp.clinical[order(imp.clinical$overall,decreasing = T),] %>%
+  filter(overall >0) -> important.vars.clinical
+  # slice_head(.,n=nrow(.) / 2) 
+ 
 
-important.vars$names ->variable
-variable
+important.vars.clinical$names ->variable.clinical
+variable.clinical
 
-saveRDS(variable,"processed_data/important_variables.RDS")
+# saveRDS(variable,"processed_data/important_variables.RDS")
+```
+
+```{r}
+
+# for (i in 1:length(variable.clinical)) {
+# 
+#   thisMod <- variable.clinical[i]
+#   WeightedScatter(clinical, yi = "yi", vi = "vi", vars = thisMod, summarize = TRUE)
+#   ggsave(paste0("results/clinical_metaforest_WeightedScatter_", thisMod, ".tiff"))
+# 
+#   PartialDependence(cv.mf.cluster.clinical$finalModel, vars = thisMod)
+#   ggsave(paste0("results/.clinical_metaforest_partDep_", thisMod, ".tiff"))
+# 
+#   # a <- 1
+# 
+# } # Plots saved in your folder
+
+
+{jpeg(file="results/metaforest_PD_clinical.jpeg", height = 1500, width = 4000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F#, pi = .95
+                  )
+dev.off()}
+WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
+```
+
+ interactions from metaCART
+```{r}
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars="age.PTSD.cat", moderator = "subject")
+```
+
+
+```{r}
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars="age.PTSD.cat", moderator = "type")
+  
 ```
 
 
@@ -369,15 +418,16 @@ summary(cv.mf.cluster.preclinical)
 
 ### R(oob)
 https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
-```{r}
+```{r eval=FALSE, include=FALSE}
 cv.mf.cluster.preclinical$finalModel
 ```
+Note, R(oob) also shown in summary above
 
 ### Cross validated R2 with SD
 ```{r }
-cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichweights == "fixed" & 
-                                          cv.mf.cluster.preclinical$results$mtry == 2 & 
-                                          cv.mf.cluster.preclinical$results$min.node.size == 4),] #details with the "best" model
+cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichweights == "random" & 
+                                          cv.mf.cluster.preclinical$results$mtry == 6 & 
+                                          cv.mf.cluster.preclinical$results$min.node.size == 2),] #details with the "best" model
 ```
 
 ### Variable importance
@@ -389,23 +439,53 @@ VarImpPlot(cv.mf.cluster.preclinical$finalModel)
 # dev.off()
 ```
 
-uit oic meta code
-```{r eval=FALSE, include=FALSE}
+
+### PD plots
+```{r}
 # https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
-varImp(cv.mf.cluster.preclinical) ->imp.scores
+varImp(cv.mf.cluster.preclinical,scale = F) ->imp.scores.preclinical
+
 
 # export variable importance scores (ordered) to csv
-imp <- as.data.frame(imp.scores$importance)
-imp <- data.frame(overall = imp$Overall,
-                  names   = rownames(imp))
-write.csv2(imp[order(imp$overall,decreasing = T),],"results/important_variables_metaforest.csv")
+imp.preclinical <- as.data.frame(imp.scores.preclinical$importance)
+imp.preclinical <- data.frame(overall = imp.preclinical$Overall,
+                  names   = rownames(imp.preclinical))
+write.csv2(imp.preclinical[order(imp.preclinical$overall,decreasing = T),],"results/important_variables_preclinical_metaforest.csv")
 
 # select top half most imporant variables
-imp[order(imp$overall,decreasing = T),] %>%
-  slice_head(.,n=nrow(.) / 2) -> important.vars 
+imp.preclinical[order(imp.preclinical$overall,decreasing = T),] %>%
+   filter(overall >0.5) -> important.vars.preclinical
+   # slice_head(.,n=nrow(.) / 2) 
+ 
 
-important.vars$names ->variable
-variable
+important.vars.preclinical$names ->variable.preclinical
+variable.preclinical
 
-saveRDS(variable,"processed_data/important_variables.RDS")
+# saveRDS(variable,"processed_data/important_preclinical_variables.RDS")
+```
+
+```{r}
+# for (i in 1:length(variable.clinical)) {
+# 
+#   thisMod <- variable.clinical[i]
+#   WeightedScatter(clinical, yi = "yi", vi = "vi", vars = thisMod, summarize = TRUE)
+#   ggsave(paste0("results/clinical_metaforest_WeightedScatter_", thisMod, ".tiff"))
+# 
+#   PartialDependence(cv.mf.cluster.clinical$finalModel, vars = thisMod)
+#   ggsave(paste0("results/.clinical_metaforest_partDep_", thisMod, ".tiff"))
+# 
+#   # a <- 1
+# 
+# } # Plots saved in your folder
+
+{jpeg(file="results/metaforest_PD_preclinical.jpeg", height = 1500, width = 4000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase", rawdata=F#, pi = .95
+                  )
+dev.off()
+}
+```
+
+
+```{r}
+WeightedScatter(preclinical, yi = "yi", vi = "vi", vars = variable.preclinical, summarize = TRUE)
 ```
