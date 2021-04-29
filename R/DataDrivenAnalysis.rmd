@@ -138,6 +138,8 @@ from: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis 
 - c=0.5
 - first fit without lookahead -> then recommended to use lookahead = T (especially in REmrt)
 
+- maxL 10? geen advies, zelfde als hier: [1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods. 2020;52(6):2657-2673. doi:10.3758/s13428-020-01360-0]
+)
 ## Clinical
 ```{r metaCART clinical, eval=FALSE, warning=FALSE, include=FALSE}
 colnames(clinical)[which(!colnames(clinical) %in% c("yi", "vi", "new.idPTSD"))] ->c.vars
@@ -148,7 +150,7 @@ REmrt(formula(c.vars.form),
       vi = vi, data = clinical, 
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
       # cp=0.1,
-      maxL=15,
+      maxL=10,
       xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
       lookahead = T  # warning kwam door lookahead true, if T no tree detected
 )->REtree.C
@@ -162,8 +164,9 @@ readRDS( "processed_data/REtree.C.rds")->REtree.C
 
 inspect warnings
 ```{r}
-REtree.C$initial.tree  # eerste split is NA  (ongeacht lookahead true or false)
+REtree.C$initial.tree  
 ```
+NB eerste split is NA  (ongeacht lookahead true or false), is hier ook: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods. 2020;52(6):2657-2673. doi:10.3758/s13428-020-01360-0
 
 ```{r }
 summary(REtree.C)
@@ -174,7 +177,7 @@ plot(REtree.C)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.clinical.lookaheadT.jpeg", height = 2000, width = 1500, res=300, pointsize = 12)
+jpeg(file="results/metaCART.clinical.lookaheadT.jpeg", height =3000, width = 2000, res=300, pointsize = 12)
 plot(REtree.C)
 dev.off()
 ```
@@ -189,7 +192,7 @@ REmrt(formula(p.vars.form),
       vi = vi, data = preclinical, 
       c=0.5,  # als dit 0 is wel moderators.. bij 0.5 geen.. (en bij 1 dan logischer wijs ook niet) -> correctie voor type I error (p<0.05)
       # cp=0.1,
-      maxL=15,
+      maxL=10,
       xval=10, # bij c=0.5 en xval= 15 no moderator detected. bij 20 ook niet... bij 10 wel
       lookahead = T # warning kwam door lookahead true, if T no tree detected
 )->REtree.P
@@ -217,7 +220,7 @@ plot(REtree.P)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.preclinical.lookaheadT.jpeg", height = 3000, width = 3000, res=300, pointsize = 12)
+jpeg(file="results/metaCART.preclinical.lookaheadT.jpeg", height = 3000, width = 2000, res=300, pointsize = 12)
 plot(REtree.P)
 dev.off()
 ```
