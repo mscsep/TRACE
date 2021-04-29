@@ -107,7 +107,7 @@ excluded.levels.animal
 ## Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients
 
 ### Model - unfilterd data
-```{r eval=FALSE, include=FALSE}
+```{r}
 mod.clinical.total <- rma.mv(yi, vi,
                              random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
                              # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
@@ -1269,3 +1269,4 @@ ggsave(paste0("results/PTSD.clinical.preclinical", #date(),
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 # ppt standard 4:3
 ```
+
