@@ -651,3 +651,26 @@ data.s3.animal %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv
 file.remove(c("data/TRACE_data_collection_search3.xlsx"))
 ```
 
+## Total screened in S1,S2,S3
+
+### Clinical
+```{r}
+292+142+681
+```
+
+# preclinical 
+```{r}
+178+114+254
+```
+
+## total in included in dataset
+```{r}
+readRDS("processed_data/TRACEprepared.RData")->dataset
+
+dataset %>% group_by(subject.cat#, phase, valence
+                     ) %>%
+  summarize(papers=length(unique(PMID)), 
+            groups=length(unique(new.idPTSD)),
+            comparisons=length(each)) %>% data.frame()
+```
+
