@@ -240,7 +240,8 @@ ModelInfo_mf()$notes # method from metaforest
 ## Clinical
 
 ```{r eval=FALSE, include=FALSE}
-set.seed(94372) #set seeds to a random number
+# set.seed(94372) #set seeds to a random number
+ set.seed(12345)
 # Set up k-fold grouped CV
 fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10))
 
@@ -249,17 +250,18 @@ rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
                        mtry = c(2, 4, 6),
                        min.node.size = c(2, 4, 6))
 
-set.seed(94372)
+# set.seed(94372)
+ set.seed(12345)
 # Train the model
 cv.mf.cluster.clinical <- train(y = clinical$yi, x = clinical[names(clinical) !="yi"], #from x remove yi
                                 study = "new.idPTSD", 
                                 method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
                                 trControl = fit_control.clinical,
                                 tuneGrid = rf_grid,
-                                num.trees = 500, # a bit more than default 500 (for better convergence)
+                                num.trees = 500, # same var imp & convergencemet 1000 tree
                                 data=clinical)
 
-saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest.RDS")
+ saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest.RDS")
 ```
 
 
@@ -278,9 +280,12 @@ plot(cv.mf.cluster.clinical) #
 
 ### Model convergence
 ```{r}
-# {jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+{
+  jpeg(file="results/metaforest_Clinical_convergence.jpeg", height = 1000, width = 1000,pointsize=8, res=300) # Higher quality output
+   # tiff(file="results/metaforest_Clinical_convergence.tiff", height=1000, width=1000, pointsize=8, res=300)
 plot(cv.mf.cluster.clinical$finalModel) 
-# dev.off()}
+ dev.off()
+ }
 ```
 
 ### Model summary
@@ -304,11 +309,12 @@ cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights
 
 ### Variable importance
 ```{r}
-# tiff(file="results/metaforest_varImportance.tiff", height=1500, width=1500, pointsize=8, res=300)
-VarImpPlot(cv.mf.cluster.clinical$finalModel)
+tiff(file="results/metaforest_Clinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
+VarImpPlot(cv.mf.cluster.clinical$finalModel#, n.var = 4
+           )
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
-# dev.off()
+ dev.off()
 ```
 
 negative variable importance (in metaforest) ~ just no relation to outcome
@@ -353,24 +359,59 @@ variable.clinical
 #   # a <- 1
 # 
 # } # Plots saved in your folder
+{jpeg(file="results/metaforest_PD_main_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, #moderator =  "phase",
+                  rawdata=F#, pi = .95
+                  )
+dev.off()}
 
-
-{jpeg(file="results/metaforest_PD_clinical.jpeg", height = 1500, width = 4000, res=300) # Higher quality output
+{jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F#, pi = .95
                   )
 dev.off()}
-WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
+
+{jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "valence",rawdata=F#, pi = .95
+                  )
+dev.off()}
+
+# WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
 ```
 
  interactions from metaCART
 ```{r}
-PartialDependence(cv.mf.cluster.clinical$finalModel, vars="age.PTSD.cat", moderator = "subject")
+{jpeg(file="results/metaforest_PD_clinical_metaCARTfollowup.jpeg", height = 1500, width = 6000, res=300) # Higher quality output
+
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars=c("subject", "type"), moderator = "age.PTSD.cat")
+# + 
+#                   legend.position = c(4,2)+
+#                   legend.justification=c("left, rigth")   # werkt niet.. in oic meta aanpassing op schript gemaakt
+dev.off()}
+
+
+
+# ggarrange(
+#   # PLOT.clinical
+#   # #  + ylim(-7.5,3.5)  # If you want y-axis the same for clinical and preclinical
+#   # # + rremove("x.text") 
+#   # + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+#   # + rremove("y.axis") + rremove("y.ticks"),
+#   
+#   p,
+#   # + ylim(-7.5,3.5)   # If you want y-axis the same for clinical and preclinical
+#   # + rremove("x.text") 
+#   # + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+#   # + #rremove("ylab") + 
+#     # rremove("y.axis") + rremove("y.ticks"),
+#   # ncol =1, nrow=2,
+#   # align = "v",
+#   legend="bottom",
+#   common.legend = T)
 ```
 
 
-```{r}
-PartialDependence(cv.mf.cluster.clinical$finalModel, vars="age.PTSD.cat", moderator = "type")
-  
+```{r eval=FALSE, include=FALSE}
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars="type", moderator = "age.PTSD.cat") 
 ```
 
 
@@ -388,7 +429,7 @@ cv.mf.cluster.preclinical <- train(y = preclinical$yi, x = preclinical[names(pre
                                    method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
                                    trControl = fit_control.preclinical,
                                    tuneGrid = rf_grid,
-                                   # num.trees = 700, # a bit more than default 500 (for better convergence)
+                                    num.trees = 500,
                                    data=preclinical)
 
 saveRDS(cv.mf.cluster.preclinical,file="processed_data/fitted.preclinicalMetaForest.RDS")
@@ -409,9 +450,12 @@ plot(cv.mf.cluster.preclinical) #
 
 ### Model convergence
 ```{r}
-# {jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+ {
+   #jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
+     jpeg(file="results/metaforest_Preclinical_convergence.jpeg", height = 1000, width = 1000,pointsize=8, res=300) # Higher quality output
+ 
 plot(cv.mf.cluster.preclinical$finalModel) 
-# dev.off()}
+ dev.off()}
 ```
 
 ### Model summary
@@ -435,11 +479,11 @@ cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichw
 
 ### Variable importance
 ```{r}
-# tiff(file="results/metaforest_varImportance.tiff", height=1500, width=1500, pointsize=8, res=300)
+tiff(file="results/metaforest_Preclinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
 VarImpPlot(cv.mf.cluster.preclinical$finalModel)
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
-# dev.off()
+ dev.off()
 ```
 
 
@@ -457,7 +501,7 @@ write.csv2(imp.preclinical[order(imp.preclinical$overall,decreasing = T),],"resu
 
 # select top half most imporant variables
 imp.preclinical[order(imp.preclinical$overall,decreasing = T),] %>%
-   filter(overall >0.5) -> important.vars.preclinical
+   filter(overall >0) -> important.vars.preclinical
    # slice_head(.,n=nrow(.) / 2) 
  
 
@@ -481,14 +525,60 @@ variable.preclinical
 # 
 # } # Plots saved in your folder
 
-{jpeg(file="results/metaforest_PD_preclinical.jpeg", height = 1500, width = 4000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase", rawdata=F#, pi = .95
+
+
+
+# } # Plots saved in your folder
+{jpeg(file="results/metaforest_PD_main_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, #moderator =  "phase",
+                  rawdata=F#, pi = .95
                   )
-dev.off()
-}
+dev.off()}
+
+{jpeg(file="results/metaforest_PD_byPhase_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase",rawdata=F#, pi = .95
+                  )
+dev.off()}
+
+{jpeg(file="results/metaforest_PD_byValence_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "valence",rawdata=F#, pi = .95
+                  )
+dev.off()}
+
+```
+
+ interactions from metaCART
+```{r}
+{jpeg(file="results/metaforest_PD_preclinical_metaCARTfollowup.jpeg", height = 1500, width = 6000, res=300) # Higher quality output
+
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars=c("ptsd.type2", "phase"), moderator = "type")
+# + 
+#                   legend.position = c(4,2)+
+#                   legend.justification=c("left, rigth")   # werkt niet.. in oic meta aanpassing op schript gemaakt
+dev.off()}
+
+
+
+# ggarrange(
+#   # PLOT.clinical
+#   # #  + ylim(-7.5,3.5)  # If you want y-axis the same for clinical and preclinical
+#   # # + rremove("x.text") 
+#   # + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+#   # + rremove("y.axis") + rremove("y.ticks"),
+#   
+#   p,
+#   # + ylim(-7.5,3.5)   # If you want y-axis the same for clinical and preclinical
+#   # + rremove("x.text") 
+#   # + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
+#   # + #rremove("ylab") + 
+#     # rremove("y.axis") + rremove("y.ticks"),
+#   # ncol =1, nrow=2,
+#   # align = "v",
+#   legend="bottom",
+#   common.legend = T)
 ```
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 WeightedScatter(preclinical, yi = "yi", vi = "vi", vars = variable.preclinical, summarize = TRUE)
 ```
