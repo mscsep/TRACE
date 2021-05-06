@@ -13,8 +13,8 @@ library(dplyr) #general
 # library(ggplot2) #for graphs
 # library(metafor) #for meta-analysis
 # library(ggpubr) # To show multiple plots in 1 figure
-# library(flextable) # to create tables
-# library(officer)# to export tables to word
+ library(flextable) # to create tables
+ library(officer)# to export tables to word
 ```
 
 # import dataset (already processed with datasetPreparation)
@@ -54,12 +54,60 @@ summary(mod.sens)
 
 ```{r}
 data %>% 
-  distinct(PMID, .keep_all = TRUE) %>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>% 
    # group_by(subject, sex.PTSD) %>%
      group_by(subject.cat) %>%
   # group_by(subject) %>%  
   tally(round(nPTSD,0)) 
 ```
+
+```{r}
+data %>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>% 
+  filter(subject.cat == "Human") %>%
+     group_by(#subject.cat,
+              sex.PTSD#,age.PTSD.cat
+              ) %>%
+  # group_by(subject) %>%  
+  tally(round(nPTSD,0))  %>%
+    mutate(freq = n / sum(n))
+```
+
+```{r}
+data %>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>% 
+  filter(subject.cat == "Animal") %>%
+     group_by(#subject.cat,
+              sex.PTSD#,age.PTSD.cat
+              ) %>%
+  # group_by(subject) %>%  
+  tally(round(nPTSD,0))  %>%
+    mutate(freq = n / sum(n))
+```
+
+
+```{r}
+data %>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>% 
+  filter(subject.cat == "Human") %>%
+     group_by(age.PTSD.cat
+              ) %>%
+  # group_by(subject) %>%  
+  tally(round(nPTSD,0))  %>%
+    mutate(freq = n / sum(n))
+```
+
+```{r}
+data %>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>% 
+  filter(subject.cat == "Animal") %>%
+     group_by(age.PTSD.cat
+              ) %>%
+  # group_by(subject) %>%  
+  tally(round(nPTSD,0))  %>%
+    mutate(freq = n / sum(n))
+```
+
 
 
 # Descriptives (uit eerste analysis script)
