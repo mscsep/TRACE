@@ -177,7 +177,7 @@ plot(REtree.C)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.clinical.lookaheadT.jpeg", height =3000, width = 2000, res=300, pointsize = 12)
+jpeg(file="results/metaCART.clinical.lookaheadT.jpeg", height =3000, width = 3000, res=300, pointsize = 12)
 plot(REtree.C)
 dev.off()
 ```
@@ -220,7 +220,7 @@ plot(REtree.P)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.preclinical.lookaheadT.jpeg", height = 3000, width = 2000, res=300, pointsize = 12)
+jpeg(file="results/metaCART.preclinical.lookaheadT.jpeg", height = 3000, width = 3000, res=300, pointsize = 12)
 plot(REtree.P)
 dev.off()
 ```
