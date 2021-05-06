@@ -18,12 +18,11 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(ggpubr)
-
-
+library(viridis)
 ```
 
 # retrieve OSF files 
-```{r}
+```{r eval=FALSE, include=FALSE}
 osf_retrieve_file("tckb5") %>% osf_download(path = "data", conflicts="overwrite") # QA data
 ```
 
@@ -148,7 +147,7 @@ pivot_longer(QA.H.recoded, cols = grep("RoBQA",names(QA.H.recoded)), names_to = 
     )
     ), # reorder levels
     score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
-                 labels=c("Low RoB", "Unclear", "High RoB"))
+                 labels=c("Low Risk of Bias", "Unclear", "High Risk of Bias"))
   ) -> QA.H.recoded.long
 
 QA.H.recoded %>% head()
@@ -166,9 +165,16 @@ ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) +
   labs(x="", y="", title="Clinical studies"
        #subtitle = "Clinical studies"
   )+
-  scale_fill_brewer(palette = "BuGn", direction = 1)+
+  # scale_fill_brewer(palette = "BuGn", direction = 1)+
   
-  theme_minimal() +
+       scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                          direction = -1,
+                          option = "cividis") +
+  
+  
+  # theme_minimal() +
+    # theme_pubr()+
+    theme_pubr(base_size = 8)+
   theme(legend.title = element_blank())->RoB.clincal
 RoB.clincal
 ```
@@ -192,7 +198,7 @@ pivot_longer(QA.A.recoded, cols = grep("RoBQA",names(QA.A.recoded)), names_to = 
     )
     ), # reorder levels
     score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
-                 labels=c("Low RoB", "Unclear", "High RoB"))
+                 labels=c("Low Risk of Bias", "Unclear", "High Risk of Bias"))
   ) -> QA.A.recoded.long
 
 QA.A.recoded %>% head()
@@ -212,11 +218,16 @@ ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) +
        #subtitle = "Preclinical studies"
   )+
   # scale_fill_brewer(palette = "Blues", direction = 1)+
-    scale_fill_brewer(palette = "BuGn", direction = 1)+
-  
-  theme_minimal() +
+    # scale_fill_brewer(palette = "BuGn", direction = 1)+
+         scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                          direction = -1,
+                          option = "cividis") +
+  # theme_pubclean()+
+  theme_pubr(base_size = 8)+
+  # theme_minimal() +
   theme(legend.title = element_blank()) -> RoB.preclincal
-RoB.preclincal
+
+RoB.preclincal+theme_pubr()
 ```
 
 ```{r eval=FALSE, include=FALSE}

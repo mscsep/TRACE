@@ -311,10 +311,12 @@ cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights
 ```{r}
 tiff(file="results/metaforest_Clinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
 VarImpPlot(cv.mf.cluster.clinical$finalModel#, n.var = 4
-           )
+           )+  theme_pubr(base_size = 8)
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
  dev.off()
+ 
+ VarImpPlot(cv.mf.cluster.clinical$finalModel) +  theme_pubr(base_size = 12)
 ```
 
 negative variable importance (in metaforest) ~ just no relation to outcome
@@ -361,17 +363,22 @@ variable.clinical
 # } # Plots saved in your folder
 {jpeg(file="results/metaforest_PD_main_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, #moderator =  "phase",
+                  bw=T,
                   rawdata=F#, pi = .95
-                  )
+                   # , ncol=3 # no effect
+                  ) #
 dev.off()}
 
 {jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F#, pi = .95
-                  )
+                   # , ncol=3, color=scale_color_grey()
+                  ) 
+#scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis")
 dev.off()}
 
 {jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "valence",rawdata=F#, pi = .95
+                   # , ncol=3
                   )
 dev.off()}
 
@@ -480,10 +487,12 @@ cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichw
 ### Variable importance
 ```{r}
 tiff(file="results/metaforest_Preclinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
-VarImpPlot(cv.mf.cluster.preclinical$finalModel)
+VarImpPlot(cv.mf.cluster.preclinical$finalModel) +  theme_pubr(base_size = 8)
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
  dev.off()
+ 
+ VarImpPlot(cv.mf.cluster.preclinical$finalModel) +  theme_pubr(base_size = 12)
 ```
 
 
@@ -531,17 +540,20 @@ variable.preclinical
 # } # Plots saved in your folder
 {jpeg(file="results/metaforest_PD_main_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, #moderator =  "phase",
-                  rawdata=F#, pi = .95
+                  rawdata=F, #pi = .95
+                   # , ncol=3
                   )
 dev.off()}
 
 {jpeg(file="results/metaforest_PD_byPhase_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase",rawdata=F#, pi = .95
+                   # , ncol=3
                   )
 dev.off()}
 
 {jpeg(file="results/metaforest_PD_byValence_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "valence",rawdata=F#, pi = .95
+                   # , ncol=3
                   )
 dev.off()}
 

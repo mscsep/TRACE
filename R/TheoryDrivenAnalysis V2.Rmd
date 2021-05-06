@@ -21,6 +21,7 @@ library(dplyr) #general
 library(ggplot2) #for graphs
 library(metafor) #for meta-analysis
 library(ggpubr) # To show multiple plots in 1 figure
+library("viridis")   
 library(flextable) # to create tables
 library(officer)# to export tables to word
 ```
@@ -169,7 +170,7 @@ TRACE_clinical_valence_phase <- function(model){
     neutralLearning$Lb, neutralMemory$Lb,
     fearLearning$Lb, emotionalMemory$Lb,
     extinction$Lb,
-        valence.learning$Lb, valence.memory$Lb,
+        valence.learning$Lb, valence.memory$Lb
   ), digits = 4) #effect size
   
   resultMain[,3] <- round(c( neutralLearning$se, neutralMemory$se,
@@ -224,7 +225,6 @@ clinical.results %>%
     # plot_data_coded$test = factor(plot_data_coded$test)
     test = factor(test, levels = c("neutral Learning", "fear Learning", "neutral Memory", "emotional Memory", "fear Extinction")#,
                   # labels = c("neutral", "fear", "neutral", "emotional", "fear")
-                  
     )
   ) ->clinical_plot_data_coded
 
@@ -270,24 +270,31 @@ clinical.results %>%
 #                               # labels = c("neutral", "fear", "neutral", "emotional", "fear")
 # )
 
+
 PLOT.clinical <-
   ggplot(clinical_plot_data_coded,
          aes(x = test, y = effectsize, fill=valence)) +
   labs(
-    title = "Clinical Data",
-    subtitle = "PTSD patients",
-    y="Hedge's G (CI)", # could also be "Standardized mean difference"
+     title = "A) Clinical Data: PTSD patients",
+    # subtitle = "PTSD patients",
+    y="Hedge's G (95%CI)", # could also be "Standardized mean difference"
     x="") + 
   facet_grid (.~ factor(phase, levels =c("Learning", "Memory", "Extinction")),  # width scaled (better for extinction)
               scales = "free_x", space = "free_x", switch = "x" # labels onder
               # je kan de andere factor levels nog toevoegen en dan hier drop =F, bv voor het vergelijkbaar maken met dieren?
   ) +
-  theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
-  scale_fill_manual(
-    values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
-               "Emotional" = "tomato2")) +
+  # theme_linedraw() +
+   theme_pubr(base_size = 12)+
+  
+  # theme(plot.title = element_text(hjust = 0.5)) +
+  # theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
+  # scale_fill_manual(
+  #   values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  #              "Emotional" = "tomato2")) +
+
+       scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis") +
+  
+  
   geom_bar(stat = "identity")+
   geom_hline(yintercept = 0, size = 1) +
   geom_errorbar(aes(ymin = ci.lb,
@@ -838,20 +845,24 @@ PLOT.preclinical <-
   ggplot(preclinical_plot_data_coded,
          aes(x = test, y = effectsize, fill=valence)) +
   labs(
-    title = "Preclinical Data",
-    subtitle = "PTSD animal models",
-    y="Hedge's G (CI)", # could also be "Standardized mean difference"
+    title = "B) Preclinical Data: PTSD animal models",
+    # subtitle = "PTSD animal models",
+    y="Hedge's G (95%CI)", # could also be "Standardized mean difference"
     x="") + 
   facet_grid (.~ factor(phase, levels =c("Learning", "Memory", "Extinction")),  # width scaled (better for extinction)
               scales = "free_x", space = "free_x", switch = "x" # labels onder
               # je kan de andere factor levels nog toevoegen en dan hier drop =F, bv voor het vergelijkbaar maken met dieren?
   ) +
-  theme_linedraw() +
-  theme(plot.title = element_text(hjust = 0.5)) +
-  theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
-  scale_fill_manual(
-    values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
-               "Emotional" = "tomato2")) +
+  # theme_linedraw() +
+    theme_pubr(base_size = 12)+
+  # theme(plot.title = element_text(hjust = 0.5)) +
+  # theme(plot.subtitle = element_text(hjust = 0.5, face="italic")) +
+  # scale_fill_manual(
+  #   values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
+  #              "Emotional" = "tomato2")) +
+  
+     scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis") +
+  
   geom_bar(stat = "identity")+
   geom_hline(yintercept = 0, size = 1) +
   geom_errorbar(aes(ymin = ci.lb,
@@ -1229,18 +1240,13 @@ data.frame(cbind(mod.F$b, CIlb=mod.F$ci.lb, CIub=mod.F$ci.ub, p=mod.F$pval)) %>%
 ```{r}
 # Show clincal & preclinical data in one figure.
 plots<-ggarrange(
-  PLOT.clinical
-  #  + ylim(-7.5,3.5)  # If you want y-axis the same for clinical and preclinical
-  # + rremove("x.text") 
-  + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
-  + rremove("y.axis") + rremove("y.ticks"),
+  PLOT.clinical + rremove("x.axis") + rremove("x.ticks") + rremove("xlab"),
+  # + rremove("y.axis") + rremove("y.ticks")
+  # ,
   
-  PLOT.preclinical
-  # + ylim(-7.5,3.5)   # If you want y-axis the same for clinical and preclinical
-  # + rremove("x.text") 
-  + rremove("x.axis") + rremove("x.ticks") + rremove("xlab")
-  + #rremove("ylab") + 
-    rremove("y.axis") + rremove("y.ticks"),
+  PLOT.preclinical + rremove("x.axis") + rremove("x.ticks") + rremove("xlab"),
+    # +rremove("y.axis") + rremove("y.ticks")
+  # ,
   ncol =1, nrow=2,
   align = "v",
   legend="bottom",
