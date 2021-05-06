@@ -110,6 +110,7 @@ excluded.levels.animal
 ```{r}
 mod.clinical.total <- rma.mv(yi, vi,
                              random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
+                             # random = list(~1 | PMID , ~1 | new.idPTSD),  # just for checking -> es expacted exactly the same estimaes
                              # random = ~ 1 | new.idPTSD / each,  # identical results as row above  # https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/fitting-a-three-level-model.html
                              # mods   = ~phase.valence - 1,
                              # mods = ~Valence_Grouped:phase-1, # all impaired  (NB E, F and T were grouped as emotional)
@@ -475,35 +476,47 @@ fsn(yi = yi, vi = vi,
     data = clinical.filtered, 
     subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "E"),
     type = "Rosenthal") ->fsnFE.clinical
-
+fsnFE.clinical
 fsn.table.clincal[1,] <- c("F", "E", fsnFE.clinical$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
     subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnFL.clinical
-
+fsnFL.clinical
 fsn.table.clincal[2,] <- c("F", "L", fsnFL.clinical$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi,
     data = clinical.filtered,
     subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnNL.clinical
-
+fsnNL.clinical
 fsn.table.clincal[3,] <- c("N", "L", fsnNL.clinical$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
     subset = (clinical.filtered$valence == "E" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnEM.clinical
-
+fsnEM.clinical
 fsn.table.clincal[4,] <- c("E", "M", fsnEM.clinical$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
     subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnNM.clinical
-
+fsnNM.clinical
 fsn.table.clincal[5,] <- c("N", "M", fsnNM.clinical$fsnum)
 
 fsn.table.clincal
@@ -546,10 +559,14 @@ phase x valence meta-regression without cases that were identified as influentia
 source("R/influentials_valence_phase.R")
 ```
 
-```{r}
- clinical.inf<-influentials_valence_phase(clinical.filtered)
+```{r eval=FALSE, include=FALSE}
+clinical.inf<-influentials_valence_phase(clinical.filtered)
  saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
-# readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+```
+
+
+```{r}
+ readRDS("processed_data/influentials.clinical.rds")->clinical.inf
 ```
 
 potential outlier and influential cases
@@ -1003,52 +1020,72 @@ fsn(yi = yi, vi = vi,
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "E"),
     type = "Rosenthal") ->fsnFE
-
+fsnFE
 fsn.table[1,] <- c("F", "E", fsnFE$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "T" & preclinical$phase == "E"),
     type = "Rosenthal")->fsnTE
-
+fsnTE
 fsn.table[2,] <- c("T", "E", fsnTE$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "L"),
     type = "Rosenthal") ->fsnFL
-
+fsnFL
 fsn.table[3,] <- c("F", "L", fsnFL$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "N" & preclinical$phase == "L"),
     type = "Rosenthal")->fsnNL
-
+fsnNL
 fsn.table[4,] <- c("N", "L", fsnNL$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnFM
-
+fsnFM
 fsn.table[5,] <- c("F", "M", fsnFM$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "N" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnNM
-
+fsnNM
 fsn.table[6,] <- c("N", "M", fsnNM$fsnum)
+```
 
+
+```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "T" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnTM
-
+fsnTM
 fsn.table[7,] <- c("T", "M", fsnTM$fsnum)
+```
 
 
+```{r}
 fsn.table
 
 write.csv2(fsn.table, "results/phase_valence_PTSD_preclinical.FSN.csv")
@@ -1086,10 +1123,14 @@ summary(mod.preclinical.QA)
 
 #### Influential cases
 phase x valence meta-regression without cases that were identified as influential & outlier -> for sensitivity analysis
-```{r}
+```{r eval=FALSE, include=FALSE}
 preclinical.inf<-influentials_valence_phase(preclinical)
 saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
-# readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
+```
+
+
+```{r}
+ readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
 ```
 
 potential outliers and influential cases
