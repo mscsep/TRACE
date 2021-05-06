@@ -138,119 +138,64 @@ summary(mod.clinical)
 ### add contrasts
 ```{r}
 TRACE_clinical_valence_phase <- function(model){
-  
-  ##RQ 1: "Main effects PTSD on Learning and memory?
-  # Learning <- anova(model, L = c(0, .5, .5, 0, 0))
-  # Memory <- anova(model, L = c(0,0,0, .5, .5))
-  # Extinction<-anova(model, L=c(1,0,0,0,0))
-  
-  
+
   # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
   # http://www.metafor-project.org/doku.php/tips:multiple_factors_interactions
   
-  # RQ2 "Main effects of PTSD on neutral / emotional   # 20.4.21 now the other way around (with label emotional ipv stresvull)
-  # Neutral <- anova(model, L = c(0,0,.5,0,.5))
-  # Emotional <- anova(model, L = c(1/3, 1/3, 0, 1/3,0))
-  
-  ## posthoc RQ2. is learning or memory most effected by valence? (Posthoc)
-  # phase.neutral <- anova(model, L = c(0,0,-1,0,1)) 
-  # phase.emotional <- anova(model, L = c(0, -1,0, 1,0)) # learning -
-  
-  # Posthoc RQ2 influence of valence on learning or memory
-  valence.learning <-anova(model, L = c(0, 1, -1, 0,0)) # neutral = -
-  valence.memory <- anova(model, L = c(0,0,0, 1, -1))
+
   
   
-  #RQ3: neutral and stressful learning and memory in  ## PRECIES hetzelfde als de values in ht model! -> so below values from e.g. model$se used
-  extinction <- anova(model, L = c(1,0, 0, 0,0))
+ extinction <- anova(model, L = c(1,0, 0, 0,0))
   fearLearning <- anova(model, L = c(0,1, 0, 0,0))
   neutralLearning <- anova(model, L = c(0,0, 1, 0,0))
   emotionalMemory <- anova(model, L = c(0,0, 0, 1,0))
   neutralMemory <- anova(model, L = c(0,0, 0, 0, 1))
   
   
+  # Posthoc RQ2 influence of valence on learning or memory
+  valence.learning <-anova(model, L = c(0, 1, -1, 0,0)) # neutral = -
+  valence.memory <- anova(model, L = c(0,0,0, 1, -1))
+  
+  
   ##Summary results organized in table
   resultMain <- data.frame(matrix(data = NA, nrow = 7, ncol = 8)) #V new
   
-  colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
-                            "effectsize", "se", "Zvalue",  
-                            "Pvalue", "Pvalue_bonfCorr")
+  colnames(resultMain) <- c("test", "effectsize", "se", "ci.lb", "ci.ub", "Zvalue", "Pvalue", "Pvalue_bonfCorr")
   
-  resultMain[,1] <- c(#"Learning (neutral + emotional)", "Memory (neutral + emotional)", 
-    #"Neutral (learning + memory)", "Emotional (learning + memory + extintion)",
-    # "phase.neutral: learning vs memory (neutral)", "phase.emotional: learning vs memory (emotional)",
-    "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)",
-    "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction")
+  resultMain[,1] <- c( "neutral Learning", "neutral Memory", "fear Learning", "emotional Memory", "fear Extinction",
+    "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)")
   
-  resultMain[,4] <- round(c(#Learning$Lb, Memory$Lb, 
-    #Neutral$Lb, Emotional$Lb,
-    # phase.neutral$Lb, phase.emotional$Lb,
-    valence.learning$Lb, valence.memory$Lb,
-    # model$beta
+  resultMain[,2] <- round(c(
     neutralLearning$Lb, neutralMemory$Lb,
     fearLearning$Lb, emotionalMemory$Lb,
-    extinction$Lb
+    extinction$Lb,
+        valence.learning$Lb, valence.memory$Lb,
   ), digits = 4) #effect size
   
-  resultMain[,5] <- round(c(#Learning$se, Memory$se, 
-    
-    #Neutral$se, Emotional$se,
-    
-    # phase.neutral$se, phase.emotional$se,
-    valence.learning$se, valence.memory$se,
-    # model$beta
-    neutralLearning$se, neutralMemory$se,
+  resultMain[,3] <- round(c( neutralLearning$se, neutralMemory$se,
     fearLearning$se, emotionalMemory$se,
-    extinction$se
+    extinction$se,
+      valence.learning$se, valence.memory$se
   ), digits = 4) #se
   
-  resultMain[,6] <- round(c(#Learning$zval, Memory$zval, 
-    
-    #Neutral$zval, Emotional$zval,
-    # phase.neutral$zval, phase.emotional$zval,
-    valence.learning$zval, valence.memory$zval,
-    # model$beta
+  resultMain[,4] <- round(resultMain[,2] - (resultMain[,3] * 1.96), digits = 4) #CI lower 
+  resultMain[,5] <- round(resultMain[,2] + (resultMain[,3] * 1.96), digits = 4) #CI upper
+  
+  resultMain[,6] <- round(c(
     neutralLearning$zval, neutralMemory$zval,
     fearLearning$zval, emotionalMemory$zval,
-    extinction$zval
+    extinction$zval,
+ valence.learning$zval, valence.memory$zval
   ), digits = 4)  #zvalues
   
-  resultMain[,7] <- round(c(#Learning$pval, Memory$pval, 
-    #Neutral$pval, Emotional$pval,
-    # phase.neutral$pval, phase.emotional$pval,
-    valence.learning$pval, valence.memory$pval,
+  resultMain[,7] <- round(c(
     neutralLearning$pval, neutralMemory$pval,
     fearLearning$pval, emotionalMemory$pval,
-    extinction$pval
+    extinction$pval,
+valence.learning$pval, valence.memory$pval
   ), digits = 4)  #pvalues
-  
-  resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
-  resultMain[,3] <- round(resultMain[,4] + (resultMain[,5] * 1.96), digits = 4) #CI upper
-  
-  # 16.4.21 was 2 changed to 12, as the number of comparisons (within one hypothesis).. NB same resutls for correction by 2 or 12 (for human & animal)
-  # # Beter checken! (not needed for now? only report model effect ("different from 0"), not yet the difference between each other.))
-  # resultMain[,8] <- round(c(p.adjust(resultMain[ 1,7], method = "bonferroni", n = 12), # learning (I think 2, as each estimate is used once for a phase contrast (L, M) and once for a valence contrast (S,N))
-  #                           p.adjust(resultMain[ 2,7], method = "bonferroni", n = 12), # memory
-  #                           p.adjust(resultMain[ 3,7], method = "bonferroni", n = 12), # neutral
-  #                           p.adjust(resultMain[ 4,7], method = "bonferroni", n = 12), # stressful
-  #                           p.adjust(resultMain[ 5,7], method = "bonferroni", n = 12), # l vs m (neutral) (also 2 for all posthocs?)
-  #                           p.adjust(resultMain[ 6,7], method = "bonferroni", n = 12), # l vs m (stress)
-  #                           p.adjust(resultMain[ 7,7], method = "bonferroni", n = 12), # neutral vs stres (learning)
-  #                           p.adjust(resultMain[ 8,7], method = "bonferroni", n = 12), # neutral vs stres (memory)
-  #                           
-  #                           p.adjust(resultMain[ 9,7], method = "bonferroni", n = 12), 
-  #                           p.adjust(resultMain[ 10,7], method = "bonferroni", n = 12), 
-  #                           p.adjust(resultMain[ 11,7], method = "bonferroni", n = 12), 
-  #                           p.adjust(resultMain[ 12,7], method = "bonferroni", n = 12), 
-  #                           p.adjust(resultMain[ 13,7], method = "bonferroni", n = 13)), 
-  #                           # resultMain[9,7],
-  #                           # resultMain[10,7],
-  #                           # resultMain[11,7],
-  #                           # resultMain[12,7])
-  #                          digits = 4) #pvalue bonf correction
-  
-  resultMain[,8] <- round(p.adjust(resultMain[,7], method = "bonferroni", n = 7),
-                          digits = 4) #pvalue bonf correction
+
+  resultMain[,8] <- round(p.adjust(resultMain[,7], method = "bonferroni", n = 7), digits = 4) #pvalue bonf correction
   
   return(resultMain)
   
@@ -455,7 +400,7 @@ regtest(mod.clinical.bias, ret.fit = TRUE) # Egger's regression random effects (
 ```
 
 ##### Begg's test
-```{r}
+```{r eval=FALSE, include=FALSE}
 regtest(clinical.filtered$yi, clinical.filtered$vi)
 ```
 
@@ -526,7 +471,7 @@ write.csv2(fsn.table.clincal, "results/phase_valence_PTSD_clinical.FSN.csv")
 
 ##### trim and fill
 only available for model without moderators, since moderation is present.. not valid test for robustness of the effects?
-```{r}
+```{r eval=FALSE, include=FALSE}
 mod.clinical.bias2 <- rma.uni(yi, vi,
                               # random = list(~1 | new.idPTSD , ~1 | PMID),
                               #mods = ~valence:phase-1,
@@ -736,12 +681,19 @@ forest(mod.preclinical, cex = 0.4)
 ```{r}
 TRACE_preclinical_valence_phase <- function(model){
   
-  valence.learning <-anova(model, L = c(0,0,1,-1,
+  fearExtinction <- anova(model, L = c(1,0, 0, 0,0,0,0))
+  traumaExtinction <-anova(model, L = c(0,1, 0, 0,0,0,0))
+  
+  fearLearning <- anova(model, L = c(0,0,1, 0,0,0,0))
+  neutralLearning <- anova(model, L = c(0,0,0, 1, 0,0,0))
+  # emotionalMemory <- anova(model, L = c(0,0, 0, 1,0,0,0))
+  fearMemory <- anova(model, L = c(0,0, 0,0,1,0,0))
+  neutralMemory <- anova(model, L = c(0,0, 0, 0, 0,1,0))
+  traumaMemory <- anova(model, L = c(0,0, 0, 0, 0,0,1))
+  
+    valence.learning <-anova(model, L = c(0,0,1,-1,
                                         0,0,0)) # neutral (-) vs fear learning
-  
-  # valence.memoryNS <- anova(model, L = c(0,0,0,0,
-  #                                      0.5,-1, 0.5)) # neural =- (fear & trauma together compared to neutral)
-  
+
   valence.memory.NF <- anova(model, L = c(0,0,0,0, # neutral (-) vs fear memory
                                           1,-1, 0))
   
@@ -754,72 +706,72 @@ TRACE_preclinical_valence_phase <- function(model){
   valence.extinction <- anova(model, L= c(-1, 1,0,0,
                                           0,0,0)) # fear (-) vs trauma extinction
   
-  #RQ3: neutral and stressful learning and memory in 
-  fearExtinction <- anova(model, L = c(1,0, 0, 0,0,0,0))
-  traumaExtinction <-anova(model, L = c(0,1, 0, 0,0,0,0))
-  
-  fearLearning <- anova(model, L = c(0,0,1, 0,0,0,0))
-  neutralLearning <- anova(model, L = c(0,0,0, 1, 0,0,0))
-  # emotionalMemory <- anova(model, L = c(0,0, 0, 1,0,0,0))
-  fearMemory <- anova(model, L = c(0,0, 0,0,1,0,0))
-  neutralMemory <- anova(model, L = c(0,0, 0, 0, 0,1,0))
-  traumaMemory <- anova(model, L = c(0,0, 0, 0, 0,0,1))
-  
   
   ##Summary results organized in table
   resultMain <- data.frame(matrix(data = NA, nrow = 12, ncol = 8)) #V new
   
-  colnames(resultMain) <- c("test", "ci.lb", "ci.ub", 
-                            "effectsize", "se", "Zvalue",  
-                            "Pvalue", "Pvalue_bonfCorr")
-  
+  # colnames(resultMain) <- c("test", 
+  #                           "effectsize", "se", "ci.lb", "ci.ub", 
+  #                           "Zvalue",  
+  #                           "Pvalue", "Pvalue_bonfCorr")
+    colnames(resultMain) <- c("test", "effectsize", "se", "ci.lb", "ci.ub", "Zvalue", "Pvalue", "Pvalue_bonfCorr")
+    
   resultMain[,1] <- c(
-    "valence.learning: neutral vs fear (learning)", 
-    "valence.memory NF: neutral vs fear (memory)", "valence.memory NT: neutral vs trauma (memory)",  "valence.memory FT: fear vs trauma (memory)",
-    "valence.extinction: fear vs trauma (extinction)",
+
     "neutral Learning", "neutral Memory", 
     "fear Learning", "fear Memory", "fear Extinction",
-    "trauma Memory","trauma Extinction")
+    "trauma Memory","trauma Extinction",
+    
+        "valence.learning: neutral vs fear (learning)", 
+    "valence.memory NF: neutral vs fear (memory)", "valence.memory NT: neutral vs trauma (memory)",  "valence.memory FT: fear vs trauma (memory)",
+    "valence.extinction: fear vs trauma (extinction)")
   
-  resultMain[,4] <- round(c(
-    valence.learning$Lb, 
-    valence.memory.NF$Lb, valence.memory.NT$Lb, valence.memory.FT$Lb,
-    valence.extinction$Lb,
+  resultMain[,2] <- round(c(
+
     neutralLearning$Lb, neutralMemory$Lb,
     fearLearning$Lb, fearMemory$Lb,  fearExtinction$Lb,
-    traumaMemory$Lb, traumaExtinction$Lb
+    traumaMemory$Lb, traumaExtinction$Lb,
+        valence.learning$Lb, 
+    valence.memory.NF$Lb, valence.memory.NT$Lb, valence.memory.FT$Lb,
+    valence.extinction$Lb
     
   ), digits = 4) #effect size
   
-  resultMain[,5] <- round(c(
-    valence.learning$se, 
-    valence.memory.NF$se, valence.memory.NT$se, valence.memory.FT$se,
-    valence.extinction$se,
+  resultMain[,3] <- round(c(
+
     neutralLearning$se, neutralMemory$se,
     fearLearning$se, fearMemory$se,  fearExtinction$se,
-    traumaMemory$se, traumaExtinction$se
+    traumaMemory$se, traumaExtinction$se,
+        valence.learning$se, 
+    valence.memory.NF$se, valence.memory.NT$se, valence.memory.FT$se,
+    valence.extinction$se
   ), digits = 4) #se
   
+    resultMain[,4] <- round(resultMain[,2] - (resultMain[,3] * 1.96), digits = 4) #CI lower 
+  resultMain[,5] <- round(resultMain[,2] + (resultMain[,3] * 1.96), digits = 4) #CI upper
+  
   resultMain[,6] <- round(c(
-    valence.learning$zval, 
-    valence.memory.NF$zval, valence.memory.NT$zval, valence.memory.FT$zval,
-    valence.extinction$zval,
+
     neutralLearning$zval, neutralMemory$zval,
     fearLearning$zval, fearMemory$zval,  fearExtinction$zval,
-    traumaMemory$zval, traumaExtinction$zval
+    traumaMemory$zval, traumaExtinction$zval,
+    
+        valence.learning$zval, 
+    valence.memory.NF$zval, valence.memory.NT$zval, valence.memory.FT$zval,
+    valence.extinction$zval
   ), digits = 4)  #zvalues
   
   resultMain[,7] <- round(c(
-    valence.learning$pval, 
-    valence.memory.NF$pval, valence.memory.NT$pval, valence.memory.FT$pval,
-    valence.extinction$pval,
+
     neutralLearning$pval, neutralMemory$pval,
     fearLearning$pval, fearMemory$pval,  fearExtinction$pval,
-    traumaMemory$pval, traumaExtinction$pval
+    traumaMemory$pval, traumaExtinction$pval,
+    
+        valence.learning$pval, 
+    valence.memory.NF$pval, valence.memory.NT$pval, valence.memory.FT$pval,
+    valence.extinction$pval
   ), digits = 4)  #pvalues
-  
-  resultMain[,2] <- round(resultMain[,4] - (resultMain[,5] * 1.96), digits = 4) #CI lower 
-  resultMain[,3] <- round(resultMain[,4] + (resultMain[,5] * 1.96), digits = 4) #CI upper
+
   
   resultMain[,8] <- round(p.adjust(resultMain[,7], method = "bonferroni", n = 12),
                           digits = 4) #pvalue bonf correction
@@ -932,10 +884,6 @@ PLOT.preclinical
 
 ### run function & save plots
 ```{r}
-# TRACE_clinical_valence_phase(mod.clinical) ->clinical.results
-# clinical.results [[2]] +  theme(text = element_text(size = 12)) 
-
-# save
 write.csv2(preclinical.results, paste0("results/phase_valence_PTSD_preclinical", #date(),
                                        ".csv"))
 ggsave(paste0("results/phase_valence_PTSD_preclinical", #date(),
@@ -999,7 +947,7 @@ regtest(mod.preclinical.bias, ret.fit = TRUE) #Egger's regression random effects
 ```
 
 ##### Begg's test
-```{r}
+```{r eval=FALSE, include=FALSE}
 regtest(preclinical$yi, preclinical$vi)
 ```
 
@@ -1094,7 +1042,7 @@ write.csv2(fsn.table, "results/phase_valence_PTSD_preclinical.FSN.csv")
 
 ##### trim and fill
 only available for model without moderators, since moderation is present (with opposit effects).. not valid test for robustness of the effects?
-```{r}
+```{r eval=FALSE, include=FALSE}
 mod.preclinical.bias2 <- rma.uni(yi, vi,
                                  # random = list(~1 | new.idPTSD , ~1 | PMID),
                                  #mods = ~valence:phase-1,
