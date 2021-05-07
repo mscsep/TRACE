@@ -142,10 +142,7 @@ TRACE_clinical_valence_phase <- function(model){
 
   # some info: Test linear combinations (http://www.metafor-project.org/doku.php/tips:testing_factors_lincoms)
   # http://www.metafor-project.org/doku.php/tips:multiple_factors_interactions
-  
 
-  
-  
  extinction <- anova(model, L = c(1,0, 0, 0,0))
   fearLearning <- anova(model, L = c(0,1, 0, 0,0))
   neutralLearning <- anova(model, L = c(0,0, 1, 0,0))
@@ -292,7 +289,8 @@ PLOT.clinical <-
   #   values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
   #              "Emotional" = "tomato2")) +
 
-       scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis") +
+       scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                          option = "cividis") +
   
   
   geom_bar(stat = "identity")+
@@ -420,16 +418,16 @@ fsn(yi = yi, vi = vi,
 file drawer analysis is performed within valence x phase subgroups
 
 ```{r}
-fsn.table.clincal <- data.frame(matrix(data = NA, nrow = 5, ncol = 3)) #V new
+fsn.table.clincal <- data.frame(matrix(data = NA, nrow = 5, ncol = 4)) #V new
 
-names(fsn.table.clincal)<-c("valence", "phase", "Fail-save N")
+names(fsn.table.clincal)<-c("valence", "phase", "Fail-save N", "Pvalue")
 
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
     subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "E"),
     type = "Rosenthal") ->fsnFE.clinical
 fsnFE.clinical
-fsn.table.clincal[1,] <- c("F", "E", fsnFE.clinical$fsnum)
+fsn.table.clincal[1,] <- c("F", "E", fsnFE.clinical$fsnum, fsnFE.clinical$pval)
 ```
 
 
@@ -439,7 +437,7 @@ fsn(yi = yi, vi = vi,
     subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnFL.clinical
 fsnFL.clinical
-fsn.table.clincal[2,] <- c("F", "L", fsnFL.clinical$fsnum)
+fsn.table.clincal[2,] <- c("F", "L", fsnFL.clinical$fsnum, fsnFL.clinical$pval)
 ```
 
 
@@ -449,7 +447,7 @@ fsn(yi = yi, vi = vi,
     subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnNL.clinical
 fsnNL.clinical
-fsn.table.clincal[3,] <- c("N", "L", fsnNL.clinical$fsnum)
+fsn.table.clincal[3,] <- c("N", "L", fsnNL.clinical$fsnum, fsnNL.clinical$pval)
 ```
 
 
@@ -459,7 +457,7 @@ fsn(yi = yi, vi = vi,
     subset = (clinical.filtered$valence == "E" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnEM.clinical
 fsnEM.clinical
-fsn.table.clincal[4,] <- c("E", "M", fsnEM.clinical$fsnum)
+fsn.table.clincal[4,] <- c("E", "M", fsnEM.clinical$fsnum, fsnEM.clinical$pval)
 ```
 
 
@@ -469,7 +467,13 @@ fsn(yi = yi, vi = vi,
     subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnNM.clinical
 fsnNM.clinical
-fsn.table.clincal[5,] <- c("N", "M", fsnNM.clinical$fsnum)
+fsn.table.clincal[5,] <- c("N", "M", fsnNM.clinical$fsnum, fsnNM.clinical$pval)
+```
+
+###### view and save complete table
+```{r}
+fsn.table.clincal$Pvalue <- round(as.numeric(fsn.table.clincal$Pvalue),3)
+fsn.table.clincal$Pvalue<- ifelse(fsn.table.clincal$Pvalue == 0, "<.001",fsn.table.clincal$Pvalue)
 
 fsn.table.clincal
 
@@ -556,10 +560,30 @@ mod.clinical.noinf <- rma.mv(yi, vi,
 summary(mod.clinical.noinf)
 ```
 
+save
+```{r}
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.clinical.noinf$b),
+        round(
+                 data.frame(
+                 mod.clinical.noinf$b, mod.clinical.noinf$se, 
+                 mod.clinical.noinf$ci.lb, mod.clinical.noinf$ci.ub, 
+                 mod.clinical.noinf$zval, mod.clinical.noinf$pval,row.names = NULL), 
+                 3)
+  ) ->sens.infout.clinical.results
+
+colnames(sens.infout.clinical.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+sens.infout.clinical.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->sens.infout.clinical.results2
+
+write.csv2(sens.infout.clinical.results2,"results/sens.clinical.infout.csv")
+```
+
 
 #### comparision types
 
-##### non-trauma exposed vs PTSD
+##### A non-trauma exposed vs PTSD
 [A= non-exposed vs trauma-exposed PTSD (human); 
 E=non-exposed vs trauma-exposed PTSD (animal)
 ```{r}
@@ -583,14 +607,28 @@ rma.mv(yi, vi,
 summary(mod.A)
 ```
 
+save
 ```{r}
-data.frame(cbind(mod.A$b, CIlb=mod.A$ci.lb, CIub=mod.A$ci.ub, p=mod.A$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.A.csv")
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.A$b),
+        round(
+                 data.frame(
+                 mod.A$b, mod.A$se, 
+                 mod.A$ci.lb, mod.A$ci.ub, 
+                 mod.A$zval, mod.A$pval,row.names = NULL), 
+                 3)
+  ) ->mod.A.results
+
+colnames(mod.A.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.A.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.A.results2
+
+write.csv2(mod.A.results2,"results/sens.mod.A.csv")
 ```
 
-##### non-trauma exposed vs trauma-exposed HC
+
+##### B non-trauma exposed vs trauma-exposed HC
 B=non-exposed vs trauma exposed no PTSD (human); 
 D=non-exposed vs trauma-exposed (no PTSD checked) (animal)
 ```{r}
@@ -627,15 +665,29 @@ rma.mv(yi, vi,
 summary(mod.B)
 ```
 
+
+save
 ```{r}
-data.frame(cbind(mod.B$b, CIlb=mod.B$ci.lb, CIub=mod.B$ci.ub, p=mod.B$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.B.csv")
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.B$b),
+        round(
+                 data.frame(
+                 mod.B$b, mod.B$se, 
+                 mod.B$ci.lb, mod.B$ci.ub, 
+                 mod.B$zval, mod.B$pval,row.names = NULL), 
+                 3)
+  ) ->mod.B.results
+
+colnames(mod.B.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.B.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.B.results2
+
+write.csv2(mod.B.results2,"results/sens.mod.B.csv")
 ```
 
 
-##### trauma exposed vs PTSD
+##### C trauma exposed vs PTSD
 C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human);
 F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
 ```{r}
@@ -659,13 +711,25 @@ rma.mv(yi, vi,
 summary(mod.C)
 ```
 
+save
 ```{r}
-data.frame(cbind(mod.C$b, CIlb=mod.C$ci.lb, CIub=mod.C$ci.ub, p=mod.C$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.C.csv")
-```
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.C$b),
+        round(
+                 data.frame(
+                 mod.C$b, mod.C$se, 
+                 mod.C$ci.lb, mod.C$ci.ub, 
+                 mod.C$zval, mod.C$pval,row.names = NULL), 
+                 3)
+  ) ->mod.C.results
 
+colnames(mod.C.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.C.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.C.results2
+
+write.csv2(mod.C.results2,"results/sens.mod.C.csv")
+```
 
 ## Research Question 2: Learning and Memory of emotional and non-emotional information in animal models of PTSD
 
@@ -861,7 +925,8 @@ PLOT.preclinical <-
   #   values= c( "Neutral" = "steelblue2", # Colours: http://sape.inf.usi.ch/quick-reference/ggplot2/colour
   #              "Emotional" = "tomato2")) +
   
-     scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis") +
+     scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                        option = "cividis") +
   
   geom_bar(stat = "identity")+
   geom_hline(yintercept = 0, size = 1) +
@@ -970,17 +1035,19 @@ fsn(yi = yi, vi = vi,
 
 file drawer analysis is performed within valence x phase subgroups
 
-```{r}
-fsn.table <- data.frame(matrix(data = NA, nrow = 7, ncol = 3)) #V new
 
-names(fsn.table)<-c("valence", "phase", "Fail-save N")
+
+```{r}
+fsn.table.preclinical <- data.frame(matrix(data = NA, nrow = 7, ncol = 4)) #V new
+
+names(fsn.table.preclinical)<-c("valence", "phase", "Fail-save N", "Pvalue")
 
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "E"),
-    type = "Rosenthal") ->fsnFE
-fsnFE
-fsn.table[1,] <- c("F", "E", fsnFE$fsnum)
+    type = "Rosenthal") ->fsnFE.preclinical
+fsnFE.preclinical
+fsn.table.preclinical[1,] <- c("F", "E", fsnFE.preclinical$fsnum, fsnFE.preclinical$pval)
 ```
 
 
@@ -988,9 +1055,9 @@ fsn.table[1,] <- c("F", "E", fsnFE$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "T" & preclinical$phase == "E"),
-    type = "Rosenthal")->fsnTE
-fsnTE
-fsn.table[2,] <- c("T", "E", fsnTE$fsnum)
+    type = "Rosenthal")->fsnTE.preclinical
+fsnTE.preclinical
+fsn.table.preclinical[2,] <- c("T", "E", fsnTE.preclinical$fsnum, fsnTE.preclinical$pval)
 ```
 
 
@@ -998,9 +1065,9 @@ fsn.table[2,] <- c("T", "E", fsnTE$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "L"),
-    type = "Rosenthal") ->fsnFL
-fsnFL
-fsn.table[3,] <- c("F", "L", fsnFL$fsnum)
+    type = "Rosenthal") ->fsnFL.preclinical
+fsnFL.preclinical
+fsn.table.preclinical[3,] <- c("F", "L", fsnFL.preclinical$fsnum, fsnFL.preclinical$pval)
 ```
 
 
@@ -1008,9 +1075,9 @@ fsn.table[3,] <- c("F", "L", fsnFL$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "N" & preclinical$phase == "L"),
-    type = "Rosenthal")->fsnNL
-fsnNL
-fsn.table[4,] <- c("N", "L", fsnNL$fsnum)
+    type = "Rosenthal")->fsnNL.preclinical
+fsnNL.preclinical
+fsn.table.preclinical[4,] <- c("N", "L", fsnNL.preclinical$fsnum, fsnNL.preclinical$pval)
 ```
 
 
@@ -1018,9 +1085,9 @@ fsn.table[4,] <- c("N", "L", fsnNL$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "F" & preclinical$phase == "M"),
-    type = "Rosenthal")->fsnFM
-fsnFM
-fsn.table[5,] <- c("F", "M", fsnFM$fsnum)
+    type = "Rosenthal")->fsnFM.preclinical
+fsnFM.preclinical
+fsn.table.preclinical[5,] <- c("F", "M", fsnFM.preclinical$fsnum, fsnFM.preclinical$pval)
 ```
 
 
@@ -1028,9 +1095,9 @@ fsn.table[5,] <- c("F", "M", fsnFM$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "N" & preclinical$phase == "M"),
-    type = "Rosenthal")->fsnNM
-fsnNM
-fsn.table[6,] <- c("N", "M", fsnNM$fsnum)
+    type = "Rosenthal")->fsnNM.preclinical
+fsnNM.preclinical
+fsn.table.preclinical[6,] <- c("N", "M", fsnNM.preclinical$fsnum, fsnNM.preclinical$pval)
 ```
 
 
@@ -1038,17 +1105,21 @@ fsn.table[6,] <- c("N", "M", fsnNM$fsnum)
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
     subset = (preclinical$valence == "T" & preclinical$phase == "M"),
-    type = "Rosenthal")->fsnTM
-fsnTM
-fsn.table[7,] <- c("T", "M", fsnTM$fsnum)
+    type = "Rosenthal")->fsnTM.preclinical
+fsnTM.preclinical
+fsn.table.preclinical[7,] <- c("T", "M", fsnTM.preclinical$fsnum, fsnTM.preclinical$pval)
 ```
 
-
+###### view and save complete table
 ```{r}
-fsn.table
+fsn.table.preclinical$Pvalue <- round(as.numeric(fsn.table.preclinical$Pvalue),3)
+fsn.table.preclinical$Pvalue<- ifelse(fsn.table.preclinical$Pvalue == 0, "<.001",fsn.table.preclinical$Pvalue)
 
-write.csv2(fsn.table, "results/phase_valence_PTSD_preclinical.FSN.csv")
+fsn.table.preclinical
+
+write.csv2(fsn.table.preclinical, "results/phase_valence_PTSD_preclinical.FSN.csv")
 ```
+
 
 
 ##### trim and fill
@@ -1136,10 +1207,30 @@ mod.preclinical.noinf <- rma.mv(yi, vi,
 summary(mod.preclinical.noinf)
 ```
 
+save
+```{r}
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.preclinical.noinf$b),
+        round(
+                 data.frame(
+                 mod.preclinical.noinf$b, mod.preclinical.noinf$se, 
+                 mod.preclinical.noinf$ci.lb, mod.preclinical.noinf$ci.ub, 
+                 mod.preclinical.noinf$zval, mod.preclinical.noinf$pval,row.names = NULL), 
+                 3)
+  ) ->sens.infout.preclinical.results
+
+colnames(sens.infout.preclinical.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+sens.infout.preclinical.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->sens.infout.preclinical.results2
+
+write.csv2(sens.infout.preclinical.results2,"results/sens.preclinical.infout.csv")
+```
+
 
 #### comparision types
 
-##### non-trauma exposed vs PTSD
+##### E non-trauma exposed vs PTSD
 
 [A= non-exposed vs trauma-exposed PTSD (human); 
 E=non-exposed vs trauma-exposed PTSD (animal)
@@ -1163,15 +1254,28 @@ rma.mv(yi, vi,
 mod.E%>% summary()
 ```
 
+save
 ```{r}
-data.frame(cbind(mod.E$b, CIlb=mod.E$ci.lb, CIub=mod.E$ci.ub, p=mod.E$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.E.csv")
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.E$b),
+        round(
+                 data.frame(
+                 mod.E$b, mod.E$se, 
+                 mod.E$ci.lb, mod.E$ci.ub, 
+                 mod.E$zval, mod.E$pval,row.names = NULL), 
+                 3)
+  ) ->mod.E.results
 
+colnames(mod.E.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.E.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.E.results2
+
+write.csv2(mod.E.results2,"results/sens.mod.E.csv")
 ```
 
-##### non-trauma exposed vs trauma-exposed HC
+
+##### D non-trauma exposed vs trauma-exposed HC
 B=non-exposed vs trauma exposed no PTSD (human); 
 D=non-exposed vs trauma-exposed (no PTSD checked) (animal)
 ```{r}
@@ -1196,15 +1300,29 @@ rma.mv(yi, vi,
 summary(mod.D)
 ```
 
+
+save
 ```{r}
-data.frame(cbind(mod.D$b, CIlb=mod.D$ci.lb, CIub=mod.D$ci.ub, p=mod.D$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.D.csv")
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.D$b),
+        round(
+                 data.frame(
+                 mod.D$b, mod.D$se, 
+                 mod.D$ci.lb, mod.D$ci.ub, 
+                 mod.D$zval, mod.D$pval,row.names = NULL), 
+                 3)
+  ) ->mod.D.results
+
+colnames(mod.D.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.D.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.D.results2
+
+write.csv2(mod.D.results2,"results/sens.mod.D.csv")
 ```
 
 
-##### trauma exposed vs PTSD
+##### F trauma exposed vs PTSD
 C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human);
 F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
 ```{r}
@@ -1229,12 +1347,27 @@ rma.mv(yi, vi,
 summary(mod.F)
 ```
 
+
+save
 ```{r}
-data.frame(cbind(mod.F$b, CIlb=mod.F$ci.lb, CIub=mod.F$ci.ub, p=mod.F$pval)) %>% 
-  round(.,4) %>% 
-  # filter(p <=0.05) %>% 
-  write.csv2(.,"results/sens.F.csv")
+# create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
+  cbind(rownames(mod.F$b),
+        round(
+                 data.frame(
+                 mod.F$b, mod.F$se, 
+                 mod.F$ci.lb, mod.F$ci.ub, 
+                 mod.F$zval, mod.F$pval,row.names = NULL), 
+                 3)
+  ) ->mod.F.results
+
+colnames(mod.F.results)<-c("test","effectsize",	"se",	"ci.lb",	"ci.ub",	"Zvalue",	"Pvalue")
+
+# correct pvalue 0
+mod.F.results %>% mutate(Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue))->mod.F.results2
+
+write.csv2(mod.F.results2,"results/sens.mod.F.csv")
 ```
+
 
 # Merge clinical and preclinical plots
 ```{r}
