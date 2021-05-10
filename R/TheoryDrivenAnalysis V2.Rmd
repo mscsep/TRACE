@@ -322,10 +322,23 @@ PLOT.clinical <-
 PLOT.clinical
 ```
 
-### run function & save plots
+### save data table
+
+
+save
 ```{r}
-write.csv2(clinical.results, paste0("results/phase_valence_PTSD_clinical", #date(),
-                                    ".csv"))
+clinical.results[,2:8]<-round(clinical.results[,2:8],3)
+# correct pvalue 0
+clinical.results %>% mutate(
+  Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue),
+  Pvalue_bonfCorr = ifelse(Pvalue_bonfCorr == 0, "<.001", Pvalue_bonfCorr))->clinical.results
+
+write.csv2(clinical.results, "results/phase_valence_PTSD_clinical.csv")
+```
+
+
+### Save plot
+```{r}
 ggsave(paste0("results/phase_valence_PTSD_clinical", #date(),
               ".jpg"),
        plot=PLOT.clinical+  theme(text = element_text(size = 12)),
@@ -958,10 +971,22 @@ PLOT.preclinical
 
 
 
-### run function & save plots
+### save data table
+save
 ```{r}
-write.csv2(preclinical.results, paste0("results/phase_valence_PTSD_preclinical", #date(),
-                                       ".csv"))
+str(preclinical.results)
+preclinical.results[,2:8]<-round(preclinical.results[,2:8],3)
+# correct pvalue 0
+preclinical.results %>% mutate(
+  Pvalue= ifelse(Pvalue == 0, "<.001", Pvalue),
+  Pvalue_bonfCorr = ifelse(Pvalue_bonfCorr == 0, "<.001", Pvalue_bonfCorr))->preclinical.results
+
+write.csv2(preclinical.results, "results/phase_valence_PTSD_preclinical.csv")
+```
+
+
+### save plots
+```{r}
 ggsave(paste0("results/phase_valence_PTSD_preclinical", #date(),
               ".jpg"),
        plot=PLOT.preclinical+  theme(text = element_text(size = 12)),
