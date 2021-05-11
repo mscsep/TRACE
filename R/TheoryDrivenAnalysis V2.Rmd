@@ -391,13 +391,13 @@ https://rdrr.io/cran/metafor/man/funnel.html:
 
 ```{r}
 funnel(mod.clinical, legend = F, col=clinical.filtered$PMID, 
-       back = 'white')
+       back = 'white') 
 ```
 
 ```{r}
 tiff(file="results/funnel.colours.clinical.tiff", height=1000, width=1000, pointsize=6, res=300)
 funnel(mod.clinical, legend = F, col=clinical.filtered$PMID, 
-       back = 'white')
+       back = 'white') 
 dev.off()
 ```
 
@@ -1026,8 +1026,7 @@ funnel(mod.preclinical, legend = F, col=preclinical$PMID, back = 'white')
 
 ```{r}
 tiff(file="results/funnel.colours.preclinical.tiff", height=1000, width=1000, pointsize=6, res=300)
-funnel(mod.preclinical, legend = F, col=preclinical$PMID, back = 'white'#,xlab='mean DR'
-)
+funnel(mod.preclinical, legend = F, col=preclinical$PMID, back = 'white')
 dev.off()
 ```
 
