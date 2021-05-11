@@ -16,6 +16,8 @@ library(metacart)
 
 library(caret)
 library(metaforest)
+
+library(ggpubr)
 ```
 
 # load and select data
@@ -280,12 +282,9 @@ plot(cv.mf.cluster.clinical) #
 
 ### Model convergence
 ```{r}
-{
-  jpeg(file="results/metaforest_Clinical_convergence.jpeg", height = 1000, width = 1000,pointsize=8, res=300) # Higher quality output
-   # tiff(file="results/metaforest_Clinical_convergence.tiff", height=1000, width=1000, pointsize=8, res=300)
-plot(cv.mf.cluster.clinical$finalModel) 
+   tiff(file="results/metaforest_Clinical_convergence.tiff", height=800, width=800, pointsize=8, res=300)
+plot(cv.mf.cluster.clinical$finalModel) + theme_pubr(base_size = 8)
  dev.off()
- }
 ```
 
 ### Model summary
@@ -309,14 +308,15 @@ cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights
 
 ### Variable importance
 ```{r}
+ VarImpPlot(cv.mf.cluster.clinical$finalModel) -> var.imp.plot.clinical
+
 tiff(file="results/metaforest_Clinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
-VarImpPlot(cv.mf.cluster.clinical$finalModel#, n.var = 4
-           )+  theme_pubr(base_size = 8)
+var.imp.plot.clinical+  theme_pubr(base_size = 8)
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
  dev.off()
  
- VarImpPlot(cv.mf.cluster.clinical$finalModel) +  theme_pubr(base_size = 12)
+ var.imp.plot.clinical+  theme_pubr(base_size = 12)
 ```
 
 negative variable importance (in metaforest) ~ just no relation to outcome
@@ -335,7 +335,7 @@ imp.clinical <- data.frame(overall = imp.clinical$Overall,
                   names   = rownames(imp.clinical))
 write.csv2(imp.clinical[order(imp.clinical$overall,decreasing = T),],"results/important_variables_clinical_metaforest.csv")
 
-# select top half most imporant variables
+# select top half most important variables
 imp.clinical[order(imp.clinical$overall,decreasing = T),] %>%
   filter(overall >0) -> important.vars.clinical
   # slice_head(.,n=nrow(.) / 2) 
@@ -348,7 +348,6 @@ variable.clinical
 ```
 
 ```{r}
-
 # for (i in 1:length(variable.clinical)) {
 # 
 #   thisMod <- variable.clinical[i]
@@ -368,14 +367,20 @@ PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, #
                    # , ncol=3 # no effect
                   ) #
 dev.off()}
+```
 
+
+```{r}
 {jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F#, pi = .95
                    # , ncol=3, color=scale_color_grey()
                   ) 
 #scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis")
 dev.off()}
+```
 
+
+```{r}
 {jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "valence",rawdata=F#, pi = .95
                    # , ncol=3
@@ -385,7 +390,7 @@ dev.off()}
 # WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
 ```
 
- interactions from metaCART
+### interactions from metaCART
 ```{r}
 {jpeg(file="results/metaforest_PD_clinical_metaCARTfollowup.jpeg", height = 1500, width = 6000, res=300) # Higher quality output
 
@@ -457,12 +462,10 @@ plot(cv.mf.cluster.preclinical) #
 
 ### Model convergence
 ```{r}
- {
-   #jpeg(file="results/metaforest_convergencePlot.jpeg", height = 3000, width = 3000, res=500) # Higher quality output
-     jpeg(file="results/metaforest_Preclinical_convergence.jpeg", height = 1000, width = 1000,pointsize=8, res=300) # Higher quality output
- 
-plot(cv.mf.cluster.preclinical$finalModel) 
- dev.off()}
+tiff(file="results/metaforest_Preclinical_convergence.tiff", height=800, width=800, pointsize=8,
+     res=300)
+plot(cv.mf.cluster.preclinical$finalModel)+ theme_pubr(base_size = 8)
+ dev.off()
 ```
 
 ### Model summary
@@ -486,13 +489,15 @@ cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichw
 
 ### Variable importance
 ```{r}
+VarImpPlot(cv.mf.cluster.preclinical$finalModel) ->var.imp.plot.preclinical
+           
 tiff(file="results/metaforest_Preclinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
-VarImpPlot(cv.mf.cluster.preclinical$finalModel) +  theme_pubr(base_size = 8)
+var.imp.plot.preclinical +  theme_pubr(base_size = 8)
 # +  geom_hline(yintercept=11.5) +
 #   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
  dev.off()
  
- VarImpPlot(cv.mf.cluster.preclinical$finalModel) +  theme_pubr(base_size = 12)
+var.imp.plot.preclinical +  theme_pubr(base_size = 12)
 ```
 
 
@@ -559,7 +564,7 @@ dev.off()}
 
 ```
 
- interactions from metaCART
+### interactions from metaCART
 ```{r}
 {jpeg(file="results/metaforest_PD_preclinical_metaCARTfollowup.jpeg", height = 1500, width = 6000, res=300) # Higher quality output
 
@@ -594,3 +599,30 @@ dev.off()}
 ```{r eval=FALSE, include=FALSE}
 WeightedScatter(preclinical, yi = "yi", vi = "vi", vars = variable.preclinical, summarize = TRUE)
 ```
+
+
+### Combine plots preclinical and clinical
+
+```{r}
+ggarrange(
+ var.imp.plot.clinical + labs(title = "Clinical data") + theme_pubr(base_size = 8),
+ var.imp.plot.preclinical + labs(title = "Preclinical data") + theme_pubr(base_size = 8) + rremove("ylab"),
+  # plot(REtree.C)+  theme_pubr(base_size = 12), # werkt niet
+ ncol =2, nrow=1
+ ) ->var.imp.plots
+
+var.imp.plots
+
+ggsave("results/VarImp.clinical.preclinical.tiff", 
+       plot=var.imp.plots,
+       device="tiff", dpi = 300, height = 3, width = 7, limitsize = T )
+
+# 
+#    tiff(file="results/metaforest_Clinical_convergence.tiff", height=800, width=800, pointsize=8, res=300)
+# plot(cv.mf.cluster.clinical$finalModel) + theme_pubr(base_size = 8)
+#  dev.off()
+```
+
+ 
+
+ 
