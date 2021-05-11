@@ -18,6 +18,10 @@ library(caret)
 library(metaforest)
 
 library(ggpubr)
+# to chagne pd plot layout
+library(grid)
+library(gridExtra)
+library(purrr)
 ```
 
 # load and select data
@@ -335,11 +339,12 @@ imp.clinical <- data.frame(overall = imp.clinical$Overall,
                   names   = rownames(imp.clinical))
 write.csv2(imp.clinical[order(imp.clinical$overall,decreasing = T),],"results/important_variables_clinical_metaforest.csv")
 
-# select top half most important variables
-imp.clinical[order(imp.clinical$overall,decreasing = T),] %>%
-  filter(overall >0) -> important.vars.clinical
-  # slice_head(.,n=nrow(.) / 2) 
- 
+# # select all variables
+imp.clinical[order(imp.clinical$overall,decreasing = T),] -> important.vars.clinical
+   # slice_head(.,n=nrow(.) / 2)
+
+# select top-3 most important variables
+ # top_n(imp.clinical,n=3, wt=overall)->important.vars.clinical
 
 important.vars.clinical$names ->variable.clinical
 variable.clinical
@@ -347,48 +352,76 @@ variable.clinical
 # saveRDS(variable,"processed_data/important_variables.RDS")
 ```
 
+Create PD list
 ```{r}
-# for (i in 1:length(variable.clinical)) {
-# 
-#   thisMod <- variable.clinical[i]
-#   WeightedScatter(clinical, yi = "yi", vi = "vi", vars = thisMod, summarize = TRUE)
-#   ggsave(paste0("results/clinical_metaforest_WeightedScatter_", thisMod, ".tiff"))
-# 
-#   PartialDependence(cv.mf.cluster.clinical$finalModel, vars = thisMod)
-#   ggsave(paste0("results/.clinical_metaforest_partDep_", thisMod, ".tiff"))
-# 
-#   # a <- 1
-# 
-# } # Plots saved in your folder
-{jpeg(file="results/metaforest_PD_main_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, #moderator =  "phase",
                   bw=T,
-                  rawdata=F#, pi = .95
-                   # , ncol=3 # no effect
-                  ) #
-dev.off()}
+                  rawdata=F, #pi = .95
+                   output = 'list'
+                  ) ->PD.list.clinical
+```
+
+# change layout (for better read ability)
+```{r}
+PD.list.clinical %>% 
+  map(~.x + labs(x=NULL, y=NULL)) %>% 
+    map(~.x + theme_pubr(base_size = 8)) %>%
+  map(~.x + theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1))) %>%
+  # map(~.x +  facet_grid(scales="free_y") ) %>% # not better
+  map(ggplotGrob) ->grobz.clinical # remove y pabs
+
+
+# PD.list.clinical %>% 
+#   map(~.x + theme(axis.text.x = element_text(angle = 20,hjust = 1,vjust = 1))) 
+# g <- 
+# do.call(gridExtra::gtable_rbind, grobz.clinical)->g
+
+{
+# grobz.clinical <- lapply(PD.list.clinical, ggplotGrob) # https://stackoverflow.com/questions/35068129/arrange-ggplot-plots-grobs-with-same-widths-using-gtable-to-create-2x2-layout
+arrangeGrob(grobs=grobz.clinical, 
+             # heights = c(1,1,1,1#,
+             #                # 1,1,1,1,
+             #                # 1,1,1,1
+             #                ),
+            # aligned=T, # no effect
+            # respect = F,
+            ncol=3, #nrow=4, 
+            left="Hedge'G", bottom = "Variable levels")->PD.clinical # https://community.rstudio.com/t/common-axis-title-in-grid-arrange/96353/2
+grid.newpage()
+grid.draw(PD.clinical)
+}
+
+# gtable_align(PD.clinical)
+
+ {jpeg(file="results/metaforest_PD_clinical.jpeg", height = 3000, width = 2000, res=300) # Higher quality output
+grid.draw(PD.clinical)
+ dev.off()}
 ```
 
 
+
+Clinical PD by phase
 ```{r}
-{jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+# {jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F#, pi = .95
-                   # , ncol=3, color=scale_color_grey()
                   ) 
 #scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis")
-dev.off()}
+# dev.off()}
 ```
 
-
+Clinical PD by valence
 ```{r}
-{jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+# {jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "valence",rawdata=F#, pi = .95
-                   # , ncol=3
                   )
-dev.off()}
+# dev.off()}
+```
 
+Clinical weighted scatter
+```{r}
 # WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
 ```
+
 
 ### interactions from metaCART
 ```{r}
@@ -513,55 +546,71 @@ imp.preclinical <- data.frame(overall = imp.preclinical$Overall,
                   names   = rownames(imp.preclinical))
 write.csv2(imp.preclinical[order(imp.preclinical$overall,decreasing = T),],"results/important_variables_preclinical_metaforest.csv")
 
-# select top half most imporant variables
-imp.preclinical[order(imp.preclinical$overall,decreasing = T),] %>%
-   filter(overall >0) -> important.vars.preclinical
-   # slice_head(.,n=nrow(.) / 2) 
- 
+# select all variables
+imp.preclinical[order(imp.preclinical$overall,decreasing = T),] -> important.vars.preclinical
+   # slice_head(.,n=nrow(.) / 2)
 
+ 
+# select top-3 most important variables
+ # top_n(imp.preclinical,n=3, wt=overall)->important.vars.preclinical
+
+ 
 important.vars.preclinical$names ->variable.preclinical
 variable.preclinical
 
 # saveRDS(variable,"processed_data/important_preclinical_variables.RDS")
 ```
 
+
+Create PD list
 ```{r}
-# for (i in 1:length(variable.clinical)) {
-# 
-#   thisMod <- variable.clinical[i]
-#   WeightedScatter(clinical, yi = "yi", vi = "vi", vars = thisMod, summarize = TRUE)
-#   ggsave(paste0("results/clinical_metaforest_WeightedScatter_", thisMod, ".tiff"))
-# 
-#   PartialDependence(cv.mf.cluster.clinical$finalModel, vars = thisMod)
-#   ggsave(paste0("results/.clinical_metaforest_partDep_", thisMod, ".tiff"))
-# 
-#   # a <- 1
-# 
-# } # Plots saved in your folder
+PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, bw=T, rawdata=F, #pi = .95
+                   output = 'list'
+                  ) ->PD.list.preclinical
+```
 
 
 
 
-# } # Plots saved in your folder
-{jpeg(file="results/metaforest_PD_main_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, #moderator =  "phase",
-                  rawdata=F, #pi = .95
-                   # , ncol=3
-                  )
-dev.off()}
+# change layout (for better read ability)
+```{r}
+PD.list.preclinical %>% 
+  map(~.x + labs(x=NULL, y=NULL)) %>% 
+    map(~.x + theme_pubr(base_size = 8)) %>%
+  map(~.x + theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1))) %>%
+ map(ggplotGrob) ->grobz.preclinical # remove y pabs
 
-{jpeg(file="results/metaforest_PD_byPhase_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+{
+arrangeGrob(grobs=grobz.preclinical, 
+            ncol=3, #nrow=4, 
+            left="Hedge'G", bottom = "Variable levels")->PD.preclinical # https://community.rstudio.com/t/common-axis-title-in-grid-arrange/96353/2
+grid.newpage()
+grid.draw(PD.preclinical)
+}
+
+
+ {jpeg(file="results/metaforest_PD_preclinical.jpeg", height = 3000, width = 2000, res=300) # Higher quality output
+grid.draw(PD.preclinical)
+ dev.off()}
+```
+
+
+```{r}
+# {jpeg(file="results/metaforest_PD_byPhase_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase",rawdata=F#, pi = .95
                    # , ncol=3
                   )
-dev.off()}
+# dev.off()}
+```
 
-{jpeg(file="results/metaforest_PD_byValence_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
+
+
+```{r}
+# {jpeg(file="results/metaforest_PD_byValence_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "valence",rawdata=F#, pi = .95
                    # , ncol=3
                   )
-dev.off()}
-
+# dev.off()}
 ```
 
 ### interactions from metaCART
@@ -605,23 +654,28 @@ WeightedScatter(preclinical, yi = "yi", vi = "vi", vars = variable.preclinical, 
 
 ```{r}
 ggarrange(
- var.imp.plot.clinical + labs(title = "Clinical data") + theme_pubr(base_size = 8),
- var.imp.plot.preclinical + labs(title = "Preclinical data") + theme_pubr(base_size = 8) + rremove("ylab"),
+ var.imp.plot.clinical + labs(title = "A) Clinical data") + theme_pubr(base_size = 8),
+ var.imp.plot.preclinical + labs(title = "B) Preclinical data") + theme_pubr(base_size = 8) + rremove("ylab"),
   # plot(REtree.C)+  theme_pubr(base_size = 12), # werkt niet
  ncol =2, nrow=1
  ) ->var.imp.plots
 
 var.imp.plots
+```
 
+
+```{r}
 ggsave("results/VarImp.clinical.preclinical.tiff", 
        plot=var.imp.plots,
        device="tiff", dpi = 300, height = 3, width = 7, limitsize = T )
 
-# 
-#    tiff(file="results/metaforest_Clinical_convergence.tiff", height=800, width=800, pointsize=8, res=300)
-# plot(cv.mf.cluster.clinical$finalModel) + theme_pubr(base_size = 8)
-#  dev.off()
+# tiff(file="results/VarImp.clinical.preclinical2.tiff", height=800, width=800, pointsize=8, res=300)
+# var.imp.plots
+#   dev.off()
 ```
+
+
+
 
  
 
