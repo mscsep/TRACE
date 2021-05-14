@@ -530,12 +530,12 @@ source("R/influentials_valence_phase.R")
 
 ```{r eval=FALSE, include=FALSE}
 clinical.inf<-influentials_valence_phase(clinical.filtered)
- saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
+saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
 ```
 
 
 ```{r}
- readRDS("processed_data/influentials.clinical.rds")->clinical.inf
+readRDS("processed_data/influentials.clinical.rds")->clinical.inf
 ```
 
 potential outlier and influential cases
@@ -1414,8 +1414,7 @@ plots
 
 ## safe results
 ```{r}
-ggsave(paste0("results/PTSD.clinical.preclinical", #date(),
-              ".jpg"), 
+ggsave("results/PTSD.clinical.preclinical.jpg", 
        plot=plots,
        device="jpg", dpi = 300, height = 8, width = 6, limitsize = T )
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
