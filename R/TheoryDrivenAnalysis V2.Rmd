@@ -323,9 +323,6 @@ PLOT.clinical
 ```
 
 ### save data table
-
-
-save
 ```{r}
 clinical.results[,2:8]<-round(clinical.results[,2:8],3)
 # correct pvalue 0
@@ -533,7 +530,6 @@ clinical.inf<-influentials_valence_phase(clinical.filtered)
 saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
 ```
 
-
 ```{r}
 readRDS("processed_data/influentials.clinical.rds")->clinical.inf
 ```
@@ -546,12 +542,6 @@ clinical.inf[which(clinical.inf$outInf == 1),] %>% nrow()
 studies with potential outlier and influential cases
 ```{r}
 clinical.inf[which(clinical.inf$outInf == 1),]%>% distinct(PMID) %>% nrow()
-```
-
-```{r}
-# # potential outliers
-# clinical.inf[which(clinical.inf$potOut == 1),] %>% nrow()
-# clinical.inf[which(clinical.inf$potOut == 1),]%>% distinct(PMID) %>% nrow()
 ```
 
 remove outliers + influential (Viechtbauer & Cheung) 
@@ -573,7 +563,6 @@ mod.clinical.noinf <- rma.mv(yi, vi,
 summary(mod.clinical.noinf)
 ```
 
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.clinical.noinf$b),
@@ -620,7 +609,6 @@ rma.mv(yi, vi,
 summary(mod.A)
 ```
 
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.A$b),
@@ -678,8 +666,6 @@ rma.mv(yi, vi,
 summary(mod.B)
 ```
 
-
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.B$b),
@@ -724,7 +710,6 @@ rma.mv(yi, vi,
 summary(mod.C)
 ```
 
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.C$b),
@@ -1060,7 +1045,6 @@ fsn(yi = yi, vi = vi,
 file drawer analysis is performed within valence x phase subgroups
 
 
-
 ```{r}
 fsn.table.preclinical <- data.frame(matrix(data = NA, nrow = 7, ncol = 4)) #V new
 
@@ -1182,7 +1166,6 @@ preclinical.inf<-influentials_valence_phase(preclinical)
 saveRDS(preclinical.inf, "processed_data/influentials.preclinical.rds")
 ```
 
-
 ```{r}
  readRDS("processed_data/influentials.preclinical.rds")->preclinical.inf
 ```
@@ -1197,23 +1180,8 @@ studies with potential outliers and influential cases
 preclinical.inf[which(preclinical.inf$outInf == 1),] %>% distinct(PMID) %>% nrow()
 ```
 
-```{r}
-# preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% nrow() # 11 comparisons
-# preclinical.inf %>% filter(outInf == 1 & potOut==1) %>% distinct(PMID) %>% nrow() # 4 papers
-
-# # potential outliers
-# preclinical.inf[which(preclinical.inf$potOut == 1),] %>% nrow() # 28 comparisons
-# preclinical.inf[which(preclinical.inf$potOut == 1),] %>% distinct(PMID) %>% nrow() # 14 papers
-# preclinical.inf %>% filter(potOut!=1) #->data.sens
-```
-
 remove potential outliers and influential cases (Viechtbauer & Cheung) 
 ```{r}
-
-# preclinical.inf %>%
-#  filter(outInf != 1) %>%
-# droplevels() -> preclinical.noinf # n=4 papers (11 comparison) excluded animal 
-
 preclinical.inf %>%
   filter(outInf != 1) %>%  # potential outliers AND influential
   # filter(potOut!=1) %>%
@@ -1231,7 +1199,6 @@ mod.preclinical.noinf <- rma.mv(yi, vi,
 summary(mod.preclinical.noinf)
 ```
 
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.preclinical.noinf$b),
@@ -1278,7 +1245,6 @@ rma.mv(yi, vi,
 mod.E%>% summary()
 ```
 
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.E$b),
@@ -1324,8 +1290,6 @@ rma.mv(yi, vi,
 summary(mod.D)
 ```
 
-
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.D$b),
@@ -1371,8 +1335,6 @@ rma.mv(yi, vi,
 summary(mod.F)
 ```
 
-
-save
 ```{r}
 # create same structure as main analysis: effectsize	se	ci.lb	ci.ub	Zvalue	Pvalue	Pvalue_bonfCorr
   cbind(rownames(mod.F$b),
@@ -1412,7 +1374,7 @@ plots<-ggarrange(
 plots
 ```
 
-## safe results
+## safe results plots
 ```{r}
 ggsave("results/PTSD.clinical.preclinical.jpg", 
        plot=plots,
