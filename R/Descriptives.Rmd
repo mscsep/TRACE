@@ -23,30 +23,7 @@ library(dplyr) #general
 data<-readRDS("processed_data/TRACEprepared.RData")
 ```
 
-uit oic meta
 
-# inspect study quality
-summary(sensitivity.data$quality)
-sd(sensitivity.data$quality)
-
-#plot study quality
-ggplot(sensitivity.data)+
-  geom_point(aes(x=PMID, y=quality)) +
-  # abline(h=2.101266) +
-  theme_classic() +
-  labs(x="PMID",
-       y="Quality Score") +
-  scale_x_discrete(breaks=NULL)
-ggsave("results/study.quality_new.jpeg", width=4,height = 4)
-
-# study quality as moderator?
-mod.sens <- rma.mv(yi, vi,
-               random = list(~1 | PMID, ~1 | EXP_group),
-               method = "REML",
-                mods = ~quality,
-               slab = label,
-               data = sensitivity.data) 
-summary(mod.sens)
 
 
 
