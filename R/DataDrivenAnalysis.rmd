@@ -72,6 +72,7 @@ data %>% select(subject, #nPTSD, nHC,
                   labels = c("Cue", "Cue-Cue", "Cue-Context", "Context"))
   )-> data.explore #%>%data.frame()
 
+saveRDS(data.explore, "processed_data/data.explore.rds") # used for descriptives
 ```
 
 # fix missing values
