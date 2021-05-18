@@ -11,7 +11,6 @@ editor_options:
 rm(list = ls()) #clean environment
 library(readxl)
 library(dplyr)
-
 library(osfr) # to download method codes
 ```
 
@@ -396,8 +395,11 @@ merged.inclusions.recoded9$idHC %>% unique()
 ```
 
 
-## new variables for phase & valence
-```{r}
+
+
+
+## new variables for phase & valence (no longer used)
+```{r eval=FALSE, include=FALSE}
 merged.inclusions.recoded9 %>% mutate(
   
   phase.valence = case_when(
@@ -434,7 +436,7 @@ Valence_Grouped = factor(Valence_Grouped)
 
 
 ```{r save}
-saveRDS(merged.inclusions.recoded10, "processed_data/TRACErecoded.RDS")
+saveRDS(merged.inclusions.recoded9, "processed_data/TRACErecoded.RDS")
  # write.csv2(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv", fileEncoding = "UTF-8") # writes spec characters weird
  # write.table(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv") # same problem
 ```
