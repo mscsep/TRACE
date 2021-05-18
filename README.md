@@ -7,7 +7,7 @@
 - Result stored in:`TRACEmerged.RDS`
   
 #### Recode data
-- recode variables in `recode_merged_data.rmd` 
+- recode variables in `recode_merged_data.rmd` and add method codes
 - output in `TRACErecoded.RDS`
 
 #### Process QA data
@@ -17,9 +17,10 @@
 - prepare data for analysis in `add_effect_size_QA.rmd` (was dataPreparation) 
 - output in `TRACEprepared.RData` 
 
+
 ### Step 2: Study descriptives
 - Overview numbers for screening steps (for flowchart) via `Flowchart.rmd`
-- Characteristics of the included studies via `Descriptives.rmd`
+- Characteristics of the included studies via `Descriptives.rmd` (uses `data.explore.rds`, created in `DataDrivenAnalysis.rmd` script)
 
 ### step 3: Theory-driven Analysis: metaregression
 
@@ -29,3 +30,4 @@
 
 ### step 4: Explorative / Data-driven Analysis: metaForest / metaCART
 - `DataDrivenAnalysis.rmd`
+- used data saved in `data.explore.rds`, this data is also used for descriptives table
