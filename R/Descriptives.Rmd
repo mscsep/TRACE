@@ -2,7 +2,7 @@
 title: "Descriptives"
 author: "Milou Sep"
 date: "4/15/2021"
-output: html_document
+output: word_document
 ---
 
 # Environment Preparation
@@ -10,192 +10,179 @@ output: html_document
 rm(list = ls()) #clean environment
 # libraries
 library(dplyr) #general
-# library(ggplot2) #for graphs
-# library(metafor) #for meta-analysis
-# library(ggpubr) # To show multiple plots in 1 figure
- library(flextable) # to create tables
- library(officer)# to export tables to word
+library(arsenal) # for tables
+# library(flextable) # to create tables
+# library(officer)# to export tables to word
 ```
 
-# import dataset (already processed with datasetPreparation)
+# Data
+import dataset (already processed with datasetPreparation)
 ```{r}
 # data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
-data<-readRDS("processed_data/TRACEprepared.RData")
+# data<-readRDS("processed_data/TRACEprepared.RData")
+data<-readRDS("processed_data/data.explore.rds")
+
+data %>% 
+  mutate(
+    # recode comparison typs
+    Comparison = case_when(
+      comparison == "A" ~ "non-exposed vs PTSD",
+      comparison == "B" ~ "non-exposed vs trauma-exposed",
+      comparison == "C" ~ "trauma-exposed vs PTSD",
+      comparison == "D" ~ "non-exposed vs trauma-exposed",
+      comparison == "E" ~ "non-exposed vs PTSD",
+      comparison == "F" ~"trauma-exposed vs PTSD"),
+    #change human/animal to clinical / preclinical
+    subject.cat=recode(subject.cat,
+                       Human = "Clinical",
+                       Animal = "Preclinical"),
+    
+    # full descriptions ptsd models animals
+    ptsd.type = recode(ptsd.type,
+                       UWT = "Under Water Trauma",
+                       FS = "Footshock",
+                       SPS = "Single Prolonged Stress",
+                       PSS = "Predator Scent Stress",
+                       RS = "Restrained Stress",
+                       SD = "Social Defeat")
+  ) %>%  
+  # select independent PTSD groups
+  distinct(new.idPTSD, .keep_all = TRUE) ->df.filterd
+
+str(df.filterd)
+unique(df.filterd$ptsd.type)
+```
+
+
+A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
+
+
+# Descriptives table
+
+## set table controls
+
+```{r}
+# https://rdrr.io/cran/arsenal/man/tableby.control.html
+mycontrols  <- tableby.control( test=F, total=F,
+                                na.rm=T,
+                                numeric.stats=c( "meansd","range","Nmiss"#, "sum"
+                                ),
+                                cat.stats = c("countpct", "Nmiss"),
+                                ord.stats= c("countpct","Nmiss"),
+                                stats.labels=list(Nmiss='Missing', Nmiss2='Missing', countpct="test",
+                                                  meansd="Mean (SD)", range="Range"#, sum="Total"
+                                ),
+                                pfootnote=TRUE,
+                                cat.simplify = T, numeric.simplify = T, ordered.simplify = T,
+                                digits=2,
+                                digits.p=2,
+                                digits.count=0,
+                                digits.pct=0 )
+```
+
+for example see
+https://github.com/mscsep/SAM_explore/blob/main/R/SAMexplore_descriptive_tables.Rmd
+
+```{r}
+names(df.filterd)
+```
+
+```{r}
+tableby(
+  subject.cat ~ 
+    Comparison+
+    control.type+
+    time.since.trauma+
+    rhythm +
+    sex + age+
+    phase + valence+
+    cuectx+information.type
+  ,
+  df.filterd, #strata=subject.cat,
+  control = mycontrols
+) ->table.combi
+```
+
+
+```{r results="asis"}
+table.combi %>% summary(., text=T# text is T for better layput (-)
+                        # , labelTranslations = combi.table.labels
+) 
+```
+
+set table tables
+
+# All to pseudo-years
+#     - omrekenen tijd in mens, rat en muis
+# 	- in adulthood: 11.8 rat days = 1 human year [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
+# 	- in adulthood: 2.60 mice day = 1 human year  [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
+
+
+```{r}
+combi.table.labels <-c(
+  Comparison="Experiment: Comparison Type",
+  control.type	= "Experiment: Control Type",
+  rhythm = "Experiment: Day/Night Phase",
+  time.since.trauma = "Experiment: Time since trauma, (expressed in human years)",
+  sex = "Subject: Sex",
+  age = "Subject: Age",
+  phase = "Task: phase",
+  valence = "Task: Valence",
+  cuectx = "Task: Cue / Context",
+  information.type = "Task: information type"
+)
+```
+
+# export to CSV
+```{r eval=FALSE, include=FALSE}
+table.combi %>% summary(., text=NULL)  %>% as.data.frame() %>% write.csv2(.,"results/descriptives.csv")
+```
+
+# export to word
+if export does not work: uncheck the option "Tools > Global Options > R Markdown > Show output inline for all R Markdown documents."
+
+```{r}
+write2word(table.combi, "descriptives.combined.doc", title="Characteristics Included studies",
+           labelTranslations = combi.table.labels)
 ```
 
 
 
-
-
-# uit oic meta (adapted)
-
+# set labels split tables
 ```{r}
-data %>% 
-  distinct(new.idPTSD, .keep_all = TRUE) %>% 
-   # group_by(subject, sex.PTSD) %>%
-     group_by(subject.cat) %>%
-  # group_by(subject) %>%  
-  tally(round(nPTSD,0)) 
-```
-
-```{r}
-data %>% 
-  distinct(new.idPTSD, .keep_all = TRUE) %>% 
-  filter(subject.cat == "Human") %>%
-     group_by(#subject.cat,
-              sex.PTSD#,age.PTSD.cat
-              ) %>%
-  # group_by(subject) %>%  
-  tally(round(nPTSD,0))  %>%
-    mutate(freq = n / sum(n))
-```
-
-```{r}
-data %>% 
-  distinct(new.idPTSD, .keep_all = TRUE) %>% 
-  filter(subject.cat == "Animal") %>%
-     group_by(#subject.cat,
-              sex.PTSD#,age.PTSD.cat
-              ) %>%
-  # group_by(subject) %>%  
-  tally(round(nPTSD,0))  %>%
-    mutate(freq = n / sum(n))
+split.table.labels<-c(
+  population="Subject: Population",
+  sample = "Subject: Sample",
+  ptsd.type = "Subject: Trauma Sequelae",
+  measure = "Task: Measure")
 ```
 
 
 ```{r}
-data %>% 
-  distinct(new.idPTSD, .keep_all = TRUE) %>% 
-  filter(subject.cat == "Human") %>%
-     group_by(age.PTSD.cat
-              ) %>%
-  # group_by(subject) %>%  
-  tally(round(nPTSD,0))  %>%
-    mutate(freq = n / sum(n))
+df.filterd %>% 
+  filter(subject.cat == "Clinical") %>% 
+  droplevels() %>%
+  tableby(~ population + # almost similar as sample
+            sample + ptsd.type + measure, data=., control = mycontrols, cat.simplify = F) ->table.clinical
+
+table.clinical%>%
+  summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
+
+
+write2word(table.clinical, "descriptives.clinical.doc", title="Characteristics Included clinical studies",
+           labelTranslations = split.table.labels)
 ```
 
 ```{r}
-data %>% 
-  distinct(new.idPTSD, .keep_all = TRUE) %>% 
-  filter(subject.cat == "Animal") %>%
-     group_by(age.PTSD.cat
-              ) %>%
-  # group_by(subject) %>%  
-  tally(round(nPTSD,0))  %>%
-    mutate(freq = n / sum(n))
-```
+df.filterd %>% 
+  filter(subject.cat == "Preclinical") %>% 
+  droplevels() %>%
+  tableby(~ population + 
+            sample + ptsd.type + measure, data=., control = mycontrols, cat.simplify = F) ->table.preclinical
 
+table.preclinical%>%
+  summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
 
-
-# Descriptives (uit eerste analysis script)
-
-## **papers included in the analysis**
-```{r}
-
-data %>% 
-  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.csv") 
-
-data %>% 
-  group_by( subject.cat) %>% 
-  summarize( length(unique(PMID))) #%>% write.csv2("results/unique.papers.by.subject.csv")
-```
-
-## **comparisons included in the analysis**
-```{r}
-
-data %>% 
-  #group_by(Valence_Grouped, subject, as.factor(task_d)) %>% 
-  summarize( length(unique(each))) #%>% write.csv2("results/unique.comparisons.csv") 
-
-data %>% 
-  group_by( subject.cat) %>% 
-  summarize( length(unique(each)))# %>% write.csv2("results/unique.comparisons.by.subject.csv")
-```
-
-## **Show Trauma & PTSD 'types' that are present in animals and humans**
-```{r}
-
-# # Recode ptsd variable codes. (for poster CNS2019), can later be adusted in datafile.
-# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "SPS")] <- 'SPS'
-# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "Deployment")] <- 'Deployment'     
-# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "WarRelated")] <- 'Deployment'  
-# 
-# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "of PSS?")] <- 'PSS'  
-# data$ptsd[stringr::str_detect(as.character(data$ptsd.type), "UWT")] <- 'UT'  
-# unique(data$ptsd.type)
-# data %>% droplevels() ->data
-
-data %>% 
-  group_by(subject.cat, ptsd.type) %>% 
-  summarize( length(unique(each))) %>% 
-  arrange(desc(subject.cat)) %>% 
-  flextable() %>%
-  # change header names
-  set_header_labels( ptsd.type = "Trauma", 
-                     'length(unique(each))'="comparisons") -> TRACEtrauma
-TRACEtrauma
-# Save to word
-doc <- read_docx()
-doc <- body_add_flextable(doc, value = TRACEtrauma, align="center")
-print(doc, target = paste0("results/TRACEtrauma", date(),".docx"))
-```
-
-## **Show tasks that were used to measure stressful & non-stressful learning & memory in animals and humans**
-```{r}
-data %>% 
-  group_by(Valence_Grouped, subject.cat, as.factor(task.d)) %>% 
-  summarize( length(unique(each))) %>% # comparisons
- # summarize(length(unique(id)), length(unique(each))) %>% # papers & comparisons
-  select(subject.cat, Valence_Grouped, everything())  %>% # NB everything() to leave the order of the other colums unchanged.
-  arrange(desc(subject.cat), Valence_Grouped) %>% 
-  flextable() %>%  color(i = ~ Valence_Grouped == 'stress', color="red")      %>%
-
-  # change header names
-set_header_labels( Valence_Grouped = "valence", 
-                   "as.factor(task.d)" = 'task',
-                #   'length(unique(id))'="papers",
-                   'length(unique(each))'="comparisons") -> TRACEmeasures
-TRACEmeasures
-# Save to word
-doc <- read_docx()
-doc <- body_add_flextable(doc, value = TRACEmeasures, align="center")
-print(doc, target = paste0("results/TraceMeasures", date(),".docx"))
-```
-
-## **show the amount of papers, comparisions and subjects in each category**
-```{r}
-data %>% 
-  group_by(subject.cat, Valence_Grouped, phase) %>% 
- #  distinct(id_combination, .keep_all=T)  %>% 
- # distinct(idExp, .keep_all=T)  %>% 
-  #  distinct(idControl, .keep_all=T)  %>% 
-  summarize(papers=length(unique(PMID)), comparisons=length(unique(each)), `total n PTSD` = sum(nPTSD), `total n HC` = sum(nHC))  %>% 
-  arrange(desc(subject.cat), Valence_Grouped) %>% # nb desc() for descending order
-  
-  flextable() %>%  
-  set_formatter_type(fmt_double="%.00f") %>% # change to no decimals 
-  # theme_vanilla() %>%
-   # autofit() %>%
-  
-  # Conditional style change in flextable
- # bold( i = ~ Valence_Grouped == 'stress', j = ~ subject) %>%   # i = row, j = colum
- # italic( i = ~ subject == 'Animal') %>%   # i = row, j = colum
-  color(i = ~ Valence_Grouped == 'stress', 
-        # j = ~ Petal.Width + Species, 
-        color="red")  %>%
-  # change header names
-  set_header_labels( Valence_Grouped = "valence", 
-                     'length(unique(PMID))'="papers",
-                     'length(unique(each))'="comparisons",
-                     'sum(nPTSD)'="nPTSD",
-                     'sum(nHC)'="nHC") -> TRACEsamples
-
-TRACEsamples
-
-# Save to word
-doc <- read_docx()
-doc <- body_add_flextable(doc, value = TRACEsamples, align="center")
-print(doc, target = paste0("results/TraceSample", date(),".docx"))
-
+write2word(table.preclinical, "descriptives.preclinical.doc", title="Characteristics Included preclinical studies",
+           labelTranslations = split.table.labels)
 ```
