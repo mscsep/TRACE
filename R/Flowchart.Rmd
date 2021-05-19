@@ -775,24 +775,68 @@ dataset %>%
   # group_by(subject) %>%  
   tally(round(nPTSD,0)) ->unique.n.PTSD.subjects
 
+dataset %>% 
+  distinct(new.idHC, .keep_all = TRUE) %>% 
+   # group_by(subject, sex.PTSD) %>%
+     group_by(subject.cat) %>%
+  # group_by(subject) %>%  
+  tally(round(nHC,0)) ->unique.n.HC.subjects
 
+```
+
+
+```{r}
 # papers in final theoretical analysis
 # lood prepared data for descriptives (export created in analysis scripts theoretical and data-driven analysis)
-readRDS("processed_data/clinical.data.metaregression.RDS") %>% 
-  summarize(#papers=length(unique(PMID)), 
-            groups=length(unique(new.idPTSD))#,
-            # comparisons=length(each)
-            ) %>% data.frame()->metaregression.clinical
-metaregression.clinical
+readRDS("processed_data/clinical.data.metaregression.RDS") -> metaregression.clinical 
+metaregression.clinical%>% 
+  distinct(new.idPTSD, .keep_all = TRUE) %>%
+  summarize(papers=length(unique(PMID)), 
+            groups=nrow(.),
+            n=(round(sum(nPTSD),0))
+            ) ->mReg.clinical.ptsd
+mReg.clinical.ptsd
+```
+
+
+```{r}
+metaregression.clinical%>% 
+  distinct(new.idHC, .keep_all = TRUE) %>%
+  summarize(papers=length(unique(PMID)), 
+            groups=nrow(.),
+            n=(round(sum(nHC),0))
+            ) ->mReg.clinical.hc
+mReg.clinical.hc
+
 # metaregression.clinical %>% distinct(new.idPTSD, .keep_all = TRUE) %>% nrow() # idem
+```
 
-readRDS("processed_data/preclinical.data.metaregression.RDS")%>% 
-  summarize(#papers=length(unique(PMID)), 
-            groups=length(unique(new.idPTSD))#,
-            # comparisons=length(each)
-            ) %>% data.frame()->metaregression.preclinical
-metaregression.preclinical
 
+```{r}
+readRDS("processed_data/preclinical.data.metaregression.RDS") ->metaregression.preclinical
+
+metaregression.preclinical %>%
+  distinct(new.idPTSD, .keep_all = TRUE) %>%
+  summarize(papers=length(unique(PMID)), 
+            groups=nrow(.),
+            n=(round(sum(nPTSD),0))
+            ) ->mReg.preclinical.ptsd
+mReg.preclinical.ptsd
+```
+
+
+```{r}
+metaregression.preclinical %>%
+  distinct(new.idHC, .keep_all = TRUE) %>%
+  summarize(papers=length(unique(PMID)), 
+            groups=nrow(.),
+            n=(round(sum(nHC),0))
+            ) ->mReg.preclinical.hc
+mReg.preclinical.hc
+```
+
+
+```{r}
 # pmid not present in data
 readRDS("processed_data/clinical.data.explorative.RDS")%>%
   summarize(
@@ -811,22 +855,24 @@ readRDS("processed_data/preclinical.data.explorative.RDS")%>%
 metaforest.preclinical$groups
 
 # same number of independent ptsd groups included in metaregression, metaforest/metacart?
-metaforest.preclinical$groups == metaregression.preclinical$groups # yes
-metaforest.clinical$groups == metaregression.clinical$groups # yes
+metaforest.preclinical$groups == mReg.preclinical.ptsd$groups# yes
+metaforest.clinical$groups == mReg.clinical.ptsd$groups # yes
+
+# -> count metareg used in flowchart
 ```
 
 # create flowchart
 
 https://www.r-bloggers.com/2018/05/flow-charts-in-r/
 ```{r}
-  jpeg(file="results/flowchart.jpeg", height = 2200, width = 2500, res=300)
+jpeg(file="results/flowchart.jpeg", height = 2200, width = 2500, res=300)
 
 grid.newpage()
 # set some parameters to use repeatedly
 leftx <- .35
 midx <- .5
 rightx <- .65
-width <- .2
+width <- .175
 gp <- gpar(fill = "lightgrey")
 # create boxes
 (total <- boxGrob(paste0("Screened Records\n N =",total.screened), 
@@ -849,10 +895,10 @@ connectGrob(total, g2, "N")
 
 
 (inel.cl1 <- boxGrob(paste0("Exclusions\n N = ",total.screened.clinical-post.screening.H$n),
- x=.15, y=.625, box_gp = gp, width = .125, height = .06))
+ x=.125, y=.625, box_gp = gp, width = .125, height = .06))
 
 (inel.precl1 <- boxGrob(paste0("Exclusions\n N = ",total.screened.preclinical-post.screening.A$n),
- x=.85, y=.625, box_gp = gp, width = .125, height = .06))
+ x=.875, y=.625, box_gp = gp, width = .125, height = .06))
 
 connectGrob(g1, inel.cl1, "-")
 connectGrob(g2, inel.precl1, "-")
@@ -867,43 +913,82 @@ connectGrob(g1, g11, "N")
 connectGrob(g2, g21, "N")
 
 (inel.cl2 <- boxGrob(paste0("Exclusions\n N = ",post.screening.H$n-combined.n.in.data[2,2]),
- x=.1, y=.45, box_gp = gp, width = .125, height = .06))
+ x=.125, y=.45, box_gp = gp, width = .125, height = .06))
 
 (inel.precl2 <- boxGrob(paste0("Exclusions\n N = ",post.screening.A$n-combined.n.in.data[1,2]),
- x=.9, y=.45, box_gp = gp, width = .125, height = .06))
+ x=.875, y=.45, box_gp = gp, width = .125, height = .06))
 
 connectGrob(g11, inel.cl2, "-")
 connectGrob(g21, inel.precl2, "-")
 
-(g12 <- boxGrob(paste0("Included clinical\n studies N=", combined.n.in.data[2,2],":\n- ", 
-                       combined.n.in.data[2,4] ," comparisons\n- ", 
-                       combined.n.in.data[2,3] ," independent patient groups\n- ", 
-                       unique.n.PTSD.subjects[2,2]," unique patients"), 
- x=leftx, y=.3, box_gp = gp, width = width+0.09))
-(g22 <- boxGrob(paste0("Included preclinical\n studies N=", combined.n.in.data[1,2],":\n- ", 
-                       combined.n.in.data[1,4] ," comparisons\n- ", 
-                       combined.n.in.data[1,3] ," independent PTSD groups\n- ", 
-                       unique.n.PTSD.subjects[1,2]," unique PTSD animals"), 
- x=rightx, y=.3, box_gp = gp, width = width+0.09))
+(g12 <- boxGrob(paste0("Included clinical\n studies N=", combined.n.in.data[2,2]
+                       # ,":\n- ", 
+                       # combined.n.in.data[2,4] ," comparisons\n- ", 
+                       # combined.n.in.data[2,3] ," independent patient groups\n- ", 
+                       # unique.n.PTSD.subjects[2,2]," unique patients"
+                       ), 
+ x=leftx, y=.35, box_gp = gp, width = width))
+(g22 <- boxGrob(paste0("Included preclinical\n studies N=", combined.n.in.data[1,2]
+                       # ,":\n- ", 
+                       # combined.n.in.data[1,4] ," comparisons\n- ", 
+                       # combined.n.in.data[1,3] ," independent PTSD groups\n- ", 
+                       # unique.n.PTSD.subjects[1,2]," unique PTSD animals"
+                       ), 
+ x=rightx, y=.35, box_gp = gp, width = width))
 
 connectGrob(g11, g12, "N")
 connectGrob(g21, g22, "N")
 
+# comparison b excluded for meta-analysis -> no papers excluded but 2 comparison groups
+# (inel.cl3 <- boxGrob(paste0("comparison B excluded \n N = ",combined.n.in.data[2,2]-mReg.clinical.ptsd$papers),
+ # x=.1, y=.25, box_gp = gp, width = .125, height = .06))
 
-(g13 <- boxGrob(paste0("independent patient groups \nin meta-analysis N = ",metaregression.clinical$groups),
- x=leftx, y=.1, box_gp = gp, width = width+0.09))
+# connectGrob(g12, inel.cl3, "-")
 
-(g23 <- boxGrob(paste0("independent PTSD groups \nin meta-analysis N = ",metaregression.preclinical$groups),
- x=rightx, y=.1, box_gp = gp, width = width+0.09))
 
-connectGrob(g12, g13, "N")
-connectGrob(g22, g23, "N")
+
+(g13 <- boxGrob(paste0(
+  # "in meta-analysis:\n- ",# mReg.clinical.ptsd$papers, ":\n- ",
+  #                      mReg.clinical.ptsd$groups, " independent patient groups\n - ",
+  #                      mReg.clinical.ptsd$n, " unique patients\n - ",
+  #                      mReg.clinical.hc$groups, " independent control groups\n - ",
+  #                      mReg.clinical.hc$n, " unique controls"
+  # 
+  
+   "in meta-analysis of clinical studies:\n- ",
+ mReg.clinical.ptsd$n, " unique PTSD patients in \n", mReg.clinical.ptsd$groups, " independent groups\n - ",
+ mReg.clinical.hc$n, " unique healthy controls in \n",  mReg.clinical.hc$groups, " independent groups"
+       
+   
+  ),
+ x=leftx-0.1, y=.125, box_gp = gp, width = width+0.2))
+
+# (g23 <- boxGrob(paste0(
+#   # "independent PTSD groups \nin meta-analysis N = ",mReg.preclinical.ptsd$groups
+#     "in meta-analysis:\n- ",# mReg.preclinical.ptsd$papers, ":\n- ",
+#                        mReg.preclinical.ptsd$groups, " independent patient groups\n - ",
+#                        mReg.preclinical.ptsd$n, " unique patients\n - ",
+#                        mReg.preclinical.hc$groups, " independent control groups\n - ",
+#                        mReg.preclinical.hc$n, " unique controls "
+#   ),
+  
+  (g23 <- boxGrob(paste0(
+ "in meta-analysis of preclinical studies:\n- ",
+ mReg.preclinical.ptsd$n, " unique 'PTSD-like' animals in \n", mReg.preclinical.ptsd$groups, " independent groups\n - ",
+ mReg.preclinical.hc$n, " unique control animals in \n",  mReg.preclinical.hc$groups, " independent groups"
+                       
+  ),
+  
+ x=rightx+0.1, y=.125, box_gp = gp, width = width+0.2))
+
+connectGrob(g12, g13, "v")
+connectGrob(g22, g23, "v")
 
   dev.off()
 ```
 
 https://cran.r-project.org/web/packages/PRISMAstatement/vignettes/PRISMA.html
-```{r}
+```{r eval=FALSE, include=FALSE}
 # install.packages("PRISMAstatement")
 library(PRISMAstatement)
 
