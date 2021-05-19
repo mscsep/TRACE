@@ -48,10 +48,11 @@ data %>%
                        SD = "Social Defeat")
   ) %>%  
   # select independent PTSD groups
-  distinct(new.idPTSD, .keep_all = TRUE) ->df.filterd
+  distinct(new.idPTSD, .keep_all = TRUE) %>%
+  droplevels()->df.filterd
 
-str(df.filterd)
-unique(df.filterd$ptsd.type)
+# str(df.filterd)
+# unique(df.filterd$ptsd.type)
 ```
 
 
@@ -74,7 +75,7 @@ mycontrols  <- tableby.control( test=F, total=F,
                                                   meansd="Mean (SD)", range="Range"#, sum="Total"
                                 ),
                                 pfootnote=TRUE,
-                                cat.simplify = T, numeric.simplify = T, ordered.simplify = T,
+                                cat.simplify = F, numeric.simplify = T, ordered.simplify = T,
                                 digits=2,
                                 digits.p=2,
                                 digits.count=0,
@@ -88,20 +89,33 @@ https://github.com/mscsep/SAM_explore/blob/main/R/SAMexplore_descriptive_tables.
 names(df.filterd)
 ```
 
+# Overvieuw comparison types
 ```{r}
-tableby(
-  subject.cat ~ 
-    Comparison+
-    control.type+
-    time.since.trauma+
-    rhythm +
-    sex + age+
-    phase + valence+
-    cuectx+information.type
-  ,
-  df.filterd, #strata=subject.cat,
-  control = mycontrols
-) ->table.combi
+df.filterd %>%
+  tableby(subject.cat ~ Comparison,., control = mycontrols) %>%
+  write2word(., "descriptives.comparison.doc", title="Characteristics Included studies",
+             labelTranslations = c(Comparison="Experiment: Comparison Type"))
+```
+
+# over view characteristics analysed data
+```{r}
+df.filterd %>%
+  filter(comparison != "B") %>%  # excluded comparison B from human dataset
+  droplevels() %>%
+  tableby(
+    subject.cat ~ 
+      # Comparison+
+      control.type+
+      time.since.trauma+
+      rhythm +
+      sex + age+
+      phase + valence+
+      cuectx+information.type
+    ,
+    ., #strata=subject.cat,
+    control = mycontrols
+  ) ->table.combi
+
 ```
 
 
@@ -121,7 +135,7 @@ set table tables
 
 ```{r}
 combi.table.labels <-c(
-  Comparison="Experiment: Comparison Type",
+  # Comparison="Experiment: Comparison Type",
   control.type	= "Experiment: Control Type",
   rhythm = "Experiment: Day/Night Phase",
   time.since.trauma = "Experiment: Time since trauma, (expressed in human years)",
@@ -162,9 +176,10 @@ split.table.labels<-c(
 ```{r}
 df.filterd %>% 
   filter(subject.cat == "Clinical") %>% 
+  filter(comparison != "B") %>%  # excluded comparison B from human dataset
   droplevels() %>%
   tableby(~ population + # almost similar as sample
-            sample + ptsd.type + measure, data=., control = mycontrols, cat.simplify = F) ->table.clinical
+            sample + ptsd.type + measure, data=., control = mycontrols) ->table.clinical
 
 table.clinical%>%
   summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
@@ -179,7 +194,7 @@ df.filterd %>%
   filter(subject.cat == "Preclinical") %>% 
   droplevels() %>%
   tableby(~ population + 
-            sample + ptsd.type + measure, data=., control = mycontrols, cat.simplify = F) ->table.preclinical
+            sample + ptsd.type + measure, data=., control = mycontrols) ->table.preclinical
 
 table.preclinical%>%
   summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
