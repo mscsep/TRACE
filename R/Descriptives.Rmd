@@ -33,9 +33,10 @@ data %>%
       comparison == "E" ~ "non-exposed vs PTSD",
       comparison == "F" ~"trauma-exposed vs PTSD"),
     #change human/animal to clinical / preclinical
-    subject.cat=recode(subject.cat,
-                       Human = "Clinical",
-                       Animal = "Preclinical"),
+    # subject.cat=recode(subject.cat,
+    #                    Human = "Clinical",
+    #                    Animal = "Preclinical"),
+    subject.cat=factor(subject.cat, levels = c("Human", "Animal"), labels = c("Clinical", "Preclinical")),
     
     # full descriptions ptsd models animals
     ptsd.type = recode(ptsd.type,
