@@ -77,6 +77,7 @@ clinical %>%
   mutate(phase.valence.code = paste(phase, valence,sep=".")) ->clinical1
 clinical1 %>% 
   filter(!(phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% droplevels() -> clinical.filtered
+saveRDS(clinical.filtered, file='processed_data/clinical.data.metaregression.RDS')
 ```
 
 ```{r}
@@ -99,6 +100,8 @@ preclinical %>% group_by(phase, valence) %>%
   ) ->excluded.levels.animal
 
 excluded.levels.animal
+
+saveRDS(preclinical, file='processed_data/preclinical.data.metaregression.RDS')
 ```
 
 > no exclusions needed in preclinial data (levels >=4 papers)

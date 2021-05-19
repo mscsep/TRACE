@@ -144,6 +144,8 @@ data.explore %>%
   select(-c(rhythm, subject.cat, comparison)) %>%
   droplevels() ->clinical
 str(clinical)
+
+saveRDS(clinical, file='processed_data/clinical.data.explorative.RDS')
 ```
 
 Comparison is included in the preclinical dataset, as most datapoints come from comparison D and we want to explore the influence of this experimental variation. 
@@ -155,6 +157,7 @@ data.explore %>%
   select(-subject.cat) %>%
   droplevels() ->preclinical
 str(preclinical)
+saveRDS(preclinical, file='processed_data/preclinical.data.explorative.RDS')
 ```
 
 
