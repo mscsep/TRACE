@@ -130,12 +130,27 @@ saveRDS(QA.A.recoded, file = "processed_data/TRACE_QA_animal.RData")
 saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
 ```
 
+## filter data included in meta-analysis
+```{r}
+readRDS("processed_data/clinical.data.metaregression.RDS") %>%
+  distinct(PMID) ->clinical.meta.papers
+nrow(clinical.meta.papers)
+```
+
+
+```{r}
+readRDS("processed_data/preclinical.data.metaregression.RDS") %>%
+  distinct(PMID)->preclinical.meta.papers
+nrow(preclinical.meta.papers)
+```
 
 ## Visualize study quality
 
 ### Clinical data
 ```{r}
-pivot_longer(QA.H.recoded, cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
+QA.H.recoded %>%
+  filter(PMID %in% clinical.meta.papers$PMID) %>%
+pivot_longer(., cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
   count(question, score) %>%
   mutate(
     question = factor(question, levels = c(
@@ -152,7 +167,20 @@ pivot_longer(QA.H.recoded, cols = grep("RoBQA",names(QA.H.recoded)), names_to = 
 
 QA.H.recoded %>% head()
 QA.H.recoded.long %>% head()
+```
+calc %
+```{r}
+QA.H.recoded.long %>%
+  mutate(
+    perc=round(
+      100*(n/nrow(clinical.meta.papers))
+      , 0)
+    )%>%
+  filter(score == "Low Risk of Bias")
+```
 
+
+```{r}
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) + 
   geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
@@ -186,7 +214,10 @@ ggsave("results/RoB_clinical.jpeg",plot=RoB.clincal,width = 15, height = 10, uni
 
 ### Preclinical data
 ```{r}
-pivot_longer(QA.A.recoded, cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
+QA.A.recoded %>%
+  filter(PMID %in% preclinical.meta.papers$PMID) %>%
+  
+pivot_longer(., cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
   count(question, score) %>%
   mutate(
     question = factor(question, levels = c(
@@ -204,7 +235,25 @@ pivot_longer(QA.A.recoded, cols = grep("RoBQA",names(QA.A.recoded)), names_to = 
 QA.A.recoded %>% head()
 QA.A.recoded.long %>% head()
 # str(QA.A.recoded.long)
+```
 
+calc %
+```{r}
+# QA.A.recoded.long %>%
+#   mutate(
+#     perc=100*(n/nrow(preclinical.meta.papers)))
+
+QA.A.recoded.long %>%
+  mutate(
+    perc=round(
+      100*(n/nrow(preclinical.meta.papers))
+      , 0)
+    )%>%
+  filter(score == "Low Risk of Bias")
+
+```
+
+```{r}
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) + 
   geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
