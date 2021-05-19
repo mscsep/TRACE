@@ -986,6 +986,16 @@ connectGrob(g22, g23, "v")
 
   dev.off()
 ```
+total number of humans
+```{r}
+2611+4121 #6732
+```
+
+
+total number of animals
+```{r}
+3407+3427 #6834
+```
 
 https://cran.r-project.org/web/packages/PRISMAstatement/vignettes/PRISMA.html
 ```{r eval=FALSE, include=FALSE}
