@@ -56,7 +56,8 @@ data %>% select(subject, #nPTSD, nHC,
     measure=measure2,
     time.since.trauma=time.pseudo,
     age=age.PTSD.cat,
-    information.type=type
+    information.type=type,
+    cue.context=cuectx
   ) %>%
   # set new factor levels
   mutate(
@@ -68,7 +69,7 @@ data %>% select(subject, #nPTSD, nHC,
                  labels = c( "Learning", "Memory", "Extinction")),
     valence=factor(valence, levels=c("N", "E", "F", "T"),
                    labels = c("Neutral", "Emotional", "Fear", "Trauma")),
-    cuectx=factor(cuectx, levels=c("cue", "cuecue", "cuecontext", "context"),
+    cue.context=factor(cue.context, levels=c("cue", "cuecue", "cuecontext", "context"),
                   labels = c("Cue", "Cue-Cue", "Cue-Context", "Context"))
   )-> data.explore #%>%data.frame()
 
