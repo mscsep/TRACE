@@ -130,7 +130,7 @@ saveRDS(QA.A.recoded, file = "processed_data/TRACE_QA_animal.RData")
 saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
 ```
 
-## filter data included in meta-analysis
+# filter data included in meta-analysis
 ```{r}
 readRDS("processed_data/clinical.data.metaregression.RDS") %>%
   distinct(PMID) ->clinical.meta.papers
@@ -144,13 +144,13 @@ readRDS("processed_data/preclinical.data.metaregression.RDS") %>%
 nrow(preclinical.meta.papers)
 ```
 
-## Visualize study quality
+## Visualize study quality of included studies
 
 ### Clinical data
 ```{r}
 QA.H.recoded %>%
   filter(PMID %in% clinical.meta.papers$PMID) %>%
-pivot_longer(., cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
+  pivot_longer(., cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
   count(question, score) %>%
   mutate(
     question = factor(question, levels = c(
@@ -168,6 +168,9 @@ pivot_longer(., cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question",
 QA.H.recoded %>% head()
 QA.H.recoded.long %>% head()
 ```
+
+#### numbers
+
 calc %
 ```{r}
 QA.H.recoded.long %>%
@@ -175,18 +178,18 @@ QA.H.recoded.long %>%
     perc=round(
       100*(n/nrow(clinical.meta.papers))
       , 0)
-    )%>%
+  )%>%
   filter(score == "Low Risk of Bias")
 ```
 
-
+#### plot
 ```{r}
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) + 
   geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
            aes(
              y = reorder(question, desc(question)),
-              fill = reorder(score, desc(score)) 
+             fill = reorder(score, desc(score)) 
            ) # reorder factor levels
   ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
@@ -195,14 +198,14 @@ ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) +
   )+
   # scale_fill_brewer(palette = "BuGn", direction = 1)+
   
-       scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
-                          direction = -1,
-                          option = "cividis") +
+  scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                     direction = -1,
+                     option = "cividis") +
   
   
   # theme_minimal() +
-    # theme_pubr()+
-    theme_pubr(base_size = 8)+
+  # theme_pubr()+
+  theme_pubr(base_size = 8)+
   theme(legend.title = element_blank())->RoB.clincal
 RoB.clincal
 ```
@@ -216,8 +219,7 @@ ggsave("results/RoB_clinical.jpeg",plot=RoB.clincal,width = 15, height = 10, uni
 ```{r}
 QA.A.recoded %>%
   filter(PMID %in% preclinical.meta.papers$PMID) %>%
-  
-pivot_longer(., cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
+  pivot_longer(., cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
   count(question, score) %>%
   mutate(
     question = factor(question, levels = c(
@@ -237,29 +239,56 @@ QA.A.recoded.long %>% head()
 # str(QA.A.recoded.long)
 ```
 
+#### numbers
 calc %
 ```{r}
-# QA.A.recoded.long %>%
-#   mutate(
-#     perc=100*(n/nrow(preclinical.meta.papers)))
 
 QA.A.recoded.long %>%
   mutate(
     perc=round(
       100*(n/nrow(preclinical.meta.papers))
       , 0)
-    )%>%
+  )%>%
+  filter(score == "Unclear")
+  # filter(score == "Low Risk of Bias")
+  # filter(score == "High Risk of Bias")
+
+```
+```{r}
+
+QA.A.recoded.long %>%
+  mutate(
+    perc=round(
+      100*(n/nrow(preclinical.meta.papers))
+      , 0)
+  )%>%
+  # filter(score == "Unclear")
   filter(score == "Low Risk of Bias")
+  # filter(score == "High Risk of Bias")
 
 ```
 
+```{r}
+
+QA.A.recoded.long %>%
+  mutate(
+    perc=round(
+      100*(n/nrow(preclinical.meta.papers))
+      , 0)
+  )%>%
+  # filter(score == "Unclear")
+  # filter(score == "Low Risk of Bias")
+  filter(score == "High Risk of Bias")
+
+```
+#### plots
 ```{r}
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) + 
   geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
            aes(
              y = reorder(question, desc(question)),
-              fill = reorder(score, desc(score)) 
+             fill = reorder(score, desc(score)) 
            ) # reorder factor levels
   ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
@@ -267,10 +296,10 @@ ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) +
        #subtitle = "Preclinical studies"
   )+
   # scale_fill_brewer(palette = "Blues", direction = 1)+
-    # scale_fill_brewer(palette = "BuGn", direction = 1)+
-         scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
-                          direction = -1,
-                          option = "cividis") +
+  # scale_fill_brewer(palette = "BuGn", direction = 1)+
+  scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+                     direction = -1,
+                     option = "cividis") +
   # theme_pubclean()+
   theme_pubr(base_size = 8)+
   # theme_minimal() +
@@ -284,8 +313,7 @@ ggsave("results/RoB_preclinical.jpeg",plot=RoB.preclincal,width = 15, height = 1
 ```
 
 
-# save together
-
+# save plots together
 ```{r}
 ggarrange(
   RoB.clincal,
