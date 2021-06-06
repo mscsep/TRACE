@@ -22,8 +22,8 @@ library(ggplot2) #for graphs
 library(metafor) #for meta-analysis
 library(ggpubr) # To show multiple plots in 1 figure
 library("viridis")   # ggplot colours
-library(flextable) # to create tables
-library(officer)# to export tables to word
+# library(flextable) # to create tables
+# library(officer)# to export tables to word
 ```
 
 ## Import dataset 
