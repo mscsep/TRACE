@@ -18,7 +18,7 @@ library(caret)
 library(metaforest)
 
 library(ggpubr)
-# to chagne pd plot layout
+# to change pd plot layout
 library(grid)
 library(gridExtra)
 library(purrr)
@@ -214,7 +214,7 @@ plot(REtree.C)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.clinical.jpeg", height =3000, width = 3000, res=300, pointsize = 12)
+tiff(file="results/metaCART.clinical.tiff", height =3000, width = 3000, res=300, pointsize = 12)
 plot(REtree.C)
 dev.off()
 ```
@@ -256,7 +256,7 @@ plot(REtree.P)
 ```
 
 ```{r}
-jpeg(file="results/metaCART.preclinical.jpeg", height = 3000, width = 3000, res=300, pointsize = 12)
+tiff(file="results/metaCART.preclinical.tiff", height = 3000, width = 3000, res=300, pointsize = 12)
 plot(REtree.P)
 dev.off()
 ```
@@ -417,7 +417,7 @@ PD.list.clinical %>%
 
 # gtable_align(PD.clinical)
 
-{jpeg(file="results/metaforest_PD_clinical.jpeg", height = 2000, width = 3000, res=300) # Higher quality output
+{tiff(file="results/metaforest_PD_clinical.tiff", height = 2000, width = 3000, res=300) # Higher quality output
   grid.draw(PD.clinical)
   dev.off()}
 ```
@@ -466,8 +466,7 @@ PD.list.clinical.metacart %>%
   grid.draw(PD.clinical.metacart)
 }
 
-{jpeg(file="results/metaforest_PD_clinical_metaCARTfollowup.jpeg", height = 1000, width = 2500, res=300) # Higher quality output
-# {jpeg(file="results/metaforest_PD_clinical.jpeg", height = 3000, width = 2000, res=300) # Higher quality output
+{tiff(file="results/metaforest_PD_clinical_metaCARTfollowup.tiff", height = 1000, width = 2500, res=300) # Higher quality output
   grid.draw(PD.clinical.metacart)
   dev.off()}
 ```
@@ -585,7 +584,7 @@ PD.list.preclinical %>%
   grid.draw(PD.preclinical)
 }
 
-{jpeg(file="results/metaforest_PD_preclinical.jpeg", height = 3000, width = 3000, res=300) # Higher quality output
+{tiff(file="results/metaforest_PD_preclinical.tiff", height = 3000, width = 3000, res=300) # Higher quality output
   grid.draw(PD.preclinical)
   dev.off()}
 ```
@@ -625,7 +624,7 @@ PD.list.preclinical.metacart %>%
   grid.draw(PD.preclinical.metacart)
 }
 
-{jpeg(file="results/metaforest_PD_preclinical_metaCARTfollowup.jpeg", height = 1000, width = 2500, res=300) # Higher quality output
+{tiff(file="results/metaforest_PD_preclinical_metaCARTfollowup.tiff", height = 1000, width = 2500, res=300) # Higher quality output
   grid.draw(PD.preclinical.metacart)
   dev.off()}
 ```
