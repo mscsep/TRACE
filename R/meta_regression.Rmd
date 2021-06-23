@@ -84,6 +84,20 @@ saveRDS(clinical.filtered, file='processed_data/clinical.data.metaregression.RDS
 # for checking (should be total numbers of papers above, so here 4)
 clinical1 %>% filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% distinct(PMID)
 ```
+total sample size excluded papers
+```{r}
+clinical1 %>% 
+  filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% 
+  filter(phase == "M") %>%
+ distinct(new.idPTSD , .keep_all=T) %>% summarize(n=sum(nPTSD))
+```
+```{r}
+clinical1 %>% 
+  filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% 
+  filter(phase == "M") %>%
+ distinct(new.idHC , .keep_all=T) %>% summarize(n=sum(nHC))
+```
+
 
 ### Preclinical
 ```{r}
@@ -111,6 +125,7 @@ saveRDS(preclinical, file='processed_data/preclinical.data.metaregression.RDS')
 ## Research Question 1: Learning and Memory of stressful and non-stressful information in PTSD patients
 
 ### Model - unfilterd data
+Contain Exploratory estimates of trauma and fear memory in clinical data (categories with <4 studies)
 ```{r}
 mod.clinical.total <- rma.mv(yi, vi,
                              random = list(~1 | new.idPTSD , ~1 | PMID),  # valeria had each.. ik heb in oic meta PMID.. results ong same maar beetje anders -> volgens mij is PMID de bedoeling
@@ -340,9 +355,9 @@ write.csv2(clinical.results, "results/phase_valence_PTSD_clinical.csv")
 ### Save plot
 ```{r}
 ggsave(paste0("results/phase_valence_PTSD_clinical", #date(),
-              ".jpg"),
+              ".tiff"),
        plot=PLOT.clinical+  theme(text = element_text(size = 12)),
-       device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
+       device="tiff", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
 
 # jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
 # clinical.results[[2]]
@@ -976,9 +991,9 @@ write.csv2(preclinical.results, "results/phase_valence_PTSD_preclinical.csv")
 ### save plots
 ```{r}
 ggsave(paste0("results/phase_valence_PTSD_preclinical", #date(),
-              ".jpg"),
+              ".tiff"),
        plot=PLOT.preclinical+  theme(text = element_text(size = 12)),
-       device="jpg", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
+       device="tiff", dpi = 300, units = "cm", height = 10, width = 15, limitsize = T )
 
 # jpeg(file="results/clinical.jpeg", height = 2000, width = 1500, res=300)
 # clinical.results[[2]]
@@ -1379,9 +1394,9 @@ plots
 
 ## safe results plots
 ```{r}
-ggsave("results/PTSD.clinical.preclinical.jpg", 
+ggsave("results/PTSD.clinical.preclinical.tiff", 
        plot=plots,
-       device="jpg", dpi = 300, height = 8, width = 6, limitsize = T )
+       device="tiff", dpi = 300, height = 8, width = 6, limitsize = T )
 #ggsave(paste0("LearningMemoryPTSD_TRACE_yshared", date(),".jpg"), device="jpg", dpi = 500, height = 4, width = 6, limitsize = T )
 # ppt standard 4:3
 ```
