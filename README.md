@@ -22,7 +22,7 @@
 - Overview numbers for screening steps (for flowchart) via `Flowchart.rmd`
 - Characteristics of the included studies via `Descriptives.rmd` (uses `data.explore.rds`, created in `DataDrivenAnalysis.rmd` script)
 
-### step 3: Meta-regression
+### step 3: Meta-regression Valence x Phase
 
 - check potential comparisons `check_comparisons.rmd`
 - meta-regression Valence x Phase: `meta_regression.rmd`. This script uses
