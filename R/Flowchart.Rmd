@@ -745,7 +745,7 @@ combined.n.in.data
 ```
 
 
-# Create flowchart
+# collect data for flowchart
 
 ```{r}
 library(grid)
@@ -865,7 +865,8 @@ metaforest.clinical$groups == mReg.clinical.ptsd$groups # yes
 
 https://www.r-bloggers.com/2018/05/flow-charts-in-r/
 ```{r}
-jpeg(file="results/flowchart.jpeg", height = 2200, width = 2500, res=300)
+tiff(file="results/flowchart.tiff", height = 2200, width = 2600, res=300)
+
 
 grid.newpage()
 # set some parameters to use repeatedly
@@ -878,12 +879,6 @@ gp <- gpar(fill = "lightgrey")
 (total <- boxGrob(paste0("Screened Records\n N =",total.screened), 
  x=midx, y=.9, box_gp = gp, width = width))
 
-# (rando <- boxGrob("Randomized\n N = NNN", 
-#  x=midx, y=.75, box_gp = gp, width = width))
-# # connect boxes like this
-# connectGrob(total, rando, "v")
-
-
 
 (g1 <- boxGrob(paste0("Screened clinical\n studies N = ",total.screened.clinical), 
  x=leftx, y=.7, box_gp = gp, width = width))
@@ -894,11 +889,11 @@ connectGrob(total, g1, "N")
 connectGrob(total, g2, "N")
 
 
-(inel.cl1 <- boxGrob(paste0("Exclusions\n N = ",total.screened.clinical-post.screening.H$n),
- x=.125, y=.625, box_gp = gp, width = .125, height = .06))
+(inel.cl1 <- boxGrob(paste0("Title & Abstract\nExclusions\nN = ",total.screened.clinical-post.screening.H$n),
+ x=.125, y=.625, box_gp = gp, width = .14, height = .10))
 
-(inel.precl1 <- boxGrob(paste0("Exclusions\n N = ",total.screened.preclinical-post.screening.A$n),
- x=.875, y=.625, box_gp = gp, width = .125, height = .06))
+(inel.precl1 <- boxGrob(paste0("Title & Abstract\nExclusions\nN = ",total.screened.preclinical-post.screening.A$n),
+ x=.875, y=.625, box_gp = gp, width = .14, height = .10))
 
 connectGrob(g1, inel.cl1, "-")
 connectGrob(g2, inel.precl1, "-")
@@ -912,11 +907,11 @@ connectGrob(g2, inel.precl1, "-")
 connectGrob(g1, g11, "N")
 connectGrob(g2, g21, "N")
 
-(inel.cl2 <- boxGrob(paste0("Exclusions\n N = ",post.screening.H$n-combined.n.in.data[2,2]),
- x=.125, y=.45, box_gp = gp, width = .125, height = .06))
+(inel.cl2 <- boxGrob(paste0("Full-text\nExclusions\nN = ",post.screening.H$n-combined.n.in.data[2,2]),
+ x=.125, y=.45, box_gp = gp, width = .14, height = .10))
 
-(inel.precl2 <- boxGrob(paste0("Exclusions\n N = ",post.screening.A$n-combined.n.in.data[1,2]),
- x=.875, y=.45, box_gp = gp, width = .125, height = .06))
+(inel.precl2 <- boxGrob(paste0("Full-text\nExclusions\nN = ",post.screening.A$n-combined.n.in.data[1,2]),
+ x=.875, y=.45, box_gp = gp, width = .14, height = .10))
 
 connectGrob(g11, inel.cl2, "-")
 connectGrob(g21, inel.precl2, "-")
@@ -955,7 +950,7 @@ connectGrob(g21, g22, "N")
   #                      mReg.clinical.hc$n, " unique controls"
   # 
   
-   "in meta-analysis of clinical studies:\n- ",
+   "In meta-analysis of clinical studies:\n- ",
  mReg.clinical.ptsd$n, " unique PTSD patients in \n", mReg.clinical.ptsd$groups, " independent groups\n - ",
  mReg.clinical.hc$n, " unique healthy controls in \n",  mReg.clinical.hc$groups, " independent groups"
        
@@ -973,7 +968,7 @@ connectGrob(g21, g22, "N")
 #   ),
   
   (g23 <- boxGrob(paste0(
- "in meta-analysis of preclinical studies:\n- ",
+ "In meta-analysis of preclinical studies:\n- ",
  mReg.preclinical.ptsd$n, " unique 'PTSD-like' animals in \n", mReg.preclinical.ptsd$groups, " independent groups\n - ",
  mReg.preclinical.hc$n, " unique control animals in \n",  mReg.preclinical.hc$groups, " independent groups"
                        
@@ -983,6 +978,9 @@ connectGrob(g21, g22, "N")
 
 connectGrob(g12, g13, "v")
 connectGrob(g22, g23, "v")
+
+
+
 
   dev.off()
 ```
