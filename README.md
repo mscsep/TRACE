@@ -24,7 +24,7 @@
 
 ### step 3: Meta-regression Valence x Phase
 
-- check potential comparisons `check_comparisons.rmd`
+- check potential comparisons `meta_regression_check_comparisons.rmd`
 - meta-regression Valence x Phase: `meta_regression.rmd`. This script uses
 `meta_regression_influentials.r` to calculate potential influential case and outliers
 
