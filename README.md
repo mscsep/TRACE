@@ -1,5 +1,7 @@
 # TRACE: Meta-analysis of learning and memory in PTSD
 
+During screening / data extraction some quality checks were performed via `data.check.r`
+
 ### Step 1: Prepare data
 
 #### Merge datasets
