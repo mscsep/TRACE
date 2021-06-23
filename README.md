@@ -22,12 +22,12 @@
 - Overview numbers for screening steps (for flowchart) via `Flowchart.rmd`
 - Characteristics of the included studies via `Descriptives.rmd` (uses `data.explore.rds`, created in `DataDrivenAnalysis.rmd` script)
 
-### step 3: Theory-driven Analysis: metaregression
+### step 3: Theory-driven Analysis: meta-regression
 
 - check potential comparisons `check_comparisons.rmd`
-- meta-regression Valence x Phase: `TheoryDrivenAnalysis.rmd` [earlier analysis.r]. This script uses
-`Influentials_valence_phase.r` to calculate potential influential case and outliers
+- meta-regression Valence x Phase: `meta_regression.rmd`. This script uses
+`Influentials_meta_regression.r` to calculate potential influential case and outliers
 
 ### step 4: Explorative / Data-driven Analysis: metaForest / metaCART
-- `DataDrivenAnalysis.rmd`
+- `meta_forest_meta_cart.rmd`
 - used data saved in `data.explore.rds`, this data is also used for descriptives table
