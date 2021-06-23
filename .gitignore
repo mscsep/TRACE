@@ -5,3 +5,5 @@
 data/
 processed_data/
 results/
+reports/
+.DS_Store
