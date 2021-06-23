@@ -26,7 +26,7 @@
 
 - check potential comparisons `check_comparisons.rmd`
 - meta-regression Valence x Phase: `meta_regression.rmd`. This script uses
-`Influentials_meta_regression.r` to calculate potential influential case and outliers
+`meta_regression_influentials.r` to calculate potential influential case and outliers
 
 ### step 4: Explorative / Data-driven Analysis: metaForest / metaCART
 - `meta_forest_meta_cart.rmd`
