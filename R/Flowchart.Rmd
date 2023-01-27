@@ -141,7 +141,11 @@ file.remove(c(#"data/TRACE Dataset v28.2.19.xlsx",
 # Collect Unique PMID screening search 1, 2 and 3
 ```{r }
 c(search1_animal, search1_human, animal_search2_uniq, human_search2_uniq, unique.search3.animal, unique.search3.human) -> screened_articles
+
+unique(screened_articles) ->unique_screened_articles
+
 write.csv2(screened_articles, 'processed_data/screened_articles.csv')
+write.csv2(unique_screened_articles, 'processed_data/unique_screened_articles.csv')
 ```
 
 ## Conclusions:
