@@ -3,6 +3,8 @@ title: "Flowchart"
 author: "Milou Sep"
 date: "2/4/2021"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -57,6 +59,7 @@ search1_human <- search1_human_uPMID[1:(length(search1_human_uPMID)-2)]# remove 
 n.s1.H = length(search1_human) #292
 n.s1.H
 ```
+
 ```{r}
 file.remove("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx")
 ```
@@ -135,7 +138,11 @@ file.remove(c(#"data/TRACE Dataset v28.2.19.xlsx",
               "data/pmid.animal.s3.learn.22.5.20.txt", "data/pmid.human.s3.learn.22.5.20.txt"))
 ```
 
-
+# Collect Unique PMID screening search 1, 2 and 3
+```{r }
+c(search1_animal, search1_human, animal_search2_uniq, human_search2_uniq, unique.search3.animal, unique.search3.human) -> screened_articles
+write.csv2(screened_articles, 'processed_data/screened_articles.csv')
+```
 
 ## Conclusions:
 - Total unique animal papers screened: 178 (S1) + 114 (S2) + 252 (S3) =
