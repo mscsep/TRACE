@@ -4,12 +4,7 @@
 
 #### Merge datasets
 - Merge data S1, S2, S3 in one file: `prepare_merge.rmd`
-- input:
-
-s1: ('TRACE data_collection_search1.xlsx')[https://osf.io/tqmwb]
-
-osf_retrieve_file("xqpm3") %>% osf_download(path = "data", conflicts="overwrite") # search 2 -> 'TRACE data_collection_search2.xlsx'
-osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite") # search 3 -> 'TRACE_data_collection_search3.xlsx'
+- input: search 1 ['TRACE data_collection_search1.xlsx'](https://osf.io/tqmwb), search 2 ['TRACE data_collection_search2.xlsx'](https://osf.io/xqpm3), search 3 ['TRACE_data_collection_search3.xlsx'](https://osf.io/wbrcm)
 
 
 
