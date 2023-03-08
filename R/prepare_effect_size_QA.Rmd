@@ -19,7 +19,7 @@ library(readxl)
 ```
 
 ```{r}
-data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
+data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included and recoded data 
 str(data)
 ```
 
@@ -31,9 +31,9 @@ data1 <- data %>% mutate(
   new.idPTSD = as.factor(paste(PMID,idPTSD, sep=".")),
   new.idHC = as.factor(paste(PMID,idHC, sep=".")),
   id_combination = as.factor(paste(new.idPTSD, new.idHC, sep=".")))
-# for checking (should be NA, if both missing excluded in dataset)
-data1 %>% filter(is.na(semPTSD) & is.na(sdPTSD)) #%>% View()
-data1 %>% filter(is.na(semHC) & is.na(sdHC)) #%>% View()
+# Confirm absence of missing data
+data1 %>% filter(is.na(semPTSD) & is.na(sdPTSD))
+data1 %>% filter(is.na(semHC) & is.na(sdHC))
 ```
 
 ### Check which control groups are used multiple times
@@ -87,7 +87,7 @@ data3$sdPTSD <- ifelse(is.na(data3$sdPTSD), (data3$semPTSD * sqrt(data3$nPTSD)),
 data3$sdHC <- ifelse(is.na(data3$sdHC), (data3$semHC * sqrt(data3$nHC)), data3$sdHC)
 ``` 
 
-## Check Missing values (should be none)
+## Confirm no missing values
 ```{r}
 #' Sample sizes ok
 which(is.na(data3$nPTSD))
@@ -102,13 +102,8 @@ which(is.na(data3$sdHC))
 #' dat %>% filter(!is.na(sdC)) -> dat
 data3 %>% select(-c(semPTSD, semHC, idPTSD, idHC, used, nHC_corrected)) -> data4 # Remove unnecessary columns
 
-#' Missingvalues are checked again, should be non.. # update 8.4.21 -> there are missings.. as shock, time res.sus split are still in data
-# which(is.na(data1)) 
-
-data4 %>% select(!c("shocks.num", "shocks.amp", "time","res.sus.split")) %>% filter(!(is.na(.))) %>% nrow() # is idem als total  (=1643)
-
-#' update 19.3.19: na toevoeging "keyfinding", sommmige na, anders niet.
-# head(is.na(data1)) 
+# check which column contain missing values (confirm they are not in n, sd/sem, m)
+colnames(data4)[ apply(data4, 2, anyNA) ]
 ```
 
 ## Calculation of effect sizes and checks
@@ -118,20 +113,17 @@ data5 <- escalc(
               m2i = meanHC, sd2i = as.numeric(sdHC), n2i = nHC, 
               measure = "SMD", #method = "HE",  # calc hedge's G
               data = data4)
-```
-
-## Recode Effect sizes in same direction (higher score = better performance)
-NB variable recode contains extinction recode codes were higher scores (higher anxiety) is coded as more memory persistence (would correspond to less extinction)
-
-```{r}
-#' Based on recode variable, which is specified in "Trace_methode_codes.csv"
-# data5$yi <- data5$yi * data5$recode
-data5$yi <- data5$yi * data5$recode.for.ext
-
 #' INTERPRETATION: Viechtbauer, W. (2010). Conducting Meta-Analyses in R with the metafor Package. Journal of Statistical Software, 1–48. Page 7
 #' "SMD": The standardized mean difference is equal to (m1i m2i)/spi
 #' In the calulations above 1 = ptsd en 2 = control; therefore positive effect size = PTSD more, negative effectsize is HC more 
+```
 
+## Recode Effect sizes in same direction (higher score = better performance)
+NB variable 'recode.for.ext' (originally specified in "Trace_methode_codes.csv") contains extinction recode codes for measures where higher scores (e.g. higher anxiety) corresponds to stronger memory persistence (e.g. less extinction)
+
+```{r}
+#' Based on recode variable, which is specified in "Trace_methode_codes.csv"
+data5$yi <- data5$yi * data5$recode.for.ext
 ```
 
 ## add unique id's
@@ -149,12 +141,12 @@ bind_rows(QA.A, QA.H) %>% mutate(PMID = as.character(PMID))->QA
 left_join(data5, QA, by="PMID") %>% droplevels() -> data6 #drop missing levels & Remove 'unique id combination' variable (not needed anymore)
 ```
 
-#for checking
+# Confirm absence of missing values (if method codes are added correctly)
 ```{r eval=FALSE, include=FALSE}
-data6 %>% select(type, phase, valence, recode, cuectx) %>% is.na() %>% any() # must be false (if method codes are added correctly)
+data6 %>% select(type, phase, valence, recode, cuectx) %>% is.na() %>% any()
 ```
 
-# Save resulting dataset --------------------------------------------------
+# Save resulting dataset
 ```{r}
 saveRDS(data6, file = "processed_data/TRACEprepared.RData") #save
 ```
