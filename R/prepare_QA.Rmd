@@ -4,7 +4,7 @@ author: "Milou Sep"
 date: "4/15/2021"
 output: html_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -12,7 +12,6 @@ rm(list = ls()) #clean environment
 # load files from OSF
 library(osfr)
 # Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the commentline. (note PAT can be derived from OSF)
-
 library(readxl)
 library(dplyr)
 library(tidyr)
@@ -22,7 +21,7 @@ library(viridis)
 ```
 
 # retrieve OSF files 
-```{r eval=FALSE, include=FALSE}
+```{r include=FALSE}
 osf_retrieve_file("tckb5") %>% osf_download(path = "data", conflicts="overwrite") # QA data
 ```
 
@@ -74,7 +73,8 @@ head(QA.H)
 # Note: for QA score -> higher is better quality.
 Y=0; N=1; unclear =1/2
 
-"valeria: "for sensitivity analysis, amount of potential bias was operationalized by summing the risk of bias of each item according to the definition: “yes” = 0, “unclear” = 0.5, “no” = 1."
+Bonapersona V, Kentrop J, Van Lissa CJ, van der Veen R, Joëls M, Sarabdjitsingh RA. The behavioral phenotype of early life adversity: A 3-level meta-analysis of rodent studies. Neurosci Biobehav Rev. 2019 Jul;102:299-307. doi: 10.1016/j.neubiorev.2019.04.021. Epub 2019 Apr 29. PMID: 31047892.
+-> "for sensitivity analysis, amount of potential bias was operationalized by summing the risk of bias of each item according to the definition: “yes” = 0, “unclear” = 0.5, “no” = 1."
 
 ## Clinical
 ```{r}
@@ -94,7 +94,7 @@ QA.H %>%
 
 # checks
 head(QA.H.recoded)
-is.na(QA.H.recoded) %>% any()#should be non
+is.na(QA.H.recoded) %>% any() # confirm no missing values
 ```
 
 ## preclinical
@@ -119,9 +119,7 @@ QA.A %>%
 
 #checks
 head(QA.A.recoded)
-
-# QA.A.recoded
-is.na(QA.A.recoded) %>% any() # should be non
+is.na(QA.A.recoded) %>% any() # confirm no missing values
 ```
 
 # save recoded datafiles
@@ -130,15 +128,14 @@ saveRDS(QA.A.recoded, file = "processed_data/TRACE_QA_animal.RData")
 saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
 ```
 
-# filter data included in meta-analysis
-```{r}
+# Count data included in meta-analysis
+```{r eval=FALSE, include=FALSE}
 readRDS("processed_data/clinical.data.metaregression.RDS") %>%
   distinct(PMID) ->clinical.meta.papers
 nrow(clinical.meta.papers)
 ```
 
-
-```{r}
+```{r eval=FALSE, include=FALSE}
 readRDS("processed_data/preclinical.data.metaregression.RDS") %>%
   distinct(PMID)->preclinical.meta.papers
 nrow(preclinical.meta.papers)
@@ -170,7 +167,6 @@ QA.H.recoded.long %>% head()
 ```
 
 #### numbers
-
 calc %
 ```{r}
 QA.H.recoded.long %>%
@@ -201,8 +197,6 @@ ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) +
   scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
                      direction = -1,
                      option = "cividis") +
-  
-  
   # theme_minimal() +
   # theme_pubr()+
   theme_pubr(base_size = 8)+
@@ -242,7 +236,6 @@ QA.A.recoded.long %>% head()
 #### numbers
 calc %
 ```{r}
-
 QA.A.recoded.long %>%
   mutate(
     perc=round(
@@ -252,10 +245,9 @@ QA.A.recoded.long %>%
   filter(score == "Unclear")
   # filter(score == "Low Risk of Bias")
   # filter(score == "High Risk of Bias")
-
 ```
-```{r}
 
+```{r}
 QA.A.recoded.long %>%
   mutate(
     perc=round(
@@ -265,11 +257,9 @@ QA.A.recoded.long %>%
   # filter(score == "Unclear")
   filter(score == "Low Risk of Bias")
   # filter(score == "High Risk of Bias")
-
 ```
 
 ```{r}
-
 QA.A.recoded.long %>%
   mutate(
     perc=round(
@@ -281,6 +271,7 @@ QA.A.recoded.long %>%
   filter(score == "High Risk of Bias")
 
 ```
+
 #### plots
 ```{r}
 # https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
