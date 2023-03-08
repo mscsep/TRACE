@@ -6,11 +6,10 @@ output:
   html_document: default
   pdf_document: default
 editor_options:
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
-# Analysis script for TRACE analyses (based on analyses script Valeria (meta behavior))
-Code largely based on // adapted from Bonapersona, V. (2019, May 20). The behavioral phenotype of early life adversity: a 3-level meta-analysis of rodent studies. Retrieved from osf.io/ra947
+Code adapted from Bonapersona, V. (2019, May 20). The behavioral phenotype of early life adversity: a 3-level meta-analysis of rodent studies. Retrieved from osf.io/ra947
 
 
 ## Environment Preparation
@@ -27,18 +26,17 @@ library("viridis")   # ggplot colours
 ```
 
 ## Import dataset 
-(processed with merge_datasets.rmd, recode_merged_data.rmd, add_effect_size_QA.rmd)
+(preprocessed with prepare_merge.rmd, prepare_recode.rmd, prepare_effect_size_QA.rmd)
 ```{r}
 data<-readRDS("processed_data/TRACEprepared.RData")
 ```
 
-In check_comparison.rmd script frequency of observations in groups checked
+
 
 ## Split clinical and preclinical data
 - Clinical and preclinical data are analyzed as two separate datasets 
 - comparison "B" is excluded from clinical data as it does not contain PTSD-patients 
-
-[A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
+Information on comparison types: A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
 
 ```{r}
 # Clinical data 
@@ -84,13 +82,15 @@ saveRDS(clinical.filtered, file='processed_data/clinical.data.metaregression.RDS
 # for checking (should be total numbers of papers above, so here 4)
 clinical1 %>% filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% distinct(PMID)
 ```
-total sample size excluded papers
+
+#### total sample size excluded papers
 ```{r}
 clinical1 %>% 
   filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% 
   filter(phase == "M") %>%
  distinct(new.idPTSD , .keep_all=T) %>% summarize(n=sum(nPTSD))
 ```
+
 ```{r}
 clinical1 %>% 
   filter((phase.valence.code %in% excluded.levels.human$phase.valence.code)) %>% 
@@ -182,10 +182,10 @@ TRACE_clinical_valence_phase <- function(model){
     "valence.learning: neutral vs emotional (learning)", "valence.memory: neutral vs emotional (memory)")
   
   resultMain[,2] <- round(c(
-    neutralLearning$Lb, neutralMemory$Lb,
-    fearLearning$Lb, emotionalMemory$Lb,
-    extinction$Lb,
-        valence.learning$Lb, valence.memory$Lb
+    neutralLearning$Xb, neutralMemory$Xb,
+    fearLearning$Xb, emotionalMemory$Xb,
+    extinction$Xb,
+        valence.learning$Xb, valence.memory$Xb
   ), digits = 4) #effect size
   
   resultMain[,3] <- round(c( neutralLearning$se, neutralMemory$se,
@@ -329,7 +329,7 @@ PLOT.clinical <-
                               # label = "p = {round(p,3)}", 
                               label =  "p.adj",
                               
-                              size=4) +
+                              linewidth=4) +
   
   scale_x_discrete(labels=c("neutral Learning" = "neutral", 
                             "fear Learning" = "fear",
@@ -364,6 +364,7 @@ ggsave(paste0("results/phase_valence_PTSD_clinical", #date(),
 # dev.off()
 ```
 
+ForestPlot is not informative, to many papers
 ```{r eval=FALSE, fig.height=40, fig.width=8, include=FALSE}
 forest(mod.clinical, cex = .2)
 # clinical %>% filter(yi > 4) %>% View()
@@ -452,7 +453,7 @@ names(fsn.table.clincal)<-c("valence", "phase", "Fail-save N", "Pvalue")
 
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
-    subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "E"),
+    subset = which(clinical.filtered$valence == "F" & clinical.filtered$phase == "E"),
     type = "Rosenthal") ->fsnFE.clinical
 fsnFE.clinical
 fsn.table.clincal[1,] <- c("F", "E", fsnFE.clinical$fsnum, fsnFE.clinical$pval)
@@ -462,7 +463,7 @@ fsn.table.clincal[1,] <- c("F", "E", fsnFE.clinical$fsnum, fsnFE.clinical$pval)
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
-    subset = (clinical.filtered$valence == "F" & clinical.filtered$phase == "L"),
+    subset = which(clinical.filtered$valence == "F" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnFL.clinical
 fsnFL.clinical
 fsn.table.clincal[2,] <- c("F", "L", fsnFL.clinical$fsnum, fsnFL.clinical$pval)
@@ -472,7 +473,7 @@ fsn.table.clincal[2,] <- c("F", "L", fsnFL.clinical$fsnum, fsnFL.clinical$pval)
 ```{r}
 fsn(yi = yi, vi = vi,
     data = clinical.filtered,
-    subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "L"),
+    subset = which(clinical.filtered$valence == "N" & clinical.filtered$phase == "L"),
     type = "Rosenthal") ->fsnNL.clinical
 fsnNL.clinical
 fsn.table.clincal[3,] <- c("N", "L", fsnNL.clinical$fsnum, fsnNL.clinical$pval)
@@ -482,7 +483,7 @@ fsn.table.clincal[3,] <- c("N", "L", fsnNL.clinical$fsnum, fsnNL.clinical$pval)
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
-    subset = (clinical.filtered$valence == "E" & clinical.filtered$phase == "M"),
+    subset = which(clinical.filtered$valence == "E" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnEM.clinical
 fsnEM.clinical
 fsn.table.clincal[4,] <- c("E", "M", fsnEM.clinical$fsnum, fsnEM.clinical$pval)
@@ -492,7 +493,7 @@ fsn.table.clincal[4,] <- c("E", "M", fsnEM.clinical$fsnum, fsnEM.clinical$pval)
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = clinical.filtered, 
-    subset = (clinical.filtered$valence == "N" & clinical.filtered$phase == "M"),
+    subset = which(clinical.filtered$valence == "N" & clinical.filtered$phase == "M"),
     type = "Rosenthal") ->fsnNM.clinical
 fsnNM.clinical
 fsn.table.clincal[5,] <- c("N", "M", fsnNM.clinical$fsnum, fsnNM.clinical$pval)
@@ -540,13 +541,14 @@ summary(mod.clinical.QA)
 #### Influential cases
 phase x valence meta-regression without cases that were identified as influential & outlier -> for sensitivity analysis
 ```{r}
-source("R/influentials_valence_phase.R")
+source("R/meta_regression_influentials.R")
 ```
 
 ```{r eval=FALSE, include=FALSE}
 clinical.inf<-influentials_valence_phase(clinical.filtered)
 saveRDS(clinical.inf, "processed_data/influentials.clinical.rds")
 ```
+
 
 ```{r}
 readRDS("processed_data/influentials.clinical.rds")->clinical.inf
@@ -568,6 +570,8 @@ clinical.inf %>%
   filter(outInf != 1) %>%
   droplevels() -> clinical.noinfout
 ```
+
+#11/2 tot hier
 
 model without potential outliers + infuential cases
 ```{r}
@@ -669,7 +673,6 @@ rma.mv(yi, vi,
        slab = clinical.filtered.HC.TC$reference,
        data = clinical.filtered.HC.TC) %>% summary()
 ```
-
 > Only one level of valence (Neutral) is available for comparision B, therefore valence excluded from this model
 
 NOTE, model below contains only neutral valence
@@ -760,6 +763,7 @@ mod.preclinical <- rma.mv(yi, vi,
 summary(mod.preclinical)
 ```
 
+Forestplot not informative (too many papers for visability)
 ```{r eval=FALSE, fig.height=80, fig.width=8, include=FALSE}
 forest(mod.preclinical, cex = 0.4)
 ```
@@ -815,12 +819,12 @@ TRACE_preclinical_valence_phase <- function(model){
   
   resultMain[,2] <- round(c(
 
-    neutralLearning$Lb, neutralMemory$Lb,
-    fearLearning$Lb, fearMemory$Lb,  fearExtinction$Lb,
-    traumaMemory$Lb, traumaExtinction$Lb,
-        valence.learning$Lb, 
-    valence.memory.NF$Lb, valence.memory.NT$Lb, valence.memory.FT$Lb,
-    valence.extinction$Lb
+    neutralLearning$Xb, neutralMemory$Xb,
+    fearLearning$Xb, fearMemory$Xb,  fearExtinction$Xb,
+    traumaMemory$Xb, traumaExtinction$Xb,
+        valence.learning$Xb, 
+    valence.memory.NF$Xb, valence.memory.NT$Xb, valence.memory.FT$Xb,
+    valence.extinction$Xb
     
   ), digits = 4) #effect size
   
@@ -959,7 +963,7 @@ PLOT.preclinical <-
                              step.group.by ="phase",
                              # label = "p = {round(p,3)}", # this works
                              label = "p.adj",
-                             size=4) +
+                             linewidth=4) +
   
   scale_x_discrete(labels=c("neutral Learning" = "neutral",
                             "fear Learning" = "fear",
@@ -1070,7 +1074,7 @@ names(fsn.table.preclinical)<-c("valence", "phase", "Fail-save N", "Pvalue")
 
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "F" & preclinical$phase == "E"),
+    subset = which(preclinical$valence == "F" & preclinical$phase == "E"),
     type = "Rosenthal") ->fsnFE.preclinical
 fsnFE.preclinical
 fsn.table.preclinical[1,] <- c("F", "E", fsnFE.preclinical$fsnum, fsnFE.preclinical$pval)
@@ -1080,7 +1084,7 @@ fsn.table.preclinical[1,] <- c("F", "E", fsnFE.preclinical$fsnum, fsnFE.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "T" & preclinical$phase == "E"),
+    subset = which(preclinical$valence == "T" & preclinical$phase == "E"),
     type = "Rosenthal")->fsnTE.preclinical
 fsnTE.preclinical
 fsn.table.preclinical[2,] <- c("T", "E", fsnTE.preclinical$fsnum, fsnTE.preclinical$pval)
@@ -1090,7 +1094,7 @@ fsn.table.preclinical[2,] <- c("T", "E", fsnTE.preclinical$fsnum, fsnTE.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "F" & preclinical$phase == "L"),
+    subset = which(preclinical$valence == "F" & preclinical$phase == "L"),
     type = "Rosenthal") ->fsnFL.preclinical
 fsnFL.preclinical
 fsn.table.preclinical[3,] <- c("F", "L", fsnFL.preclinical$fsnum, fsnFL.preclinical$pval)
@@ -1100,7 +1104,7 @@ fsn.table.preclinical[3,] <- c("F", "L", fsnFL.preclinical$fsnum, fsnFL.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "N" & preclinical$phase == "L"),
+    subset = which(preclinical$valence == "N" & preclinical$phase == "L"),
     type = "Rosenthal")->fsnNL.preclinical
 fsnNL.preclinical
 fsn.table.preclinical[4,] <- c("N", "L", fsnNL.preclinical$fsnum, fsnNL.preclinical$pval)
@@ -1110,7 +1114,7 @@ fsn.table.preclinical[4,] <- c("N", "L", fsnNL.preclinical$fsnum, fsnNL.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "F" & preclinical$phase == "M"),
+    subset = which(preclinical$valence == "F" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnFM.preclinical
 fsnFM.preclinical
 fsn.table.preclinical[5,] <- c("F", "M", fsnFM.preclinical$fsnum, fsnFM.preclinical$pval)
@@ -1120,7 +1124,7 @@ fsn.table.preclinical[5,] <- c("F", "M", fsnFM.preclinical$fsnum, fsnFM.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "N" & preclinical$phase == "M"),
+    subset = which(preclinical$valence == "N" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnNM.preclinical
 fsnNM.preclinical
 fsn.table.preclinical[6,] <- c("N", "M", fsnNM.preclinical$fsnum, fsnNM.preclinical$pval)
@@ -1130,7 +1134,7 @@ fsn.table.preclinical[6,] <- c("N", "M", fsnNM.preclinical$fsnum, fsnNM.preclini
 ```{r}
 fsn(yi = yi, vi = vi, 
     data = preclinical, 
-    subset = (preclinical$valence == "T" & preclinical$phase == "M"),
+    subset = which(preclinical$valence == "T" & preclinical$phase == "M"),
     type = "Rosenthal")->fsnTM.preclinical
 fsnTM.preclinical
 fsn.table.preclinical[7,] <- c("T", "M", fsnTM.preclinical$fsnum, fsnTM.preclinical$pval)
@@ -1149,7 +1153,7 @@ write.csv2(fsn.table.preclinical, "results/phase_valence_PTSD_preclinical.FSN.cs
 
 
 ##### trim and fill
-only available for model without moderators, since moderation is present (with opposit effects).. not valid test for robustness of the effects?
+only available for model without moderators, since moderation is present (with opposite effects).. not valid test for robustness of the effects?
 ```{r eval=FALSE, include=FALSE}
 mod.preclinical.bias2 <- rma.uni(yi, vi,
                                  # random = list(~1 | new.idPTSD , ~1 | PMID),
