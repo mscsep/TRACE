@@ -17,18 +17,22 @@ library(osfr) # to download method codes
 ```{r}
 readRDS("processed_data/TRACEmerged.RDS")->merged.data
 
- # data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
+nrow(merged.data) 
+# data<-readRDS("processed_data/TRACErecoded.RDS") # contains only included, recoded, data 
  #data <- read.csv("processed_data/TRACEmerged.csv", sep = ";", dec = c(",", ".")) # Data
 
- osf_retrieve_file("a6dmj") %>% osf_download(path = "data", conflicts="overwrite") # search 3
+ osf_retrieve_file("25et8") %>% osf_download(path = "data", conflicts="overwrite") # search 3
  method <- read_excel("data/TRACE_method_codes.xlsx", sheet = "codes")
 # method <- read.csv("TRACE_method_codes.csv", sep = ";", na.strings = c(" ", "-"), dec = c(",", ".")) # Method codes
 
- method %>% select(!notes) %>% filter(is.na(.)) # check, should be no missing.
+ # method %>% select(!notes) %>%  filter_all(any_vars( is.na(.))) %>% View() ## 11/2/23 wel msisings voor delay vars?
+ # check, should be no missing.
+ 
  # Select relevant colums dataset
 method %>% select(task, measure, type, phase, valence, recode, recode.for.ext, cuectx) -> method 
 # Create reference var as character
 merged.data1<-merged.data %>% mutate(reference = as.character(paste(author, year, sep=" "))) %>% select(-c(author, year)) # Merge year & author & dropvars.
+nrow(merged.data1)
 ```
 
 
@@ -39,7 +43,7 @@ merged.data1 %>% filter(decision == 1) %>% select(-decision) %>% droplevels() ->
 ```
 
 
-## Add method codes to data
+## Add method codes to data and confirm merge was correct
 NB the combination of task and measure indicates which method is used to measure behavior. Those values are combined into a new variable ..
 ```{r}
 merged.inclusions %>% mutate(measureID = as.factor(paste(task, measure, sep="."))) -> merged.inclusions.A
@@ -60,7 +64,7 @@ left_join(merged.inclusions.A ,method1, by="measureID", suffix = c(".d", ".m"))-
 
 # Recoding Subject variables
 
-## Age: set age groups
+## recode Age: set age groups
 
 subject:
 (0=humanmixed(Civiel&Military); 1=ActiveDutyMilitary; 2=Veteran; 12=ActiveDutyMilitary & Veteran; 3=Civilian; 4=Rat; 5=Mice)
@@ -123,35 +127,27 @@ merged.inclusions.B %>% mutate(
 )-> merged.inclusions.recoded
 ```
 
-
-no missing values after recoding age in included papers
+Confirm correct recoding of 'old adult'
 ```{r eval=FALSE, include=FALSE}
-merged.inclusions.recoded %>% select(subject, age.PTSD, age.PTSD2, age.PTSD.cat,
-                               age.HC, age.HC2, age.HC.cat) %>% filter(is.na(.))
+merged.inclusions.recoded %>% filter(age.PTSD2 > 65) %>% View()
+merged.inclusions.recoded %>% filter(age.HC2 > 65) %>% View()
 ```
 
-
-```{r eval=FALSE, include=FALSE}
-merged.inclusions.recoded %>% filter(age.PTSD2 > 65)%>% View()
-merged.inclusions.recoded %>% filter(age.HC2 > 65)  %>% View()
-```
-
+Remove redundant 'age' variables
 ```{r}
  merged.inclusions.recoded %>% select(!c(age.PTSD, age.PTSD2, age.HC, age.HC2))-> merged.inclusions.recoded2
 ```
 
 
-## Day/Night rhytem
-
+## recode Day/Night rhytem
 ```{r}
 merged.inclusions.recoded2 %>% mutate(rhythm = ifelse(subject %in% c("0", "1", "2", "12", "3"),"active", rhythm)) -> merged.inclusions.recoded3
 merged.inclusions.recoded3$rhythm <- recode(merged.inclusions.recoded3$rhythm, 'dark' = 'active', 'light' = 'inactive')
-# for checking
-merged.inclusions.recoded3 %>%  filter(is.na(rhythm)) # good
+merged.inclusions.recoded3 %>%  filter(is.na(rhythm)) # to confirm no NA values
 ```
 
 
-## Time since trauma
+## recode Time since trauma
 ```{r}
 merged.inclusions.recoded3 %>% 
   mutate( 
@@ -224,29 +220,27 @@ time.pseudo = case_when(
 merged.inclusions.recoded5 %>% select(-c(time.year, time.month, time.day, time.year2, time.month2, time.day2, time.year3, time.month3, time.day3, time.year4, time.month4, time.day4, time.recoded)) -> merged.inclusions.recoded6
 ```
 
+
 ## Subject: new Human-Animal variable
 ```{r}
 merged.inclusions.recoded6 %>% mutate(subject.cat = ifelse(subject %in% c("0", "1", "2", "12", "3"), "Human", "Animal")) ->merged.inclusions.recoded7
 ```
 
-## recode control type
+
+## recode Control type
 ```{r}
 merged.inclusions.recoded7$control.type = recode(merged.inclusions.recoded7$control.type, "Handled" = "UnExp")
 ```
 
 
-
-
-## Check missing values
+## Confirm no missing values
 ```{r}
 which(is.na(merged.inclusions.recoded7$subject.cat))
 ```
 
-
 ```{r}
 which(is.na(merged.inclusions.recoded7$PMID))
 ```
-
 
 ```{r}
 which(is.na(merged.inclusions.recoded7$comparison))
@@ -255,12 +249,8 @@ which(is.na(merged.inclusions.recoded7$comparison))
 
 ## recode measure, PTSD type and population
 ```{r}
-
 # df4$subject.cat
-
 # df4.1 %>% select(subject.cat, measure.d, measure2, ptsd.type, ptsd.type2, population, population2) %>% View()
-
-
 merged.inclusions.recoded7 %>% mutate(
   measure2 = case_when(
     # measure
@@ -306,20 +296,16 @@ merged.inclusions.recoded7 %>% mutate(
 ```
 
 
-
-
-## set variable types
+## Set variable types
          
-all are current character
+NB all are current character
 ```{r variable types}
 names(merged.inclusions.recoded7A) 
 
 string_names <- c("author", "year",
 "PMID",
 "shocks.num", "shocks.amp",
-
 "idPTSD", "idHC",
-
 "outcomePTSD", "outcomeHC",
 "ptsd.measure", 
 "task", "measure"
@@ -330,10 +316,8 @@ factor_names <-c( #"decision",
                  "sex.PTSD", "sex.HC",
 "ptsd.type", 'control.type', 'population',
 "rhythm",
-
 "comparison",
 "res.sus.split", "age.PTSD.cat", "age.HC.cat",
-
 # and recoded factors
 "ptsd.type2", "population2","task.d", "measure.d", "measure2", "type", "phase", "valence", "cuectx"
 )
@@ -343,12 +327,9 @@ numeric_names <- c("nPTSD", "nHC", "meanPTSD", "sdPTSD", "semPTSD", "meanHC", "s
 # For checking -> ok!
 # merged.data.recoded2 %>% mutate_at(.vars=numeric_names, as.numeric) %>% filter(decision == 1) %>% select(numeric_names) %>% is.na() %>% View()
 
-
-
 merged.inclusions.recoded7A %>% 
 mutate_at(.vars=numeric_names, as.numeric) %>% 
 mutate_at(.vars=factor_names, factor) ->merged.inclusions.recoded8
-
 
 # for checking
  # cbind(merged.data.recoded3$nHC,merged.data.recoded4$nHC)
@@ -395,10 +376,7 @@ merged.inclusions.recoded9$idHC %>% unique()
 ```
 
 
-
-
-
-## new variables for phase & valence (no longer used)
+## new variables for phase & valence (no longer used) -> can be deleated later
 ```{r eval=FALSE, include=FALSE}
 merged.inclusions.recoded9 %>% mutate(
   
@@ -434,7 +412,7 @@ Valence_Grouped = factor(Valence_Grouped)
 
 ```
 
-
+## Save recoded dataset
 ```{r save}
 saveRDS(merged.inclusions.recoded9, "processed_data/TRACErecoded.RDS")
  # write.csv2(merged.inclusions.recoded8, "processed_data/TRACErecoded.csv", fileEncoding = "UTF-8") # writes spec characters weird
