@@ -11,7 +11,7 @@ editor_options:
 rm(list = ls()) #clean environment
 # load files from OSF
 library(osfr)
-# Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the commentline. (note PAT can be derived from OSF)
+# Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the comment line. (note PAT can be derived from OSF)
 library(readxl)
 library(dplyr)
 library(tidyr)
@@ -63,8 +63,7 @@ H3 = H3[-1,] # drop first row is sort of extra header
 
 merge human
 ```{r}
-bind_rows(list(H1, H2, H3),.id="s") %>%
-  select(-c(Reference, notes))-> QA.H # When row-binding, columns are matched by name, and any missing columns will be filled with NA.
+bind_rows(list(H1, H2, H3),.id="s") %>% select(-c(Reference, notes))-> QA.H # When row-binding, columns are matched by name, and any missing columns will be filled with NA.
 head(QA.H)
 ```
 
@@ -129,15 +128,13 @@ saveRDS(QA.H.recoded, file = "processed_data/TRACE_QA_human.RData")
 ```
 
 # Count data included in meta-analysis
-```{r eval=FALSE, include=FALSE}
-readRDS("processed_data/clinical.data.metaregression.RDS") %>%
-  distinct(PMID) ->clinical.meta.papers
+```{r}
+readRDS("processed_data/clinical.data.metaregression.RDS") %>% distinct(PMID) ->clinical.meta.papers
 nrow(clinical.meta.papers)
 ```
 
-```{r eval=FALSE, include=FALSE}
-readRDS("processed_data/preclinical.data.metaregression.RDS") %>%
-  distinct(PMID)->preclinical.meta.papers
+```{r}
+readRDS("processed_data/preclinical.data.metaregression.RDS") %>% distinct(PMID)->preclinical.meta.papers
 nrow(preclinical.meta.papers)
 ```
 
@@ -152,11 +149,9 @@ QA.H.recoded %>%
   mutate(
     question = factor(question, levels = c(
       "RoBQA_NOS_S1_validPTSD", "RoBQA_NOS_S2_repCase", "RoBQA_NOS_S3_repControl", "RoBQA_NOS_S4_defControl", 
-      "RoBQA_NOS_C_confounders", "RoBQA_NOS_E1_outcome", "RoBQA_NOS_E2_sameOut", "RoBQA_NOS_E3_nonRep"
-    ),
+      "RoBQA_NOS_C_confounders", "RoBQA_NOS_E1_outcome", "RoBQA_NOS_E2_sameOut", "RoBQA_NOS_E3_nonRep"),
     labels = c("PTSD measure (S1)", "representative PTSD subjects (S2)", "representative control subjects (S3)", "control definition (S4)",
-               "adjustments for confounders (C)", "behavioural measure (E1) ", "same task case control (E2)", "same non-response rate (E3)"
-    )
+               "adjustments for confounders (C)", "behavioural measure (E1) ", "same task case control (E2)", "same non-response rate (E3)")
     ), # reorder levels
     score=factor(score, levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
                  labels=c("Low Risk of Bias", "Unclear", "High Risk of Bias"))
@@ -189,16 +184,10 @@ ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) +
            ) # reorder factor levels
   ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
-  labs(x="", y="", title="Clinical studies"
-       #subtitle = "Clinical studies"
-  )+
-  # scale_fill_brewer(palette = "BuGn", direction = 1)+
-  
+  labs(x="", y="", title="Clinical studies")+
   scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
                      direction = -1,
                      option = "cividis") +
-  # theme_minimal() +
-  # theme_pubr()+
   theme_pubr(base_size = 8)+
   theme(legend.title = element_blank())->RoB.clincal
 RoB.clincal
@@ -230,7 +219,6 @@ QA.A.recoded %>%
 
 QA.A.recoded %>% head()
 QA.A.recoded.long %>% head()
-# str(QA.A.recoded.long)
 ```
 
 #### numbers
@@ -243,8 +231,6 @@ QA.A.recoded.long %>%
       , 0)
   )%>%
   filter(score == "Unclear")
-  # filter(score == "Low Risk of Bias")
-  # filter(score == "High Risk of Bias")
 ```
 
 ```{r}
@@ -254,9 +240,7 @@ QA.A.recoded.long %>%
       100*(n/nrow(preclinical.meta.papers))
       , 0)
   )%>%
-  # filter(score == "Unclear")
   filter(score == "Low Risk of Bias")
-  # filter(score == "High Risk of Bias")
 ```
 
 ```{r}
@@ -266,15 +250,11 @@ QA.A.recoded.long %>%
       100*(n/nrow(preclinical.meta.papers))
       , 0)
   )%>%
-  # filter(score == "Unclear")
-  # filter(score == "Low Risk of Bias")
   filter(score == "High Risk of Bias")
-
 ```
 
 #### plots
 ```{r}
-# https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
 ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) + 
   geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
            aes(
@@ -284,16 +264,11 @@ ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) +
   ) +
   scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
   labs(x="", y="", title="Preclinical studies"
-       #subtitle = "Preclinical studies"
   )+
-  # scale_fill_brewer(palette = "Blues", direction = 1)+
-  # scale_fill_brewer(palette = "BuGn", direction = 1)+
-  scale_fill_viridis(discrete = TRUE, #begin = 0.1, end = 0.9 , 
+  scale_fill_viridis(discrete = TRUE,
                      direction = -1,
                      option = "cividis") +
-  # theme_pubclean()+
   theme_pubr(base_size = 8)+
-  # theme_minimal() +
   theme(legend.title = element_blank()) -> RoB.preclincal
 
 RoB.preclincal+theme_pubr()
@@ -312,8 +287,6 @@ ggarrange(
   ncol=1, nrow=2,
   align = "v",
   common.legend = T,
-  # labels = c("Clinical studies", "Preclinical studies"),
-  #  font.label = list(size = 12, color = "black", face = "bold", family = NULL)
   legend="bottom"
 )->ROB.plot
 ROB.plot
