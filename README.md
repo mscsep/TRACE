@@ -73,32 +73,15 @@ e="results/metaforest_Preclinical_varImportance.tiff",
 ### Step 4: Study descriptives
 
 - Overview numbers for screening steps (for flowchart) via `Flowchart.rmd`
-  - input: PMID hits & screening search 1, 2 and 3: [Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx](https://osf.io/7k6wh), [pubmed_result_search2_human 6.1.20.txt](https://osf.io/7kdmu), [pubmed_result_search2_animal 6.1.20.txt](https://osf.io/fs2gq), [pmid.human.s3.learn.22.5.20.txt](https://osf.io/nqgaf), [pmid.animal.s3.learn.22.5.20.txt](https://osf.io/s3ake)
-
+  - input: PMID hits & screening search 1, 2 and 3: [Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx](https://osf.io/7k6wh), [pubmed_result_search2_human 6.1.20.txt](https://osf.io/7kdmu), [pubmed_result_search2_animal 6.1.20.txt](https://osf.io/fs2gq), [pmid.human.s3.learn.22.5.20.txt](https://osf.io/nqgaf), [pmid.animal.s3.learn.22.5.20.txt](https://osf.io/s3ake), [Checked_TRACE_screening_search3_MS_EG.xlsx](https://osf.io/famr7)
   - some additional code for screening in search 2
-    - step 1: identify inconsistencies in search 2
-input (initial screening data): [TRACE_screening_search2_SH.xlsx](https://osf.io/pu6bf) & [TRACE_screening_search2_MS.xlsx](https://osf.io/56fyu)
-output:abstract screening inconsistencies: [inconsistencies_human_s2.csv](https://osf.io/jgf9v) &  [inconsistencies_animal_s2.csv](https://osf.io/9z2tj)
-**** step 2: identify required full text checks in search 2
-input (files with abstract screening feedback): [inconsistencies_animal_s2_SH.csv](https://osf.io/ugyrp) & [inconsistencies_human_s2_SH.csv"](https://osf.io/kve78)
-output (uploaded to OSF): [required_full_checks_human_s2.csv](https://osf.io/92mf5) & [required_full_checks_animal_s2.csv](https://osf.io/pwtxq)
-**** step 3: get results full text check search 2
-input (files with full text screening feedback): [required_full_checks_animal_s2_MS.csv"](https://osf.io/xmua6) & [required_full_checks_human_s2_SH.csv"](https://osf.io/ce35r)
-output (uploaded to OSF): [animal_inclusions_s2.csv](https://osf.io/m9rey) & [human_inclusions_s2.csv](https://osf.io/fe5sh)
-
-[Checked_TRACE_screening_search3_MS_EG.xlsx](https://osf.io/famr7)
-
-** Data extraction information
-[TRACE data_collection_search1.xlsx](https://osf.io/tqmwb)
-[TRACE data_collection_search2.xlsx](https://osf.io/xqpm3)
-[TRACE_data_collection_search3.xlsx](https://osf.io/wbrcm)  
-
-** Analyses datasets (NB output analyses scripts)
-`TRACEprepared.RData`, `clinical.data.metaregression.RDS`, `clinical.data.explorative.RDS"`, `preclinical.data.metaregression.RDS`, `preclinical.data.explorative.RDS`
-
-
--- output: `processed_data/unique_screened_articles.csv`. en `flowchart.tiff`
--- optional output (used to select papers for QA): `Human.PMIDs.QA.S2.csv`, `Animal.PMIDs.QA.S2.csv`. en `Human.PMIDs.QA.S3.csv` en `Animal.PMIDs.QA.S3.csv`
+    - step 1: identify inconsistencies in search 2. *input* (initial screening data): [TRACE_screening_search2_SH.xlsx](https://osf.io/pu6bf) & [TRACE_screening_search2_MS.xlsx](https://osf.io/56fyu); *output* (abstract screening inconsistencies): [inconsistencies_human_s2.csv](https://osf.io/jgf9v) &  [inconsistencies_animal_s2.csv](https://osf.io/9z2tj)
+    - step 2: identify required full text checks in search 2. *input* (files with abstract screening feedback): [inconsistencies_animal_s2_SH.csv](https://osf.io/ugyrp) & [inconsistencies_human_s2_SH.csv"](https://osf.io/kve78); *output* (uploaded to OSF): [required_full_checks_human_s2.csv](https://osf.io/92mf5) & [required_full_checks_animal_s2.csv](https://osf.io/pwtxq)
+    - step 3: get results full text check search 2. *input* (files with full text screening feedback): [required_full_checks_animal_s2_MS.csv"](https://osf.io/xmua6) & [required_full_checks_human_s2_SH.csv"](https://osf.io/ce35r); *output* (uploaded to OSF): [animal_inclusions_s2.csv](https://osf.io/m9rey) & [human_inclusions_s2.csv](https://osf.io/fe5sh)
+  - input: Data extraction information: [TRACE data_collection_search1.xlsx](https://osf.io/tqmwb), [TRACE data_collection_search2.xlsx](https://osf.io/xqpm3), [TRACE_data_collection_search3.xlsx](https://osf.io/wbrcm)  
+  - Analyses datasets (NB output analyses scripts): `TRACEprepared.RData`, `clinical.data.metaregression.RDS`, `clinical.data.explorative.RDS"`, `preclinical.data.metaregression.RDS`, `preclinical.data.explorative.RDS`
+  - output: `processed_data/unique_screened_articles.csv`. en `flowchart.tiff`
+  - optional output (used to select papers for QA): `Human.PMIDs.QA.S2.csv`, `Animal.PMIDs.QA.S2.csv`. en `Human.PMIDs.QA.S3.csv` en `Animal.PMIDs.QA.S3.csv`
 
 
 
