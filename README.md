@@ -1,10 +1,10 @@
 # TRACE: Meta-analysis of learning and memory in PTSD
 
-_ README.md: an overview of the project
-|___ data: data files used in the project
-|___ processed_data: intermediate files from the analysis
-|___ results: results of the analyses (data, tables, figures)
-|___ R: contains all R-code in the project
+_ `README.md`: an overview of the project    
+|___ `data`: data files used in the project   
+|___ `processed_data`: intermediate files from the analysis   
+|___ `results`: results of the analyses (data, tables, figures)    
+|___ `R`: contains all R-code in the project  
 
 ### Step 1: Prepare data
 
