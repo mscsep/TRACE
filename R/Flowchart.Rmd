@@ -11,7 +11,7 @@ editor_options:
 rm(list = ls()) #clean environment
 # load files from OSF
 library(osfr)
-# Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the commentline. (note PAT can be derived from OSF)
+# Authenticate to OSF (see: http://centerforopenscience.github.io/osfr/articles/auth.html). Via osf_auth("PAT") in the comment line. (note PAT can be derived from OSF)
 library(readxl)
 library(dplyr)
 # for flow chart
@@ -49,7 +49,7 @@ osf_retrieve_file("wbrcm") %>% osf_download(path = "data", conflicts="overwrite"
 ```
 
 # Load data files in environment
-```{r}
+```{r warning=FALSE}
 # PIMD hits
 search1_animal <- read_excel("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx", sheet = "Animal hits n=178 SSv18.10.2016", col_types = "numeric")
 search1_human <- read_excel("data/Review PTSD Cognition AbstractScreening_Overeenstemming EG & MS v15.11.2016.xlsx",  sheet = "Human Hits n=292 SSv12.10.2016", col_types = "numeric")
@@ -88,10 +88,10 @@ read_excel("data/TRACE_data_collection_search3.xlsx", sheet = "human.inclusions.
 # Analyses
 readRDS("processed_data/TRACEprepared.RData")->dataset.prep # This is the output of `prepare_effect_size_QA.rmd`, see README file
 
-readRDS("processed_data/clinical.data.metaregression.RDS") -> metaregression.clinical # output analyses script
+readRDS("processed_data/clinical.data.metaregression.RDS") -> metaregression.clinical # output metaregression script
 readRDS("processed_data/preclinical.data.metaregression.RDS") -> metaregression.preclinical
 
-readRDS("processed_data/clinical.data.explorative.RDS") -> explorative.clinical # output exploratory analyses script
+readRDS("processed_data/clinical.data.explorative.RDS") -> explorative.clinical # output metaforest / metacart script
 readRDS("processed_data/preclinical.data.explorative.RDS") -> explorative.preclinical 
 ```
 
@@ -99,7 +99,7 @@ readRDS("processed_data/preclinical.data.explorative.RDS") -> explorative.precli
 # Search
 
 ## Compare PMIDs in search 1 and 2 of trace & remove duplicates code to remove duplicates from search 2 in TRACE project
- 
+
 ### Get number of unique PMIDs from search 1
 ```{r warning=FALSE}
 search1_animal %>% pull(PMID) %>% unique() %>% .[.!=178] %>% .[!is.na(.)] -> search1_animal_uPMID
@@ -139,7 +139,7 @@ n.s2.H
 
 ### Compare human hits 
 ```{r }
-all(search1_human %in% human_search2$V1) # All items in search 1 are also in search 2
+all(search1_human_uPMID %in% human_search2$V1) # All items in search 1 are also in search 2
 human_search3[!human_search3$V1 %in% human_search2$V1,]  -> unique.search3.human # therefore search 3 compared to search 2
 n.s3.H = length(unique.search3.human)
 # write.table(unique.search3.human, file = "human_search3_unique.csv", sep = ';', row.names = F)
@@ -148,10 +148,10 @@ n.s3.H
 
 ### Compare animal hits 
 ```{r }
-all(search1_animal %in% animal_search2$V1) # All items in search 1 are also in search 2
+all(search1_animal_uPMID %in% animal_search2$V1) # All items in search 1 are also in search 2
 animal_search3[!animal_search3$V1 %in% animal_search2$V1,]  -> unique.search3.animal # therefore search 3 compared to search 2
 n.s3.A = length(unique.search3.animal)
- # write.table(unique.search3.animal, file = "animal_search3_unique.csv", sep = ';', row.names = F)
+# write.table(unique.search3.animal, file = "animal_search3_unique.csv", sep = ';', row.names = F)
 n.s3.A
 ```
 
@@ -160,7 +160,7 @@ n.s3.A
 screened_articles <- c(search1_animal_uPMID, search1_human_uPMID, animal_search2_uniq, human_search2_uniq, unique.search3.animal, unique.search3.human)
 unique_screened_articles <- unique(screened_articles) 
 length(unique_screened_articles) #1653
- write.csv2(unique_screened_articles, 'processed_data/unique_screened_articles.csv')
+write.csv2(unique_screened_articles, 'processed_data/unique_screened_articles.csv')
 ```
 
 ## Conclusions:
@@ -200,11 +200,8 @@ length(screened_articles) - length(unique_screened_articles) # 8 screened articl
 osf_retrieve_file("f82as") %>% osf_download(path = "data", conflicts="overwrite") # dataset search 1
 library(readr)
 total_screening_pubmed_return <-read_csv2("data/References_screened_articles_TRACE.csv")
-# total_screening_pubmed_return %>% head()
 screened_articles[which(!screened_articles %in% total_screening_pubmed_return$PMID)]
-#PMID 31540952 not returned by pubmed.
-
-# Was in animal search 3:
+#PMID 31540952 not returned by pubmed. Was part of hits from animal search 3:
 31540952 %in% search1_animal
 31540952 %in% animal_search2_uniq
 31540952 %in% unique.search3.animal # in search 3
@@ -219,11 +216,10 @@ screened_articles[which(!screened_articles %in% total_screening_pubmed_return$PM
 ### Post-screeing inclusions and exclusions 
 (Note, indicated in flowchart as "excluded in full-text screening")
 ```{r}
-# str(data.s1)
 data.s1 %>%  
   filter(`Screening_AbstractScreening_EG (1=include; 0 = exclude)` == 1 | `Screening_AbstractScreening_MS (1=include; 0 = exclude)` ==1) %>% 
-    group_by(subject=`Screening_Human (1) of Animal (2)`) %>%
-    distinct(Reference_PMID) %>% tally() ->s1.n.post.screening
+  group_by(subject=`Screening_Human (1) of Animal (2)`) %>%
+  distinct(Reference_PMID) %>% tally() ->s1.n.post.screening
 s1.n.post.screening # split for clinical and preclinical
 ```
 
@@ -235,7 +231,6 @@ s1.n.post.screening[1,2] + s1.n.post.screening[2,2] # clinical and preclinical t
 ### Data included for extraction 
 (Note, indicated in flowchart as "included after full text screening")
 ```{r}
- # glimpse(data.s1)
 data.s1 %>% 
   filter(inclusion == 1) %>% 
   group_by(subject=`Screening_Human (1) of Animal (2)`) %>%
@@ -247,7 +242,7 @@ s1.n.in.data
 
 
 ## S2 screening
- 
+
 ### Resolve inconsistencies in screening S2 
 Note, not required for flow chart, therefor all three code blocks set to eval=F and include=F.
 #### Step 1 check inconsistencies in abstract screening
@@ -259,10 +254,8 @@ SH_human.S2[rowSums(is.na(SH_human.S2)) != ncol(SH_human.S2), ]->SH_human.S2
 # make unique column names
 colnames(SH_animal.S2) <- paste(colnames(SH_animal.S2),"SH", sep = "_")
 colnames(MS_animal.S2) <- paste(colnames(MS_animal.S2),"MS", sep = "_")
-
 colnames(SH_human.S2) <- paste(colnames(SH_human.S2),"SH", sep = "_")
 colnames(MS_human.S2) <- paste(colnames(MS_human.S2),"MS", sep = "_")
-
 
 # order animal data by PMID 
 SH_animal.S2 %>% arrange(Reference_PMID_SH) -> SH_animal.S22
@@ -280,10 +273,6 @@ all.equal(SH_human.S22$Reference_PMID_SH,MS_human.S22$Reference_PMID_MS)
 # merge data
 cbind(SH_animal.S22, MS_animal.S22)->animal
 cbind(SH_human.S22, MS_human.S22)->human
-
-# select only PMID & ref.
-# human %>% select(Reference_PMID_SH, inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.h
-# animal %>% select(Reference_PMID_SH, Inclusion_SH, Reference_PMID_MS, inclusion_MS) ->df.a
 
 # recode to same scale: 1=inclusion; 0=exclusion; ?=full text check needed
 human %>% mutate(
@@ -306,10 +295,7 @@ animal %>% mutate(
 # select equal rows
 animal_recoded %>% mutate(
   conclusion1= case_when(
-    # Inclusion_SH == '?' ~ 'full_text_check',
-    # Inclusion_MS == '?' ~ 'full_text_check',
     (Reference_PMID_SH!=Reference_PMID_MS) ~'PMIDincor',
-    # (Reference_PMID_SH==Reference_PMID_MS) & Inclusion_SH != '?' & (Inclusion_SH == inclusion_MS) ~ 'equal',
     (Reference_PMID_SH==Reference_PMID_MS) & (Inclusion_SH == inclusion_MS) ~ 'same',
     (Reference_PMID_SH==Reference_PMID_MS) & (Inclusion_SH != inclusion_MS) ~ 'discuss'
   )
@@ -319,10 +305,8 @@ human_recoded %>% mutate(
   conclusion1= case_when(
     (Reference_PMID_SH!=Reference_PMID_MS) ~'PMIDincor',
     (Reference_PMID_SH==Reference_PMID_MS) &  (inclusion_SH == inclusion_MS) ~ 'same',
-    # (Reference_PMID_SH==Reference_PMID_MS) & (inclusion_SH != '?' | inclusion_MS!="?") & (inclusion_SH == inclusion_MS) ~ 'same',
-    # (Reference_PMID_SH==Reference_PMID_MS) & (inclusion_SH == '?' | inclusion_MS=="?") ~ 'full_text_check',
     (Reference_PMID_SH==Reference_PMID_MS) & (inclusion_SH != inclusion_MS) ~ 'discuss'
- )
+  )
 ) ->human_recoded2 
 
 # select papers to discuss
@@ -334,19 +318,16 @@ animal_recoded2$Reference_PMID_MS[which(animal_recoded2$conclusion=='discuss')]-
 # select original entries for these PMIDs
 human_recoded2 %>% filter(Reference_PMID_MS %in% pmid.h) %>% write.csv2(.,file='processed_data/inconsistencies_human_s2.csv')
 animal_recoded2 %>% filter(Reference_PMID_MS %in% pmid.a) %>% write.csv2(.,file='processed_data/inconsistencies_animal_s2.csv')
+
 # # upload files to OSF
 #   osf_upload(osf_retrieve_node("awkn6"),'processed_data/inconsistencies_human_s2.csv')
 #   osf_upload(osf_retrieve_node("awkn6"),'processed_data/inconsistencies_animal_s2.csv')
-
 ```
 
 #### Step 2: Merge data after discussion inconsistencies
 ```{r eval=FALSE, include=FALSE}
 #remove columns with only na's
 human_discussed_s2 <- human_discussed_s2[,colSums(is.na(human_discussed_s2))<nrow(human_discussed_s2)]
-
-# human_discussed_s2 <- human_discussed_s2[rowSums(is.na(human_discussed_s2))<nrow(human_discussed_s2),]
-# animal_discussed_s2 <- animal_discussed_s2[rowSums(is.na(animal_discussed_s2))<nrow(animal_discussed_s2),]
 
 # merge columns from discussion to original screening data
 animal_discussed_s2 %>% select(Reference_PMID_SH,!grep("_SH|_MS", colnames(animal_discussed_s2)))->animal_discussed_s22
@@ -356,23 +337,20 @@ human_discussed_s2 %>% select(Reference_PMID_SH,!grep("_SH|_MS", colnames(human_
 full_join(human_recoded2,human_discussed_s22, by="Reference_PMID_SH")->human_new
 full_join(animal_recoded2,animal_discussed_s22, by="Reference_PMID_SH")->animal_new
 
-
 # Create column with new decisions:
 
-# rename "Second.screening..yes...inclusie..no..exlusie....discussieren" to more convenient colname
- colnames(human_new)[40]<-"second.screening"
- colnames(animal_new)[43]<-"second.screening"
- 
+# rename "Second.screening..yes...inclusie..no..exlusie....discussieren" to more convenient column name
+colnames(human_new)[40]<-"second.screening"
+colnames(animal_new)[43]<-"second.screening"
+
 # new conclusion column human
 human_new %>% mutate(
   conclusion2=
     case_when(
       conclusion1 == "same"  ~ inclusion_MS,
       (conclusion1 == "discuss" & (second.screening =="yes"| second.screening =="no")) ~ as.character(second.screening),
-      (conclusion1 == "discuss" & (second.screening !="yes"| second.screening !="no")) ~ as.character(Final),
-     # (conclusion1 == "discuss" & !is.na(second.screening) & is.na(Final) ) ~ as.character(second.screening),
-     # (conclusion1 == "discuss" & !is.na(second.screening) )  ~ as.character(Final))
-      )
+      (conclusion1 == "discuss" & (second.screening !="yes"| second.screening !="no")) ~ as.character(Final)
+    )
 )->human_new2
 # check, there should be no na's
 is.na(human_new2$conclusion2) %>% any()
@@ -383,9 +361,7 @@ animal_new %>% mutate(
     case_when(
       conclusion1 == "same"  ~ inclusion_MS,
       (conclusion1 == "discuss" & (second.screening =="yes"| second.screening =="no")) ~ as.character(second.screening),
-      (conclusion1 == "discuss" & (second.screening !="yes"| second.screening !="no")) ~ as.character(Final),
-      # (conclusion1 == "discuss" & !is.na(second.screening) & is.na(Final) ) ~ as.character(second.screening),
-      # (conclusion1 == "discuss" & !is.na(second.screening) )  ~ as.character(Final))
+      (conclusion1 == "discuss" & (second.screening !="yes"| second.screening !="no")) ~ as.character(Final)
     )
 )->animal_new2
 # check, there should be no na's
@@ -396,9 +372,8 @@ human_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='processed_data/
 animal_new2 %>% filter(conclusion2 == "?") %>% write.csv2(.,file='processed_data/required_full_checks_animal_s2.csv')
 
 # upload files to OSF
- # osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_human_s2.csv')
- # osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_animal_s2.csv')
-
+# osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_human_s2.csv')
+# osf_upload(osf_retrieve_node("awkn6"),'processed_data/required_full_checks_animal_s2.csv')
 ```
 
 #### Step 3: add information full text screening to data
@@ -408,30 +383,30 @@ full_text_check_s2_animal %>% select(  Reference_PMID_SH, Full_text_MS_notes, Fu
 full_text_check_s2_human %>% select(  Reference_PMID_SH, Full_text_SH_notes, Full_text_SH_conclusion )->full.text.checks.human
 
 # merge data
- full_join(human_new2, full.text.checks.human, by="Reference_PMID_SH")->human_screening2_complete
- full_join(animal_new2, full.text.checks.animal, by="Reference_PMID_SH")->animal_screening2_complete
- 
- #create variable with final conclusions
- animal_screening2_complete %>% mutate(
-   conclusion3=
-     case_when(
-       conclusion2!= "?" ~ conclusion2,
-       conclusion2 == "?"  ~ as.character(Full_text_MS_conclusion)
-     )
- )->animal_new3
- 
+full_join(human_new2, full.text.checks.human, by="Reference_PMID_SH")->human_screening2_complete
+full_join(animal_new2, full.text.checks.animal, by="Reference_PMID_SH")->animal_screening2_complete
+
+#create variable with final conclusions
+animal_screening2_complete %>% mutate(
+  conclusion3=
+    case_when(
+      conclusion2!= "?" ~ conclusion2,
+      conclusion2 == "?"  ~ as.character(Full_text_MS_conclusion)
+    )
+)->animal_new3
+
 #checks
 is.na(animal_new3$conclusion3) %>% any()
 (animal_new3$conclusion3 =="" )  %>% any()
 
- human_screening2_complete %>% mutate(
-   conclusion3=
-     case_when(
-       conclusion2!= "?" ~ conclusion2,
-       conclusion2 == "?"  ~ as.character(Full_text_SH_conclusion)
-     )
- )->human_new3
- 
+human_screening2_complete %>% mutate(
+  conclusion3=
+    case_when(
+      conclusion2!= "?" ~ conclusion2,
+      conclusion2 == "?"  ~ as.character(Full_text_SH_conclusion)
+    )
+)->human_new3
+
 # checks
 (human_new3$conclusion3 =="")%>% any()
 is.na(human_new3$conclusion3) %>% any()
@@ -443,6 +418,7 @@ human_new3 %>% filter(conclusion3 == "yes") ->human_inclusions
 #export data
 write.csv2(animal_inclusions,file='processed_data/animal_inclusions_s2.csv')
 write.csv2(human_inclusions,file='processed_data/human_inclusions_s2.csv')
+
 # upload files to OSF
 # osf_upload(osf_retrieve_node("awkn6"),'processed_data/animal_inclusions_s2.csv')
 # osf_upload(osf_retrieve_node("awkn6"),'processed_data/human_inclusions_s2.csv')
@@ -475,7 +451,6 @@ full_text_check_s2_animal %>% nrow()
 ```{r}
 full_text_check_s2_human %>% nrow()
 ```
- 
 
 #### Post-screeing Inclusions animal
 ```{r}
@@ -489,22 +464,20 @@ human_included_s2 %>% nrow() ->s2.H.n.post.screening
 s2.H.n.post.screening
 ```
 
-
 #### Inclusions after data-extraction Animal
 ```{r}
 data.s2.animal %>% 
   filter(inclusion.final == 1) %>% 
-    select(`subject`,Reference_PMID_MS ) %>% 
+  select(`subject`,Reference_PMID_MS ) %>% 
   distinct(Reference_PMID_MS ) %>% tally() -> s2.A.n.in.data
 s2.A.n.in.data
 ```
-
 
 #### Inclusions after data-extraction Human
 ```{r}
 data.s2.human %>% 
   filter(inclusion.final == 1) %>% 
-    select(`subject`,Reference_PMID_MS ) %>% 
+  select(`subject`,Reference_PMID_MS ) %>% 
   distinct(Reference_PMID_MS ) %>% tally() -> s2.H.n.in.data
 s2.H.n.in.data
 ```
@@ -555,9 +528,9 @@ s3.animal %>% filter(inclusion.screening == "?" )%>% nrow()
 
 ```{r}
 s3.animal %>% 
-   # filter(inclusion.screening == 1 ) %>%
+  # filter(inclusion.screening == 1 ) %>%
   filter(inclusion.screening != 0 ) %>%
-nrow() -> s3.A.n.post.screening # NOTE: these include 1 (=inclusion) and ?
+  nrow() -> s3.A.n.post.screening # NOTE: these include 1 (=inclusion) and ?
 s3.A.n.post.screening
 ```
 
@@ -570,7 +543,7 @@ s3.human %>%filter(inclusion.screening == "?" ) %>% nrow()
 ```{r}
 s3.human %>% 
   # filter(inclusion.screening == 1 ) %>% 
-    filter(inclusion.screening != 0 ) %>%
+  filter(inclusion.screening != 0 ) %>%
   nrow() -> s3.H.n.post.screening # NOTE: these include 1 (=inclusion) and ?
 s3.H.n.post.screening
 ```
@@ -580,7 +553,7 @@ s3.H.n.post.screening
 ```{r}
 data.s3.animal %>% 
   filter(inclusion.final == 1) %>% 
-    select(`subject`,PMID ) %>% 
+  select(`subject`,PMID ) %>% 
   distinct(PMID) %>% tally() -> s3.A.n.in.data
 s3.A.n.in.data
 
@@ -592,7 +565,7 @@ s3.A.n.in.data == 68+18
 ```{r}
 data.s3.human %>% 
   filter(inclusion.final == 1) %>% 
-    select(`subject`,PMID ) %>% 
+  select(`subject`,PMID ) %>% 
   distinct(PMID) %>% tally() -> s3.H.n.in.data  #indeed same numbers as with files above
 s3.H.n.in.data
 ```
@@ -608,7 +581,7 @@ data.s3.animal %>% filter(inclusion.final == 1) %>% distinct(PMID) %>% write.csv
 
 ## Clinical
 ```{r}
-n.s1.H #292
+n.s1.H # 292
 n.s2.H # 142
 n.s3.H # 681
 
@@ -617,9 +590,9 @@ n.s1.H+n.s2.H+n.s3.H == total.screened.clinical
 
 ## preclinical 
 ```{r}
-n.s1.A#178
-n.s2.A# 114
-n.s3.A#254
+n.s1.A # 178
+n.s2.A # 114
+n.s3.A # 254
 
 n.s1.A+n.s2.A+n.s3.A == total.screened.preclinical
 ```
@@ -635,7 +608,7 @@ preclinical
 s1.n.in.data %>% filter(subject == 2) %>% select(n) + s2.A.n.in.data + s3.A.n.in.data
 ```
 
-Confirm that numbers above are same as in prepared data (correct)
+Confirm that numbers above are same as in prepared data (correct) [note, some were excluded for the analyses]
 ```{r}
 dataset.prep %>% group_by(subject.cat) %>%
   summarize(papers=length(unique(PMID)), 
@@ -673,7 +646,7 @@ metaregression.clinical%>%
   summarize(papers=length(unique(PMID)), 
             groups=nrow(.),
             n=(round(sum(nPTSD),0))
-            ) ->mReg.clinical.ptsd
+  ) ->mReg.clinical.ptsd
 mReg.clinical.ptsd
 ```
 Human Control
@@ -683,10 +656,8 @@ metaregression.clinical%>%
   summarize(papers=length(unique(PMID)), 
             groups=nrow(.),
             n=(round(sum(nHC),0))
-            ) ->mReg.clinical.hc
+  ) ->mReg.clinical.hc
 mReg.clinical.hc
-
-# metaregression.clinical %>% distinct(new.idPTSD, .keep_all = TRUE) %>% nrow() # idem
 ```
 
 Animal PTSD
@@ -696,7 +667,7 @@ metaregression.preclinical %>%
   summarize(papers=length(unique(PMID)), 
             groups=nrow(.),
             n=(round(sum(nPTSD),0))
-            ) ->mReg.preclinical.ptsd
+  ) ->mReg.preclinical.ptsd
 mReg.preclinical.ptsd
 ```
 
@@ -707,7 +678,7 @@ metaregression.preclinical %>%
   summarize(papers=length(unique(PMID)), 
             groups=nrow(.),
             n=(round(sum(nHC),0))
-            ) ->mReg.preclinical.hc
+  ) ->mReg.preclinical.hc
 mReg.preclinical.hc
 ```
 
@@ -728,15 +699,12 @@ metaforest.preclinical$groups
 
 ## Count metareg used in flowchart (metareg + metaforst identical n)
 ```{r}
-# same number of independent ptsd groups included in metaregression, metaforest/metacart?
-metaforest.preclinical$groups == mReg.preclinical.ptsd$groups# yes
+metaforest.preclinical$groups == mReg.preclinical.ptsd$groups # yes
 metaforest.clinical$groups == mReg.clinical.ptsd$groups # yes
-# -> count metareg used in flowchart
 ```
 
 
 # Flowchart: Figure
-
 https://www.r-bloggers.com/2018/05/flow-charts-in-r/
 ```{r}
 tiff(file="results/flowchart.tiff", height = 2200, width = 2600, res=300)
@@ -750,69 +718,63 @@ width <- .175
 gp <- gpar(fill = "lightgrey")
 
 # create boxes
-(total <- boxGrob(paste0("Screened Records\n N =",total.screened,"*\n*",length(screened_articles) - length(unique_screened_articles)," with clinical and preclinical data"), 
- x=midx, y=0.9, box_gp = gp, width = width+.15))
+(total <- boxGrob(paste0("Screened Records\n N =",total.screened,"*\n*",length(screened_articles) - length(unique_screened_articles)," contained clinical and preclinical data"), 
+                  x=midx, y=0.9, box_gp = gp, width = width+.2))
 
 (g1 <- boxGrob(paste0("Screened clinical\n studies N = ",total.screened.clinical), 
- x=leftx, y=.7, box_gp = gp, width = width))
+               x=leftx, y=.7, box_gp = gp, width = width))
 (g2 <- boxGrob(paste0("Screened preclinical\n studies N = ",total.screened.preclinical), 
- x=rightx, y=.7, box_gp = gp, width = width))
+               x=rightx, y=.7, box_gp = gp, width = width))
 
 connectGrob(total, g1, "N")
 connectGrob(total, g2, "N")
 
 (inel.cl1 <- boxGrob(paste0("Title & Abstract\nExclusions\nN = ",total.screened.clinical-post.screening.H$n),
- x=.125, y=.625, box_gp = gp, width = .14, height = .10))
+                     x=.125, y=.625, box_gp = gp, width = .14, height = .10))
 
 (inel.precl1 <- boxGrob(paste0("Title & Abstract\nExclusions\nN = ",total.screened.preclinical-post.screening.A$n),
- x=.875, y=.625, box_gp = gp, width = .14, height = .10))
+                        x=.875, y=.625, box_gp = gp, width = .14, height = .10))
 
 connectGrob(g1, inel.cl1, "-")
 connectGrob(g2, inel.precl1, "-")
 
 (g11 <- boxGrob(paste0("Eligible clinical\n studies N = ",post.screening.H$n),
- x=leftx, y=.525, box_gp = gp, width = width))
+                x=leftx, y=.525, box_gp = gp, width = width))
 (g21 <- boxGrob(paste0("Eligible preclinical\n studies N = ",post.screening.A$n),
- x=rightx, y=.525, box_gp = gp, width = width))
- 
+                x=rightx, y=.525, box_gp = gp, width = width))
+
 connectGrob(g1, g11, "N")
 connectGrob(g2, g21, "N")
 
 (inel.cl2 <- boxGrob(paste0("Full-text\nExclusions\nN = ",post.screening.H$n-combined.n.in.data[2,2]),
- x=.125, y=.45, box_gp = gp, width = .14, height = .10))
+                     x=.125, y=.45, box_gp = gp, width = .14, height = .10))
 
 (inel.precl2 <- boxGrob(paste0("Full-text\nExclusions\nN = ",post.screening.A$n-combined.n.in.data[1,2]),
- x=.875, y=.45, box_gp = gp, width = .14, height = .10))
+                        x=.875, y=.45, box_gp = gp, width = .14, height = .10))
 
 connectGrob(g11, inel.cl2, "-")
 connectGrob(g21, inel.precl2, "-")
 
 (g12 <- boxGrob(paste0("Included clinical\n studies N=", combined.n.in.data[2,2]), 
- x=leftx, y=.35, box_gp = gp, width = width))
+                x=leftx, y=.35, box_gp = gp, width = width))
 (g22 <- boxGrob(paste0("Included preclinical\n studies N=", combined.n.in.data[1,2]), 
- x=rightx, y=.35, box_gp = gp, width = width))
+                x=rightx, y=.35, box_gp = gp, width = width))
 
 connectGrob(g11, g12, "N")
 connectGrob(g21, g22, "N")
 
-# comparison b excluded for meta-analysis -> no papers excluded but 2 comparison groups
-# (inel.cl3 <- boxGrob(paste0("comparison B excluded \n N = ",combined.n.in.data[2,2]-mReg.clinical.ptsd$papers),
- # x=.1, y=.25, box_gp = gp, width = .125, height = .06))
-
-# connectGrob(g12, inel.cl3, "-")
-
 (g13 <- boxGrob(paste0(
-   "In meta-analysis of clinical studies:\n- ",
- mReg.clinical.ptsd$n, " unique PTSD patients in \n", mReg.clinical.ptsd$groups, " independent groups\n - ",
- mReg.clinical.hc$n, " unique healthy controls in \n",  mReg.clinical.hc$groups, " independent groups" ),
- x=leftx-0.1, y=.125, box_gp = gp, width = width+0.2))
+  "In meta-analysis of clinical studies:\n- ",
+  mReg.clinical.ptsd$n, " unique PTSD patients in \n", mReg.clinical.ptsd$groups, " independent groups\n - ",
+  mReg.clinical.hc$n, " unique healthy controls in \n",  mReg.clinical.hc$groups, " independent groups" ),
+  x=leftx-0.1, y=.125, box_gp = gp, width = width+0.2))
 
-  (g23 <- boxGrob(paste0(
- "In meta-analysis of preclinical studies:\n- ",
- mReg.preclinical.ptsd$n, " unique 'PTSD-like' animals in \n", mReg.preclinical.ptsd$groups, " independent groups\n - ",
- mReg.preclinical.hc$n, " unique control animals in \n",  mReg.preclinical.hc$groups, " independent groups"),
+(g23 <- boxGrob(paste0(
+  "In meta-analysis of preclinical studies:\n- ",
+  mReg.preclinical.ptsd$n, " unique 'PTSD-like' animals in \n", mReg.preclinical.ptsd$groups, " independent groups\n - ",
+  mReg.preclinical.hc$n, " unique control animals in \n",  mReg.preclinical.hc$groups, " independent groups"),
   
- x=rightx+0.1, y=.125, box_gp = gp, width = width+0.2))
+  x=rightx+0.1, y=.125, box_gp = gp, width = width+0.2))
 
 connectGrob(g12, g13, "v")
 connectGrob(g22, g23, "v")
@@ -822,12 +784,12 @@ dev.off()
 
 total number of humans
 ```{r}
-2611+4121 #6732
+2611+4121 # 6732
 mReg.clinical.ptsd$n + mReg.clinical.hc$n 
 ```
 
 total number of animals
 ```{r}
-3407+3427 #6834
+3407+3427 # 6834
 mReg.preclinical.ptsd$n + mReg.preclinical.hc$n
 ```
