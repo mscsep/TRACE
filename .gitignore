@@ -2,10 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+.gitignore
 data/
 processed_data/
 results/
 reports/
-
 .DS_Store
-
+TRACE.Rproj
