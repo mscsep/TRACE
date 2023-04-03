@@ -1,0 +1,160 @@
+---
+title: "Visualize QA"
+author: "Milou Sep"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list = ls()) #clean environment
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+library(viridis)
+```
+
+Load QA data & data in meta-analyses
+```{r}
+readRDS(file = "processed_data/TRACE_QA_animal.RData")->QA.A.recoded
+readRDS(file = "processed_data/TRACE_QA_human.RData")->QA.H.recoded
+
+readRDS("processed_data/clinical.data.metaregression.RDS") %>% distinct(PMID) ->clinical.meta.papers
+readRDS("processed_data/preclinical.data.metaregression.RDS") %>% distinct(PMID)->preclinical.meta.papers
+```
+
+
+# Count data included in meta-analysis
+```{r}
+nrow(clinical.meta.papers)
+```
+
+```{r}
+nrow(preclinical.meta.papers)
+```
+
+## Visualize study quality of included studies
+
+### Clinical data
+```{r}
+QA.H.recoded %>%
+  filter(PMID %in% clinical.meta.papers$PMID) %>%
+  pivot_longer(., cols = grep("RoBQA",names(QA.H.recoded)), names_to = "question", values_to = "score") %>%
+  count(question, score) %>%
+  mutate(
+    question = factor(question, 
+                      levels = c("RoBQA_NOS_S1_validPTSD", "RoBQA_NOS_S2_repCase", "RoBQA_NOS_S3_repControl", "RoBQA_NOS_S4_defControl", "RoBQA_NOS_C_confounders", "RoBQA_NOS_E1_outcome", "RoBQA_NOS_E2_sameOut", "RoBQA_NOS_E3_nonRep"),
+                      labels = c("PTSD measure (S1)", "representative PTSD subjects (S2)", "representative control subjects (S3)", "control definition (S4)", "adjustments for confounders (C)", "behavioural measure (E1) ", "same task case control (E2)", "same non-response rate (E3)")
+    ), # reorder levels
+    score=factor(score, 
+                 levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
+                 labels=c("Low Risk of Bias", "Unclear", "High Risk of Bias"))
+  ) -> QA.H.recoded.long
+
+QA.H.recoded %>% head()
+QA.H.recoded.long %>% head()
+```
+
+#### numbers
+calc %
+```{r}
+QA.H.recoded.long %>%
+  mutate(perc=round(100*(n/nrow(clinical.meta.papers)), 0)) %>%
+  filter(score == "Low Risk of Bias")
+```
+
+#### plot
+```{r}
+# https://www.r-graph-gallery.com/48-grouped-barplot-with-ggplot2.html
+ggplot(QA.H.recoded.long, aes(fill=score, x=n, y=question)) + 
+  geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
+           aes(y = reorder(question, desc(question)),
+               fill = reorder(score, desc(score))) # reorder factor levels
+  ) +
+  scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
+  labs(x="", y="", title="Clinical studies")+
+  scale_fill_viridis(discrete = TRUE, direction = -1, option = "cividis") +
+  theme_pubr(base_size = 8)+
+  theme(legend.title = element_blank())->RoB.clincal
+RoB.clincal
+```
+
+```{r eval=FALSE, include=FALSE}
+ggsave("results/RoB_clinical.jpeg",plot=RoB.clincal,width = 15, height = 10, units = "cm")
+```
+
+
+### Preclinical data
+```{r}
+QA.A.recoded %>%
+  filter(PMID %in% preclinical.meta.papers$PMID) %>%
+  pivot_longer(., cols = grep("RoBQA",names(QA.A.recoded)), names_to = "question", values_to = "score") %>%
+  count(question, score) %>%
+  mutate(
+    question = factor(question, 
+                      levels = c("RoBQA_syrcle_1_seqGeneration", "RoBQA_syrcle_2_baseline", "RoBQA_syrcle_3_allocation", "RoBQA_syrcle_4_housing", "RoBQA_syrcle_5_blindExp", "RoBQA_syrcle_6_outAss", "RoBQA_syrcle_7_outBlind", "RoBQA_syrcle_8_incData"),
+                      labels = c("sequence generation (1)", "baseline characteristics (2)", "allocation concealment (3)", "random housing (4)", "blinding experimenter (5)", "random outcome assessment (6) ", "blinded outcome assessment (7)", "incomplete data adequatly addressed (8)")),
+    score=factor(score, 
+                 levels = c("0","0.5","1"),  # Y=0=low risk, N=1=high risk
+                 labels=c("Low Risk of Bias", "Unclear", "High Risk of Bias"))
+  ) -> QA.A.recoded.long
+
+QA.A.recoded %>% head()
+QA.A.recoded.long %>% head()
+```
+
+#### numbers
+calc %
+```{r}
+QA.A.recoded.long %>%
+  mutate(perc=round(100*(n/nrow(preclinical.meta.papers)), 0)) %>%
+  filter(score == "Unclear")
+```
+
+```{r}
+QA.A.recoded.long %>%
+  mutate(perc=round(100*(n/nrow(preclinical.meta.papers)), 0)) %>%
+  filter(score == "Low Risk of Bias")
+```
+
+```{r}
+QA.A.recoded.long %>%
+  mutate(perc=round(100*(n/nrow(preclinical.meta.papers)), 0)) %>%
+  filter(score == "High Risk of Bias")
+```
+
+#### plots
+```{r}
+ggplot(QA.A.recoded.long, aes(fill=score, x=n, y=question)) + 
+  geom_bar(position="fill", stat="identity",   # fill displays percentages (or proportion)
+           aes(y = reorder(question, desc(question)),
+               fill = reorder(score, desc(score))) # reorder factor levels
+  ) +
+  scale_x_continuous(labels=c("0%", "25%", "50%", "75%", "100%"))+
+  labs(x="", y="", title="Preclinical studies") +
+  scale_fill_viridis(discrete = TRUE, direction = -1, option = "cividis") +
+  theme_pubr(base_size = 8)+
+  theme(legend.title = element_blank()) -> RoB.preclincal
+
+RoB.preclincal+theme_pubr()
+```
+
+```{r eval=FALSE, include=FALSE}
+ggsave("results/RoB_preclinical.jpeg",plot=RoB.preclincal,width = 15, height = 10, units = "cm")
+```
+
+# save plots together
+```{r}
+ggarrange(
+  RoB.clincal,
+  RoB.preclincal,
+  ncol=1, nrow=2,
+  align = "v",
+  common.legend = T,
+  legend="bottom"
+)->ROB.plot
+ROB.plot
+ggsave("results/RoB.jpeg",plot=ROB.plot,width = 12, height = 12, units = "cm")
+```
