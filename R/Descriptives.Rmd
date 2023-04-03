@@ -2,24 +2,21 @@
 title: "Descriptives"
 author: "Milou Sep"
 date: "4/15/2021"
-output: word_document
+output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 # Environment Preparation
 ```{r setup, include=FALSE}
 rm(list = ls()) #clean environment
-# libraries
-library(dplyr) #general
+library(dplyr)
 library(arsenal) # for tables
-# library(flextable) # to create tables
-# library(officer)# to export tables to word
 ```
 
-# Data
-import dataset (already processed with datasetPreparation)
+# Recode Data labels
+A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
 ```{r}
-# data<-readRDS("data.RData") # Output from "prepare data.script". # NB trauma learning excluded
-# data<-readRDS("processed_data/TRACEprepared.RData")
 data<-readRDS("processed_data/data.explore.rds")
 
 data %>% 
@@ -32,12 +29,7 @@ data %>%
       comparison == "D" ~ "non-exposed vs trauma-exposed",
       comparison == "E" ~ "non-exposed vs PTSD",
       comparison == "F" ~"trauma-exposed vs PTSD"),
-    #change human/animal to clinical / preclinical
-    # subject.cat=recode(subject.cat,
-    #                    Human = "Clinical",
-    #                    Animal = "Preclinical"),
     subject.cat=factor(subject.cat, levels = c("Human", "Animal"), labels = c("Clinical", "Preclinical")),
-    
     # full descriptions ptsd models animals
     ptsd.type = recode(ptsd.type,
                        UWT = "Under Water Trauma",
@@ -50,30 +42,17 @@ data %>%
   # select independent PTSD groups
   distinct(new.idPTSD, .keep_all = TRUE) %>%
   droplevels()->df.filterd
-
-# str(df.filterd)
-# unique(df.filterd$ptsd.type)
 ```
 
-
-A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)
-
-
-# Descriptives table
-
-## set table controls
-
+# Set table controls
 ```{r}
 # https://rdrr.io/cran/arsenal/man/tableby.control.html
-mycontrols  <- tableby.control( test=F, total=F,
-                                na.rm=T,
-                                numeric.stats=c( "meansd","range","Nmiss"#, "sum"
-                                ),
+mycontrols  <- tableby.control( test=F, total=F,na.rm=T,
+                                numeric.stats=c( "meansd","range","Nmiss"),
                                 cat.stats = c("countpct", "Nmiss"),
                                 ord.stats= c("countpct","Nmiss"),
                                 stats.labels=list(Nmiss='Missing', Nmiss2='Missing', countpct="test",
-                                                  meansd="Mean (SD)", range="Range"#, sum="Total"
-                                ),
+                                                  meansd="Mean (SD)", range="Range"),
                                 pfootnote=TRUE,
                                 cat.simplify = F, numeric.simplify = T, ordered.simplify = T,
                                 digits=2,
@@ -82,14 +61,11 @@ mycontrols  <- tableby.control( test=F, total=F,
                                 digits.pct=0 )
 ```
 
-for example see
-https://github.com/mscsep/SAM_explore/blob/main/R/SAMexplore_descriptive_tables.Rmd
-
 ```{r}
 names(df.filterd)
 ```
 
-# Overvieuw comparison types
+# Table with comparison types
 ```{r}
 df.filterd %>%
   tableby(subject.cat ~ Comparison,., control = mycontrols) %>%
@@ -97,45 +73,26 @@ df.filterd %>%
              labelTranslations = c(Comparison="Experiment: Comparison Type"))
 ```
 
-# over view characteristics analysed data
+# Table variables in clinical and preclinical data
 ```{r}
 df.filterd %>%
   filter(comparison != "B") %>%  # excluded comparison B from human dataset
   droplevels() %>%
   tableby(
-    subject.cat ~ 
-      # Comparison+
-      control.type+
-      time.since.trauma+
-      rhythm +
-      sex + age+
-      phase + valence+
-      cuectx+information.type
-    ,
-    ., #strata=subject.cat,
-    control = mycontrols
+    subject.cat ~ control.type + time.since.trauma + rhythm + sex + age + phase + valence + cue.context + information.type,
+    data=., control = mycontrols
   ) ->table.combi
-
 ```
-
 
 ```{r results="asis"}
-table.combi %>% summary(., text=T# text is T for better layput (-)
-                        # , labelTranslations = combi.table.labels
-) 
+table.combi %>% summary(., text=T) 
 ```
 
-set table tables
-
-# All to pseudo-years
-#     - omrekenen tijd in mens, rat en muis
-# 	- in adulthood: 11.8 rat days = 1 human year [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
-# 	- in adulthood: 2.60 mice day = 1 human year  [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
-
-
+All to pseudo-years: recode time in human, rat and mice
+- in adulthood: 11.8 rat days = 1 human year [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
+- in adulthood: 2.60 mice day = 1 human year  [https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3733029/]
 ```{r}
 combi.table.labels <-c(
-  # Comparison="Experiment: Comparison Type",
   control.type	= "Experiment: Control Type",
   rhythm = "Experiment: Day/Night Phase",
   time.since.trauma = "Experiment: Time since trauma, (expressed in human years)",
@@ -143,27 +100,24 @@ combi.table.labels <-c(
   age = "Subject: Age",
   phase = "Task: phase",
   valence = "Task: Valence",
-  cuectx = "Task: Cue / Context",
-  information.type = "Task: information type"
-)
+  cue.context = "Task: Cue / Context",
+  information.type = "Task: information type")
 ```
 
-# export to CSV
+Export to CSV
 ```{r eval=FALSE, include=FALSE}
-table.combi %>% summary(., text=NULL)  %>% as.data.frame() %>% write.csv2(.,"results/descriptives.csv")
+table.combi %>% summary(., text=NULL) %>% as.data.frame() %>% write.csv2(.,"results/descriptives.csv")
 ```
 
-# export to word
-if export does not work: uncheck the option "Tools > Global Options > R Markdown > Show output inline for all R Markdown documents."
-
+Export to word
+Note, if export does not work: uncheck the option "Tools > Global Options > R Markdown > Show output inline for all R Markdown documents."
 ```{r}
 write2word(table.combi, "descriptives.combined.doc", title="Characteristics Included studies",
            labelTranslations = combi.table.labels)
 ```
 
-
-
-# set labels split tables
+# Tables with unique clinical or preclinial variables
+Set labels split tables
 ```{r}
 split.table.labels<-c(
   population="Subject: Population",
@@ -171,8 +125,7 @@ split.table.labels<-c(
   ptsd.type = "Subject: Trauma Sequelae",
   measure = "Task: Measure")
 ```
-
-
+## Clinical
 ```{r}
 df.filterd %>% 
   filter(subject.cat == "Clinical") %>% 
@@ -181,23 +134,19 @@ df.filterd %>%
   tableby(~ population + # almost similar as sample
             sample + ptsd.type + measure, data=., control = mycontrols) ->table.clinical
 
-table.clinical%>%
-  summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
-
+table.clinical%>% summary(.,text=T)
 
 write2word(table.clinical, "descriptives.clinical.doc", title="Characteristics Included clinical studies",
            labelTranslations = split.table.labels)
 ```
-
+## Preclinical
 ```{r}
 df.filterd %>% 
   filter(subject.cat == "Preclinical") %>% 
   droplevels() %>%
-  tableby(~ population + 
-            sample + ptsd.type + measure, data=., control = mycontrols) ->table.preclinical
+  tableby(~ population + sample + ptsd.type + measure, data=., control = mycontrols) ->table.preclinical
 
-table.preclinical%>%
-  summary(.,text=T) #%>% as.data.frame() %>% str()#flextable()
+table.preclinical%>% summary(.,text=T)
 
 write2word(table.preclinical, "descriptives.preclinical.doc", title="Characteristics Included preclinical studies",
            labelTranslations = split.table.labels)
