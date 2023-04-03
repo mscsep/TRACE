@@ -4,49 +4,46 @@ author: "Milou Sep"
 date: "4/9/2021"
 output: html_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
-# prepare environment
+# Prepare environment
 ```{r setup, include=FALSE}
-rm(list = ls()) #clean environment
-
-library(dplyr) #general
+rm(list = ls())
+library(dplyr)
 library(metacart)
-
 library(caret)
 library(metaforest)
-
 library(ggpubr)
-# to change pd plot layout
 library(grid)
 library(gridExtra)
 library(purrr)
-
 library(viridis)
 ```
 
-# load and select data
+# Methods info
+## metaForest: random forest (= multiple trees)
+```{r}
+ModelInfo_mf()$notes # method from metaforest
+```
+## metaCART: tree-model
+- strength of the package metacart is that it can easily explore the interaction effects among multiple moderators using an interpretable tree model.
+- multi-categorical variables, it creates automatically the contrasts between (combinations of) categories that account for the highest amount of heterogeneity.
+REF: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods [Internet]. 2020;52(6):2657–73. Available from: http://dx.doi.org/10.3758/s13428-020-01360-0
+- RE model
+- c=0.5
+- recommended to use lookahead = T (especially in REmrt)
+- maxL 10. Same as in: [1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods. 2020;52(6):2657-2673. doi:10.3758/s13428-020-01360-0]
 
-```{r data, include=FALSE}
+
+# Prepare data
+## load and select data
+```{r data}
 data<-readRDS("processed_data/TRACEprepared.RData")
 
-data %>% select(subject, #nPTSD, nHC,
-                sex.PTSD, #sex.HC,
-                control.type,
-                ptsd.type2,
-                population2,
-                measure2,
-                time.pseudo,
-                rhythm,
-                comparison,
-                new.idPTSD, #new.idHC,
-                age.PTSD.cat, #age.HC.cat,
-                subject.cat,
-                # reference,
-                type, phase, valence, cuectx, #id_combination,
-                yi, vi#, #each, RoB_score
-) %>% droplevels() %>%
+data %>% 
+  select(subject, sex.PTSD, control.type, ptsd.type2, population2, measure2, time.pseudo, rhythm, comparison, new.idPTSD, age.PTSD.cat, subject.cat, type, phase, valence, cuectx, yi, vi) %>% 
+  droplevels() %>%
   #better variable names for plots
   rename(
     sample=subject,
@@ -61,166 +58,249 @@ data %>% select(subject, #nPTSD, nHC,
   ) %>%
   # set new factor levels
   mutate(
-    sex=factor(sex, levels=c("F","M", "MF"),
-               labels = c("Female", "Male", "Mixed")),
-    control.type=factor(control.type, levels=c("UnExp", "ShamExp", "TraumaExp"),
-                        labels = c("Unexposed", "Sham-exposed", "Trauma-exposed")),
-    phase=factor(phase, levels=c("L", "M", "E"),
-                 labels = c( "Learning", "Memory", "Extinction")),
-    valence=factor(valence, levels=c("N", "E", "F", "T"),
-                   labels = c("Neutral", "Emotional", "Fear", "Trauma")),
-    cue.context=factor(cue.context, levels=c("cue", "cuecue", "cuecontext", "context"),
-                  labels = c("Cue", "Cue-Cue", "Cue-Context", "Context"))
-  )-> data.explore #%>%data.frame()
+    sex=factor(sex, levels=c("F","M", "MF"), labels = c("Female", "Male", "Mixed")),
+    control.type=factor(control.type, levels=c("UnExp", "ShamExp", "TraumaExp"), labels = c("Unexposed", "Sham-exposed", "Trauma-exposed")),
+    phase=factor(phase, levels=c("L", "M", "E"), labels = c( "Learning", "Memory", "Extinction")),
+    valence=factor(valence, levels=c("N", "E", "F", "T"), labels = c("Neutral", "Emotional", "Fear", "Trauma")),
+    cue.context=factor(cue.context, levels=c("cue", "cuecue", "cuecontext", "context"), labels = c("Cue", "Cue-Cue", "Cue-Context", "Context"))
+  )-> data.explore
 
-saveRDS(data.explore, "processed_data/data.explore.rds") # used for descriptives
+saveRDS(data.explore, "processed_data/data.explore.rds") # save to use later in data descriptives script.
 ```
 
-# fix missing values
-
+## fix missing values
 are there missing values?
 ```{r}
 is.na(data.explore) %>% any()
 ```
-
 are there variables with > 1/3 missing?
 ```{r}
 which(colSums(is.na(data.explore)) > (1/3)*nrow(data.explore)) # no values with 1/3 missing
 ```
-
 check variable types
 ```{r}
 str(data.explore) # all correct
 ```
-
-
+check missing values
 ```{r}
-#check missing values
-summary(data.frame(data.explore)) # in sex and time pseudo
+summary(data.frame(data.explore)) # in sex and time.since.trauma 
 ```
-
-
+Imputation median and most prevalent category for numeric and factor variables respectively
 ```{r}
-factors.to.fix <- c("sex"#, "sex.HC"
-)
+factors.to.fix <- c("sex")
 numeric.to.fix <- c("time.since.trauma")
-
 for (i in c(1:length(numeric.to.fix))) {
-  # i=1
   numeric.to.fix[[i]] -> varname
   data.explore[is.na(data.explore[,varname]),varname] <- median(unlist(data.explore[,varname]), na.rm = T)
 }
-
-#categorical missing: substitute with most common category  {from mAP}
-categorical_mode <- function(x){
-  names(table(x))[which.max(table(x))]
-}
-
-
+#categorical missing: substitute with most common category
+categorical_mode <- function(x){names(table(x))[which.max(table(x))]}
 for (i in c(1:length(factors.to.fix))) {
-  # i=1
   factors.to.fix[[i]] -> varname
   data.explore[is.na(data.explore[,varname]),varname] <- categorical_mode(unlist(data.explore[,varname]))
 }
-
-#any missing values left?
+# Confirm absence of missing values
 summary(data.frame(data.explore))
+any(is.na(data.explore))
 ```
 
 
-```{r}
-any(is.na(data.explore)) # no
-```
+## split clinical and preclinical data 
 
-## split data 
+Comparison B [B=non-exposed vs trauma exposed no PTSD (human)] is excluded from clinical data, as the experimental group does not contain PTSD patients. Note, this comparison is used in the sensitivity analysis of the theory driven analysis. The comparison variable is also excluded from the human dataset, as the difference between comparison A [A= non-exposed vs trauma-exposed PTSD (human)] and comparison C [C=trauma-exposed (no PTSD) vs trauma-exposed PTSD (human)] is captured by the 'control type' variable (with levels unexposed, shamexposed, trauma exposed).
 
-Comparison B [B=non-exposed vs trauma exposed no PTSD (human)] is excluded from clinical data, as the experimental group does not contain PTSD patients. Note, this comparison is used in the sensitivity analysis of the theorydriven analysis. The comparison variable is also excluded from the human dataset, as the difference between comparison A [A= non-exposed vs trauma-exposed PTSD (human)] and comparison C [C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human)] is captured by the 'control type' variable (with levels unexposed, shamexposed, trauma exposed).
-
-[A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (noPTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
-
+[A= non-exposed vs trauma-exposed PTSD (human); B=non-exposed vs trauma exposed no PTSD (human); C=trauma-exposed (no PTSD) vs trauma-exposed PTSD (human); D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
 ```{r}
 data.explore %>% 
   filter(subject.cat == "Human") %>% 
   filter(comparison != "B") %>% 
   select(-c(rhythm, subject.cat, comparison)) %>%
   droplevels() ->clinical
-str(clinical)
-
 saveRDS(clinical, file='processed_data/clinical.data.explorative.RDS')
 ```
 
-Comparison is included in the preclinical dataset, as most datapoints come from comparison D and we want to explore the influence of this experimental variation. 
-
+Comparison D is included in the preclinical dataset, as most datapoints come from comparison D and we want to explore the influence of this experimental variation. 
 D=non-exposed vs trauma-exposed (no PTSD checked) (animal); E=non-exposed vs trauma-exposed PTSD (animal); F=trauma-exposed (no ptsd) vs trauma-exposed PTSD (animal)]
 ```{r}
 data.explore %>% 
   filter(subject.cat == "Animal") %>% 
   select(-subject.cat) %>%
   droplevels() ->preclinical
-str(preclinical)
 saveRDS(preclinical, file='processed_data/preclinical.data.explorative.RDS')
 ```
 
 
-# metaCART: tree-model
-- strength of the package metacart is that it can easily
-explore the interaction effects among multiple moderators
-using an interpretable tree model.
-- multi-categorical variables, it creates automatically the contrasts
-between (combinations of) categories that account for the
-highest amount of heterogeneity.
+# MetaForest Clinical
+```{r}
+set.seed(12345) # set seed to a random number
+# Set up k-fold grouped CV
+fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10))
+# Set up a custom tuning grid for the three tuning parameters of MetaForest
+rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
+                       mtry = c(2, 4, 6),
+                       min.node.size = c(2, 4, 6))
+set.seed(12345)
+# Train the model
+cv.mf.cluster.clinical <- train(y = clinical$yi, x = clinical[names(clinical) !="yi"], #from x remove yi
+                                study = "new.idPTSD", 
+                                method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
+                                trControl = fit_control.clinical,
+                                tuneGrid = rf_grid,
+                                num.trees = 500, # same var imp & convergencemet 1000 tree
+                                data=clinical)
+saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest.RDS") # save object
+# readRDS(file="processed_data/fitted.clinicalMetaForest.RDS")->cv.mf.cluster.clinical # to load later and save computation time
+```
 
-from: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods [Internet]. 2020;52(6):2657–73. Available from: http://dx.doi.org/10.3758/s13428-020-01360-0
-
-- RE model
-- c=0.5
-- first fit without lookahead -> then recommended to use lookahead = T (especially in REmrt)
-
-- maxL 10? geen advies, zelfde als hier: [1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods. 2020;52(6):2657-2673. doi:10.3758/s13428-020-01360-0]
-)
-## Clinical
-```{r metaCART clinical, eval=FALSE, warning=FALSE, include=FALSE}
-colnames(clinical)[which(!colnames(clinical) %in% c("yi", "vi", "new.idPTSD"))] ->c.vars
-paste("yi ~", paste(c.vars,collapse="+")) ->c.vars.form
-
-set.seed(38923)
-REmrt(formula(c.vars.form),
-      vi = vi, data = clinical, 
-      c=0.5,  # correctie voor type I error (p<0.05)
-      maxL=10,
-      xval=10,
-      lookahead = T
-)->REtree.C
-
-saveRDS(REtree.C, "processed_data/REtree.C.rds")
+## Tuning parameters
+```{r}
+cv.mf.cluster.clinical
 ```
 
 ```{r}
-readRDS( "processed_data/REtree.C.rds")->REtree.C
+plot(cv.mf.cluster.clinical) # 
 ```
 
-inspect warnings
+## Model convergence
 ```{r}
-REtree.C$initial.tree  
-```
-NB eerste split is NA  (ongeacht lookahead true or false), is hier ook: 1. Li X, Dusseldorp E, Su X, Meulman JJ. Multiple moderator meta-analysis using the R-package Meta-CART. Behav Res Methods. 2020;52(6):2657-2673. doi:10.3758/s13428-020-01360-0
-
-```{r }
-summary(REtree.C)
-```
-
-```{r }
-plot(REtree.C)
-```
-
-```{r}
-tiff(file="results/metaCART.clinical.tiff", height =3000, width = 3000, res=300, pointsize = 12)
-plot(REtree.C)
+tiff(file="results/metaforest_Clinical_convergence.tiff", height=800, width=800, pointsize = 8, res=300)
+plot(cv.mf.cluster.clinical$finalModel) + theme_pubr(base_size = 8)
 dev.off()
 ```
 
-## Preclinical
-```{r metaCART preclinical, eval=FALSE, warning=FALSE, include=FALSE}
+## Model summary
+```{r}
+summary(cv.mf.cluster.clinical)
+```
+
+## Cross validated R2 with SD
+```{r }
+cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights == "fixed" & 
+                                       cv.mf.cluster.clinical$results$mtry == 2 & 
+                                       cv.mf.cluster.clinical$results$min.node.size == 6),] # details with the "best" model
+```
+
+## Variable importance Plot
+```{r}
+VarImpPlot(cv.mf.cluster.clinical$finalModel) -> var.imp.plot.clinical
+tiff(file="results/metaforest_Clinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300) # save plot
+var.imp.plot.clinical+  theme_pubr(base_size = 8)
+dev.off()
+
+var.imp.plot.clinical+  theme_pubr(base_size = 12) # show plot
+```
+Note: negative variable importance (in metaforest) ~ just no relation to outcome http://developmentaldatascience.org/post/29-01-18_metaforest_no_effect/
+
+
+# MetaCART clinical
+Only 8% variance explained by MetaForest and PD plots indicate no strong moderators, therefor no MetaCART follow-up analyses performed.
+
+
+# PD plots clinical
+Select variables for PD plots
+```{r}
+# https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
+varImp(cv.mf.cluster.clinical,scale = F) ->imp.scores.clinical
+
+# export variable importance scores (ordered) to csv
+imp.clinical <- as.data.frame(imp.scores.clinical$importance)
+imp.clinical <- data.frame(overall = imp.clinical$Overall,
+                           names   = rownames(imp.clinical))
+write.csv2(imp.clinical[order(imp.clinical$overall,decreasing = T),],"results/important_variables_clinical_metaforest.csv")
+
+# # select all variables
+imp.clinical[order(imp.clinical$overall,decreasing = T),] -> important.vars.clinical
+important.vars.clinical$names ->variable.clinical
+variable.clinical
+```
+## Main PD plots
+```{r}
+# Create PD list
+PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical,
+                  bw=T, rawdata=F, pi = .95, output = 'list'
+) ->PD.list.clinical
+
+# change layout (for better readability)
+PD.list.clinical %>% 
+  map(~.x + labs(x=NULL, y=NULL)) %>% 
+  map(~.x + theme_pubr(base_size = 8)) %>%
+  map(~.x + theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1))) %>%
+  map(ggplotGrob) ->grobz.clinical
+
+  # https://stackoverflow.com/questions/35068129/arrange-ggplot-plots-grobs-with-same-widths-using-gtable-to-create-2x2-layout
+  {arrangeGrob(grobs=grobz.clinical, 
+              ncol=4,
+              left="Hedge's G", bottom = "Variable levels")->PD.clinical # https://community.rstudio.com/t/common-axis-title-in-grid-arrange/96353/2
+  grid.newpage()
+  grid.draw(PD.clinical)
+  }
+
+{tiff(file="results/metaforest_PD_clinical.tiff", height = 2000, width = 3000, res=300) # Higher quality output
+  grid.draw(PD.clinical)
+  dev.off()}
+```
+
+
+# MetaForest: Preclinical
+```{r}
+set.seed(94372) #set seeds to a random number
+# Set up k-fold grouped CV
+fit_control.preclinical <- trainControl(method = "cv", number = 10, index = groupKFold(preclinical$new.idPTSD, k = 10))
+set.seed(94372)
+# Train the model
+cv.mf.cluster.preclinical <- train(y = preclinical$yi, x = preclinical[names(preclinical) !="yi"], #from x remove yi
+                                   study = "new.idPTSD", 
+                                   method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
+                                   trControl = fit_control.preclinical,
+                                   tuneGrid = rf_grid,
+                                   num.trees = 500,
+                                   data=preclinical)
+
+saveRDS(cv.mf.cluster.preclinical,file="processed_data/fitted.preclinicalMetaForest.RDS") # Save object
+# readRDS(file="processed_data/fitted.preclinicalMetaForest.RDS")->cv.mf.cluster.preclinical # to load later and save computation time 
+```
+
+## Tuning parameters
+```{r}
+cv.mf.cluster.preclinical
+```
+
+```{r}
+plot(cv.mf.cluster.preclinical)
+```
+
+## Model convergence
+```{r}
+tiff(file="results/metaforest_Preclinical_convergence.tiff", height=800, width=800, pointsize=8, res=300)
+plot(cv.mf.cluster.preclinical$finalModel)+ theme_pubr(base_size = 8)
+dev.off()
+```
+
+## Model summary
+```{r}
+summary(cv.mf.cluster.preclinical)
+```
+
+## Cross validated R2 with SD
+```{r }
+cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichweights == "random" & 
+                                          cv.mf.cluster.preclinical$results$mtry == 6 & 
+                                          cv.mf.cluster.preclinical$results$min.node.size == 2),] # details with the "best" model
+```
+
+## Variable importance
+```{r}
+VarImpPlot(cv.mf.cluster.preclinical$finalModel) ->var.imp.plot.preclinical
+tiff(file="results/metaforest_Preclinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300) # save plot
+var.imp.plot.preclinical +  theme_pubr(base_size = 8)
+dev.off()
+
+var.imp.plot.preclinical +  theme_pubr(base_size = 12) # show plot
+```
+
+
+# MetaCART Preclinical
+```{r metaCART preclinical, warning=FALSE}
 colnames(preclinical)[which(!colnames(preclinical) %in% c("yi", "vi", "new.idPTSD"))] ->p.vars
 paste("yi ~", paste(p.vars,collapse="+")) ->p.vars.form
 
@@ -233,14 +313,9 @@ REmrt(formula(p.vars.form),
       lookahead = T
 )->REtree.P
 
-saveRDS(REtree.P, "processed_data/REtree.P.rds")
+saveRDS(REtree.P, "processed_data/REtree.P.rds") # save object
+# readRDS("processed_data/REtree.P.rds")->REtree.P # to load later, and save computation time
 ```
-
-```{r}
-readRDS("processed_data/REtree.P.rds")->REtree.P
-```
-
-
 
 inspect warnings
 ```{r}
@@ -262,287 +337,7 @@ dev.off()
 ```
 
 
-# metaForest: random forest (= multiple trees)
-
-```{r}
-ModelInfo_mf()$notes # method from metaforest
-```
-
-## Clinical
-
-```{r eval=FALSE, include=FALSE}
-# set.seed(94372) #set seeds to a random number
-set.seed(12345)
-# Set up k-fold grouped CV
-fit_control.clinical <- trainControl(method = "cv", number = 10, index = groupKFold(clinical$new.idPTSD, k = 10))
-
-# Set up a custom tuning grid for the three tuning parameters of MetaForest
-rf_grid <- expand.grid(whichweights = c("random", "fixed", "unif"),
-                       mtry = c(2, 4, 6),
-                       min.node.size = c(2, 4, 6))
-
-# set.seed(94372)
-set.seed(12345)
-# Train the model
-cv.mf.cluster.clinical <- train(y = clinical$yi, x = clinical[names(clinical) !="yi"], #from x remove yi
-                                study = "new.idPTSD", 
-                                method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
-                                trControl = fit_control.clinical,
-                                tuneGrid = rf_grid,
-                                num.trees = 500, # same var imp & convergencemet 1000 tree
-                                data=clinical)
-
-saveRDS(cv.mf.cluster.clinical,file="processed_data/fitted.clinicalMetaForest.RDS")
-```
-
-
-```{r}
-readRDS(file="processed_data/fitted.clinicalMetaForest.RDS")->cv.mf.cluster.clinical
-```
-
-### Tuning parameters
-```{r}
-cv.mf.cluster.clinical
-```
-
-```{r}
-plot(cv.mf.cluster.clinical) # 
-```
-
-### Model convergence
-```{r}
-tiff(file="results/metaforest_Clinical_convergence.tiff", height=800, width=800, pointsize = 8, res=300)
-plot(cv.mf.cluster.clinical$finalModel) + theme_pubr(base_size = 8)
-dev.off()
-```
-
-### Model summary
-```{r}
-summary(cv.mf.cluster.clinical)
-```
-
-### R(oob)
-https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
-```{r eval=FALSE, include=FALSE}
-cv.mf.cluster.clinical$finalModel
-```
-Note, R(oob) also shown in summary above
-
-### Cross validated R2 with SD
-```{r }
-cv.mf.cluster.clinical$results[which(cv.mf.cluster.clinical$results$whichweights == "fixed" & 
-                                       cv.mf.cluster.clinical$results$mtry == 2 & 
-                                       cv.mf.cluster.clinical$results$min.node.size == 6),] #details with the "best" model
-```
-
-### Variable importance
-```{r}
-VarImpPlot(cv.mf.cluster.clinical$finalModel) -> var.imp.plot.clinical
-
-tiff(file="results/metaforest_Clinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
-var.imp.plot.clinical+  theme_pubr(base_size = 8)
-# +  geom_hline(yintercept=11.5) +
-#   annotate(geom="text", x=0.0017, y=12.5, label="Top 50%", color="darkblue")
-dev.off()
-
-var.imp.plot.clinical+  theme_pubr(base_size = 12)
-```
-
-negative variable importance (in metaforest) ~ just no relation to outcome
-http://developmentaldatascience.org/post/29-01-18_metaforest_no_effect/
-
-### PD plots
-
-```{r}
-# https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
-varImp(cv.mf.cluster.clinical,scale = F) ->imp.scores.clinical
-
-
-# export variable importance scores (ordered) to csv
-imp.clinical <- as.data.frame(imp.scores.clinical$importance)
-imp.clinical <- data.frame(overall = imp.clinical$Overall,
-                           names   = rownames(imp.clinical))
-write.csv2(imp.clinical[order(imp.clinical$overall,decreasing = T),],"results/important_variables_clinical_metaforest.csv")
-
-# # select all variables
-imp.clinical[order(imp.clinical$overall,decreasing = T),] -> important.vars.clinical
-# slice_head(.,n=nrow(.) / 2)
-
-# select top-3 most important variables
-# top_n(imp.clinical,n=3, wt=overall)->important.vars.clinical
-
-important.vars.clinical$names ->variable.clinical
-variable.clinical
-
-# saveRDS(variable,"processed_data/important_variables.RDS")
-```
-
-#### Main PD plots
-```{r}
-# Create PD list
-PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, #moderator =  "phase",
-                  bw=T,
-                  rawdata=F, pi = .95,
-                  output = 'list'
-) ->PD.list.clinical
-
-# change layout (for better read ability)
-PD.list.clinical %>% 
-  map(~.x + labs(x=NULL, y=NULL)) %>% 
-  map(~.x + theme_pubr(base_size = 8)) %>%
-  map(~.x + theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1))) %>%
-  # map(~.x +  facet_grid(scales="free_y") ) %>% # not better
-  map(ggplotGrob) ->grobz.clinical # remove y pabs
-
-
-# PD.list.clinical %>% 
-#   map(~.x + theme(axis.text.x = element_text(angle = 20,hjust = 1,vjust = 1))) 
-# g <- 
-# do.call(gridExtra::gtable_rbind, grobz.clinical)->g
-
-{
-  # grobz.clinical <- lapply(PD.list.clinical, ggplotGrob) # https://stackoverflow.com/questions/35068129/arrange-ggplot-plots-grobs-with-same-widths-using-gtable-to-create-2x2-layout
-  arrangeGrob(grobs=grobz.clinical, 
-              # heights = c(1,1,1,1#,
-              #                # 1,1,1,1,
-              #                # 1,1,1,1
-              #                ),
-              # aligned=T, # no effect
-              # respect = F,
-              ncol=4, #nrow=4, 
-              left="Hedge's G", bottom = "Variable levels")->PD.clinical # https://community.rstudio.com/t/common-axis-title-in-grid-arrange/96353/2
-  grid.newpage()
-  grid.draw(PD.clinical)
-}
-
-# gtable_align(PD.clinical)
-
-{tiff(file="results/metaforest_PD_clinical.tiff", height = 2000, width = 3000, res=300) # Higher quality output
-  grid.draw(PD.clinical)
-  dev.off()}
-```
-
-
-
-#### Clinical PD by phase
-```{r}
-# {jpeg(file="results/metaforest_PD_byPhase_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "phase",rawdata=F, pi = .95) 
-#scale_fill_viridis(discrete = TRUE, begin = 0.1, end = 0.9 , option = "cividis")
-# dev.off()}
-```
-
-#### Clinical PD by valence
-```{r}
-# {jpeg(file="results/metaforest_PD_byValence_clinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.clinical$finalModel, vars = variable.clinical, moderator =  "valence",rawdata=F, pi = .95)
-# dev.off()}
-```
-
-Clinical weighted scatter
-```{r}
-# WeightedScatter(clinical, yi = "yi", vi = "vi", vars = variable.clinical, summarize = TRUE)
-```
-
-
-#### interactions from metaCART
-```{r}
-PartialDependence(cv.mf.cluster.clinical$finalModel, 
-                  vars=c("sample", "information.type"), moderator = "age", 
-                  bw=F, rawdata=F, pi = .95, output = 'list')->PD.list.clinical.metacart
-
-PD.list.clinical.metacart %>% 
-  map(~.x + labs(x=NULL, y=NULL)) %>% 
-  map(~.x + theme_pubr(base_size = 8)) %>%
-  map(~.x + theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1))) %>%
-   map(~.x + scale_color_viridis (discrete = TRUE, #begin = 0.1, end = 0.9 , 
-                          option = "cividis") ) %>% 
-  map(ggplotGrob) ->grobz.clinical.metacart # remove y pabs
-
-{arrangeGrob(grobs=grobz.clinical.metacart,
-              ncol=2,
-              left="Hedge's G", bottom = "Variable levels")->PD.clinical.metacart # https://community.rstudio.com/t/common-axis-title-in-grid-arrange/96353/2
-  grid.newpage()
-  grid.draw(PD.clinical.metacart)
-}
-
-{tiff(file="results/metaforest_PD_clinical_metaCARTfollowup.tiff", height = 1000, width = 2500, res=300) # Higher quality output
-  grid.draw(PD.clinical.metacart)
-  dev.off()}
-```
-
-
-## Preclinical
-```{r eval=FALSE, include=FALSE}
-set.seed(94372) #set seeds to a random number
-# Set up k-fold grouped CV
-fit_control.preclinical <- trainControl(method = "cv", number = 10, index = groupKFold(preclinical$new.idPTSD, k = 10)) # warning with 10-fold crossvalidation "Warning message: In nominalTrainWorkflow(x = x, y = y, wts = weights, info = trainInfo,  :There were missing values in resampled performance measures."
-
-set.seed(94372)
-# Train the model
-cv.mf.cluster.preclinical <- train(y = preclinical$yi, x = preclinical[names(preclinical) !="yi"], #from x remove yi
-                                   study = "new.idPTSD", 
-                                   method = ModelInfo_mf(), #= method from metaforest. https://rdrr.io/cran/metaforest/man/MetaForest.html
-                                   trControl = fit_control.preclinical,
-                                   tuneGrid = rf_grid,
-                                   num.trees = 500,
-                                   data=preclinical)
-
-saveRDS(cv.mf.cluster.preclinical,file="processed_data/fitted.preclinicalMetaForest.RDS")
-```
-
-```{r}
-readRDS(file="processed_data/fitted.preclinicalMetaForest.RDS")->cv.mf.cluster.preclinical
-```
-
-### Tuning parameters
-```{r}
-cv.mf.cluster.preclinical
-```
-
-```{r}
-plot(cv.mf.cluster.preclinical) # 
-```
-
-### Model convergence
-```{r}
-tiff(file="results/metaforest_Preclinical_convergence.tiff", height=800, width=800, pointsize=8, res=300)
-plot(cv.mf.cluster.preclinical$finalModel)+ theme_pubr(base_size = 8)
-dev.off()
-```
-
-### Model summary
-```{r}
-summary(cv.mf.cluster.preclinical)
-```
-
-### R(oob)
-https://towardsdatascience.com/what-is-out-of-bag-oob-score-in-random-forest-a7fa23d710
-```{r eval=FALSE, include=FALSE}
-cv.mf.cluster.preclinical$finalModel
-```
-Note, R(oob) also shown in summary above
-
-### Cross validated R2 with SD
-```{r }
-cv.mf.cluster.preclinical$results[which(cv.mf.cluster.preclinical$results$whichweights == "random" & 
-                                          cv.mf.cluster.preclinical$results$mtry == 6 & 
-                                          cv.mf.cluster.preclinical$results$min.node.size == 2),] #details with the "best" model
-```
-
-### Variable importance
-```{r}
-VarImpPlot(cv.mf.cluster.preclinical$finalModel) ->var.imp.plot.preclinical
-
-tiff(file="results/metaforest_Preclinical_varImportance.tiff", height=1000, width=1000, pointsize=8, res=300)
-var.imp.plot.preclinical +  theme_pubr(base_size = 8)
-dev.off()
-
-var.imp.plot.preclinical +  theme_pubr(base_size = 12)
-```
-
-
-### PD plots
+# PD plots preclinical
 ```{r}
 # https://www.rdocumentation.org/packages/metaforest/versions/0.1.3
 varImp(cv.mf.cluster.preclinical,scale = F) ->imp.scores.preclinical
@@ -555,21 +350,15 @@ write.csv2(imp.preclinical[order(imp.preclinical$overall,decreasing = T),],"resu
 
 # select all variables
 imp.preclinical[order(imp.preclinical$overall,decreasing = T),] -> important.vars.preclinical
-# slice_head(.,n=nrow(.) / 2)
-
-# select top-3 most important variables
-# top_n(imp.preclinical,n=3, wt=overall)->important.vars.preclinical
-
 important.vars.preclinical$names ->variable.preclinical
 variable.preclinical
-# saveRDS(variable.preclinical,"processed_data/important_preclinical_variables.RDS")
 ```
 
-#### Main PD plots
+## Main PD plots
 ```{r}
 PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, bw=T, rawdata=F, pi = .95, output = 'list') ->PD.list.preclinical
 
-# change layout  (for better read ability)
+# change layout  (for better readability)
 PD.list.preclinical %>% 
   map(~.x + labs(x=NULL, y=NULL)) %>% 
   map(~.x + theme_pubr(base_size = 8)) %>%
@@ -589,21 +378,7 @@ PD.list.preclinical %>%
   dev.off()}
 ```
 
-#### Preclinical PD by phase
-```{r}
-# {jpeg(file="results/metaforest_PD_byPhase_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "phase",rawdata=F, pi = .95)
-# dev.off()}
-```
-#### Preclinical PD by valence
-```{r}
-# {jpeg(file="results/metaforest_PD_byValence_preclinical.jpeg", height = 1500, width = 5000, res=300) # Higher quality output
-PartialDependence(cv.mf.cluster.preclinical$finalModel, vars = variable.preclinical, moderator =  "valence",rawdata=F, pi = .95)
-# dev.off()}
-```
-
-#### interactions from metaCART
-
+## PD plot with metaCART interactions
 ```{r}
 PartialDependence(cv.mf.cluster.preclinical$finalModel, 
                   vars=c("ptsd.type", "phase"), moderator = "information.type", 
@@ -630,25 +405,17 @@ PD.list.preclinical.metacart %>%
 ```
 
 
-```{r eval=FALSE, include=FALSE}
-WeightedScatter(preclinical, yi = "yi", vi = "vi", vars = variable.preclinical, summarize = TRUE)
-```
-
-
-### Combine plots preclinical and clinical
-
+# Combine plots preclinical and clinical
 ```{r}
 ggarrange(
   var.imp.plot.clinical + labs(title = "A) Clinical data") + theme_pubr(base_size = 8),
   var.imp.plot.preclinical + labs(title = "B) Preclinical data") + theme_pubr(base_size = 8) + rremove("ylab"),
-  # plot(REtree.C)+  theme_pubr(base_size = 12), # werkt niet
   ncol =2, nrow=1
 ) ->var.imp.plots
-
 var.imp.plots
 ```
 
-#### Save Var imp clinical and preclinical data together
+## Save Var imp clinical and preclinical data together
 ```{r}
 ggsave("results/VarImp.clinical.preclinical.tiff", 
        plot=var.imp.plots,
