@@ -62,3 +62,4 @@
 #### Visualize QA
 - script: `visualize_QA.Rmd`
 - input: `TRACE_QA_animal.RData`, `TRACE_QA_human.RData`, `clinical.data.metaregression.RDS` `preclinical.data.metaregression.RDS` (Note: these objects are outputs from `prepare_QA.RMD` and `meta_regression.rmd`)
+- output: `RoB.jpeg`
