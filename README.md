@@ -1,5 +1,6 @@
 Systematic review and meta-analysis as described in:
 - Milou S.C. Sep, Elbert Geuze, Marian Joëls. *Impaired learning, memory, and extinction in posttraumatic stress disorder: translational meta-analysis of clinical and preclinical studies*. medRxiv 2021.07.19.21260790; doi: https://doi.org/10.1101/2021.07.19.21260790 [preprint]
+- Sep, M.S.C., Geuze, E. & Joëls, M. Impaired learning, memory, and extinction in posttraumatic stress disorder: translational meta-analysis of clinical and preclinical studies. Transl Psychiatry 13, 376 (2023). https://doi.org/10.1038/s41398-023-02660-7
 
 ## Index
 _ `README.md`: an overview of the project    
